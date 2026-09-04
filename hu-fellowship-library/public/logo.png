@@ -1,0 +1,3347 @@
+# MASTER AI CODING PROMPT
+
+## HU Fellowship Library — Church/Fellowship Book Borrowing & Summer Bible Study Notes System
+
+You are a senior full-stack software engineer, system architect, UI/UX designer, database engineer, and QA engineer.
+
+Build a complete, production-ready web application called:
+
+# HU Fellowship Library
+
+The application is a small digital library system for a church/Bible study fellowship. Members can browse books and **Summer Bible Study Notes**, borrow physical books, return them, and download digital/softcopy materials.
+
+The system must be simple, clean, responsive, secure, and easy for fellowship members and administrators to use.
+
+---
+
+# 1. PROJECT OBJECTIVE
+
+HU Fellowship Library manages books and study materials belonging to the fellowship.
+
+The system must support two types of materials:
+
+### 1. Hardcopy
+
+Physical books that members can borrow.
+
+Workflow:
+
+```text
+Register
+   ↓
+Login
+   ↓
+Browse Library
+   ↓
+View Book
+   ↓
+Request Book
+   ↓
+Book Becomes Reserved/Unavailable
+   ↓
+Admin Reviews Request
+   ↓
+Approve
+   ↓
+Member Borrows Book
+   ↓
+Member Requests Return
+   ↓
+Admin Confirms Return
+   ↓
+Book Becomes Available Again
+```
+
+### 2. Softcopy
+
+Digital materials such as PDFs and EPUBs.
+
+Workflow:
+
+```text
+Browse
+   ↓
+View Material
+   ↓
+Download
+   ↓
+Read
+```
+
+Softcopy materials do NOT require borrowing approval and do NOT affect physical availability.
+
+---
+
+# 2. BRANDING
+
+## Application Name
+
+**HU Fellowship Library**
+
+Use this exact name throughout the application.
+
+Do NOT use:
+
+* Church Library
+* Bible Study Library
+* HU Bible Library
+* Generic Library
+
+The official application name must be:
+
+**HU Fellowship Library**
+
+---
+
+# 3. OFFICIAL LOGO
+
+Use the uploaded HU Fellowship logo as the official application logo.
+
+The logo provided by the user contains the fellowship branding with:
+
+* Open Bible
+* Cross
+* "BS" visual branding
+
+Treat the uploaded logo as the official logo.
+
+## Logo requirements
+
+Do not:
+
+* Redesign the logo
+* Recreate the logo
+* Change the cross
+* Change the typography inside the logo
+* Distort the proportions
+* Add unnecessary effects
+* Replace it with an AI-generated logo
+
+Use the provided logo asset.
+
+Place the logo in the project, for example:
+
+```text
+client/
+└── public/
+    └── logo.png
+```
+
+If the uploaded file has another filename, copy/rename it to an appropriate asset such as:
+
+```text
+logo.png
+```
+
+Use the actual uploaded logo.
+
+The logo should appear on:
+
+* Public navbar
+* Login page
+* Registration page
+* Member dashboard
+* Admin dashboard
+* Sidebar
+* Mobile navigation
+* Footer where appropriate
+
+On small screens, the logo can be displayed at a smaller size while maintaining its aspect ratio.
+
+---
+
+# 4. IMPORTANT CATEGORY
+
+The main study-material category must be:
+
+# Summer Bible Study Notes
+
+If an old category named:
+
+```text
+Bible Study
+```
+
+exists in the initial seed data or UI, replace it with:
+
+```text
+Summer Bible Study Notes
+```
+
+Do NOT display "Bible Study" as the category name.
+
+Example:
+
+```text
+Category: Summer Bible Study Notes
+```
+
+The category must be managed through the normal category management system.
+
+Admins can:
+
+* Create categories
+* Edit categories
+* Delete categories
+* View categories
+
+---
+
+# 5. TECHNOLOGY STACK
+
+Use the following technologies.
+
+## Frontend
+
+* React
+* Vite
+* Tailwind CSS
+* React Router
+* Axios
+* Context API
+* JavaScript/JSX
+
+Do not unnecessarily introduce Redux.
+
+## Backend
+
+* Node.js
+* Express.js
+
+## Database
+
+* MySQL
+
+## Authentication
+
+* JWT
+* bcrypt
+
+## Backend packages
+
+Use:
+
+```text
+express
+mysql2
+bcrypt
+jsonwebtoken
+dotenv
+cors
+multer
+```
+
+You may add other lightweight packages only when genuinely necessary.
+
+---
+
+# 6. ARCHITECTURE
+
+Use a clean client-server architecture:
+
+```text
+React Frontend
+       ↓
+Axios
+       ↓
+REST API
+       ↓
+Express Backend
+       ↓
+Services
+       ↓
+MySQL Database
+```
+
+Backend architecture:
+
+```text
+Routes
+   ↓
+Middleware
+   ↓
+Controllers
+   ↓
+Services
+   ↓
+Database
+```
+
+Keep business logic out of route files whenever possible.
+
+---
+
+# 7. USER ROLES
+
+The system has two roles.
+
+## Member
+
+Members can:
+
+* Register
+* Login
+* View profile
+* Edit profile
+* Browse books
+* Search books
+* Filter books
+* View book details
+* Request hardcopy books
+* View their requests
+* View active borrowings
+* Request return
+* View borrowing history
+* Download softcopy materials
+
+## Admin
+
+Admins can:
+
+* Login
+* View dashboard
+* Manage books
+* Manage categories
+* Manage members
+* Manage borrowing requests
+* Approve requests
+* Reject requests
+* Manage active borrowings
+* Confirm returns
+* View reports
+* View library statistics
+* Upload book covers
+* Upload softcopy files
+
+---
+
+# 8. USER REGISTRATION
+
+Registration fields:
+
+```text
+Full Name *
+Email *
+Phone Number *
+Password *
+Confirm Password *
+School Year *
+Department *
+```
+
+All fields except optional administrative fields should be properly validated.
+
+After successful registration:
+
+```text
+Registration
+     ↓
+Account Created
+     ↓
+Login
+     ↓
+Member Dashboard
+```
+
+New users must have:
+
+```text
+role = member
+status = active
+```
+
+Never allow users to register themselves as administrators.
+
+---
+
+# 9. USER PROFILE
+
+Member profile should contain:
+
+```text
+Full Name
+Email
+Phone Number
+School Year
+Department
+Account Status
+Registration Date
+```
+
+Members can update their personal information except sensitive administrative fields such as:
+
+* role
+* account status
+
+Only administrators can change those.
+
+---
+
+# 10. BOOK TYPES
+
+Every library item must have:
+
+```text
+book_type
+```
+
+with:
+
+```text
+hardcopy
+softcopy
+```
+
+---
+
+# 11. HARDCOPY BOOKS
+
+Hardcopy books represent physical copies.
+
+Required information:
+
+```text
+Title
+Author
+ISBN
+Category
+Book Type
+Description
+Publisher
+Publication Year
+Quantity
+Available Quantity
+Cover Image
+Location
+```
+
+For hardcopy:
+
+```text
+quantity >= 1
+available_quantity >= 0
+available_quantity <= quantity
+```
+
+When a hardcopy book is first created:
+
+```text
+available_quantity = quantity
+```
+
+---
+
+# 12. SOFTCOPY MATERIALS
+
+Softcopy materials represent downloadable digital resources.
+
+Required information:
+
+```text
+Title
+Author
+Category
+Book Type
+Description
+Cover Image
+File
+```
+
+Supported initial file types:
+
+```text
+PDF
+EPUB
+```
+
+For softcopy:
+
+```text
+quantity = NULL
+available_quantity = NULL
+```
+
+A softcopy must have:
+
+```text
+file_url
+```
+
+Softcopy materials do not require borrowing.
+
+---
+
+# 13. SUMMER BIBLE STUDY NOTES
+
+The system must specifically support:
+
+# Summer Bible Study Notes
+
+These are digital or physical Bible-study materials that can be stored in the library.
+
+Examples:
+
+```text
+Summer Bible Study Notes
+Summer Bible Study Guide
+Summer Bible Study Material
+Bible Study Handouts
+```
+
+The main category requested for this project is:
+
+**Summer Bible Study Notes**
+
+Members should be able to filter/search for these materials.
+
+Example book card:
+
+```text
+[Cover]
+
+Knowing God
+
+Author: J.I. Packer
+
+Category:
+Summer Bible Study Notes
+
+Type:
+Hardcopy
+
+Available
+```
+
+For a digital study note:
+
+```text
+[Cover]
+
+Summer Bible Study Notes
+
+Category:
+Summer Bible Study Notes
+
+Type:
+Softcopy
+
+[Download]
+```
+
+---
+
+# 14. HARD COPY REQUEST SYSTEM
+
+A member can request a hardcopy book only if:
+
+* The book is hardcopy
+* The book is available
+* The member does not already have an active borrowing for that book
+* The member does not already have a pending request for that book
+* The member's account is active
+
+---
+
+# 15. REQUEST FORM
+
+When a member clicks:
+
+```text
+Request Book
+```
+
+show:
+
+```text
+Request Book
+
+Book:
+[Book Title]
+
+Full Name *
+[Prefilled from profile]
+
+Phone Number *
+[Prefilled from profile]
+
+School Year *
+[Prefilled from profile]
+
+Department *
+[Prefilled from profile]
+
+[Cancel] [Send Request]
+```
+
+These fields should be prefilled from the member profile.
+
+The member should be able to review them before submitting.
+
+Store a snapshot of these fields in the borrowing request.
+
+This is important because the member's profile may change later.
+
+---
+
+# 16. CRITICAL AVAILABILITY RULE
+
+This is one of the most important business rules.
+
+When a member successfully submits a hardcopy request, that physical copy must immediately become unavailable to other members.
+
+Example:
+
+```text
+Book quantity = 1
+Available = 1
+```
+
+Member A requests it.
+
+Immediately:
+
+```text
+Available = 0
+```
+
+Even while the request is pending, Member B must NOT be allowed to request the same available copy.
+
+If the admin rejects Member A's request:
+
+```text
+Available = 1
+```
+
+If the admin approves Member A's request:
+
+```text
+Available remains 0
+```
+
+When Member A eventually returns the book:
+
+```text
+Available = 1
+```
+
+---
+
+# 17. TRANSACTIONAL RESERVATION
+
+The backend must handle reservation safely using a database transaction.
+
+When creating a request, use a conditional update such as:
+
+```sql
+UPDATE books
+SET available_quantity = available_quantity - 1
+WHERE id = ?
+  AND book_type = 'hardcopy'
+  AND available_quantity > 0;
+```
+
+Then check the affected rows.
+
+If:
+
+```text
+affectedRows = 1
+```
+
+continue creating the request.
+
+If:
+
+```text
+affectedRows = 0
+```
+
+reject the request because the book is unavailable.
+
+Do NOT trust the frontend availability value.
+
+The backend must enforce availability.
+
+If any part of the request transaction fails:
+
+```text
+ROLLBACK
+```
+
+---
+
+# 18. DUPLICATE REQUEST PROTECTION
+
+A member cannot have multiple pending requests for the same book.
+
+Before creating a request, check:
+
+```text
+user_id
+book_id
+status = pending
+```
+
+Also prevent requesting a book that the member is currently borrowing.
+
+---
+
+# 19. REQUEST APPROVAL
+
+When the admin approves a pending request:
+
+1. Start database transaction.
+2. Lock/check the request.
+3. Verify status is `pending`.
+4. Verify book is `hardcopy`.
+5. Verify the reservation exists.
+6. Create borrowing record.
+7. Set request status to `approved`.
+8. Set processed date.
+9. Set processed_by.
+10. Commit.
+
+IMPORTANT:
+
+Because availability was already decreased when the request was created, do NOT decrease it again during approval.
+
+---
+
+# 20. REQUEST REJECTION
+
+When an admin rejects a pending request:
+
+Admin must optionally provide:
+
+```text
+Rejection Reason
+```
+
+Then:
+
+1. Start transaction.
+2. Verify request is pending.
+3. Set request to rejected.
+4. Store rejection reason.
+5. Restore the reserved copy:
+
+```sql
+UPDATE books
+SET available_quantity = available_quantity + 1
+WHERE id = ?;
+```
+
+6. Store processed time.
+7. Store admin ID.
+8. Commit.
+
+---
+
+# 21. BORROWING PERIOD
+
+Default borrowing period:
+
+```text
+14 days
+```
+
+Make this configurable through environment/configuration.
+
+Example:
+
+```text
+DEFAULT_BORROWING_DAYS=14
+```
+
+When an admin approves a request:
+
+```text
+borrowed_at = current timestamp
+due_date = borrowed_at + 14 days
+```
+
+---
+
+# 22. BORROWING RECORD
+
+Each approved physical book must create a borrowing record.
+
+Fields:
+
+```text
+id
+user_id
+book_id
+borrowed_at
+due_date
+returned_at
+status
+return_requested_at
+notes
+```
+
+Statuses:
+
+```text
+borrowed
+returned
+overdue
+```
+
+---
+
+# 23. RETURN PROCESS
+
+A member must not directly mark a book as returned.
+
+Instead:
+
+```text
+Member
+   ↓
+Request Return
+   ↓
+Admin
+   ↓
+Confirm Return
+   ↓
+Book Available Again
+```
+
+When a member requests return:
+
+```text
+return_requested_at = current timestamp
+```
+
+When admin confirms:
+
+```text
+status = returned
+returned_at = current timestamp
+```
+
+Then:
+
+```text
+available_quantity = available_quantity + 1
+```
+
+Use a transaction.
+
+---
+
+# 24. OVERDUE BOOKS
+
+If:
+
+```text
+current date > due_date
+```
+
+and:
+
+```text
+status = borrowed
+```
+
+the system should identify it as overdue.
+
+Display:
+
+```text
+Overdue
+```
+
+with appropriate warning styling.
+
+The admin dashboard should show:
+
+```text
+Overdue Borrowings
+```
+
+---
+
+# 25. SOFTCOPY DOWNLOAD
+
+Softcopy materials can be downloaded immediately.
+
+No request is required.
+
+No approval is required.
+
+No borrowing record is created.
+
+Availability is not reduced.
+
+Recommended endpoint:
+
+```text
+GET /api/books/:id/download
+```
+
+Backend must:
+
+1. Authenticate user if required.
+2. Find book.
+3. Verify book type is `softcopy`.
+4. Verify file exists.
+5. Verify file is allowed.
+6. Return/download the file.
+
+---
+
+# 26. FILE UPLOAD SECURITY
+
+Allowed initial files:
+
+```text
+.pdf
+.epub
+```
+
+Validate:
+
+* File extension
+* MIME type
+* File size
+* Generated filename
+* Upload directory
+
+Do not allow executable files.
+
+Never trust the original filename.
+
+Generate safe filenames.
+
+Example:
+
+```text
+uuid-book.pdf
+```
+
+Store uploads:
+
+```text
+server/
+└── uploads/
+    ├── book-covers/
+    └── book-files/
+```
+
+Do not commit private uploaded files to Git.
+
+---
+
+# 27. DATABASE DESIGN
+
+Create database:
+
+```text
+********
+```
+
+Use MySQL.
+
+---
+
+# 28. USERS TABLE
+
+Use:
+
+```sql
+CREATE TABLE users (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(100) NOT NULL,
+    email VARCHAR(150) NOT NULL UNIQUE,
+    phone VARCHAR(30) NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    school_year VARCHAR(30) NOT NULL,
+    department VARCHAR(150) NOT NULL,
+    role ENUM('member', 'admin') DEFAULT 'member',
+    status ENUM('active', 'inactive') DEFAULT 'active',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        ON UPDATE CURRENT_TIMESTAMP
+);
+```
+
+---
+
+# 29. CATEGORIES TABLE
+
+```sql
+CREATE TABLE categories (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(100) NOT NULL UNIQUE,
+    description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+Seed the database with:
+
+```text
+Summer Bible Study Notes
+```
+
+You may also include useful categories such as:
+
+```text
+Christian Living
+Bible Commentary
+Theology
+Devotional
+Leadership
+Biography
+```
+
+But ensure:
+
+```text
+Summer Bible Study Notes
+```
+
+exists.
+
+---
+
+# 30. BOOKS TABLE
+
+Use:
+
+```sql
+CREATE TABLE books (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    title VARCHAR(255) NOT NULL,
+    author VARCHAR(150) NOT NULL,
+    isbn VARCHAR(50),
+    category_id INT,
+    book_type ENUM('hardcopy', 'softcopy') NOT NULL,
+    description TEXT,
+    publisher VARCHAR(150),
+    publication_year INT,
+    quantity INT NULL,
+    available_quantity INT NULL,
+    cover_image VARCHAR(500),
+    file_url VARCHAR(500),
+    location VARCHAR(150),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        ON UPDATE CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (category_id)
+        REFERENCES categories(id)
+        ON DELETE SET NULL
+);
+```
+
+---
+
+# 31. BORROWING REQUESTS TABLE
+
+Use:
+
+```sql
+CREATE TABLE borrowing_requests (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    user_id INT NOT NULL,
+    book_id INT NOT NULL,
+
+    requester_name VARCHAR(100) NOT NULL,
+    phone_number VARCHAR(30) NOT NULL,
+    school_year VARCHAR(30) NOT NULL,
+    department VARCHAR(150) NOT NULL,
+
+    requested_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    status ENUM(
+        'pending',
+        'approved',
+        'rejected'
+    ) DEFAULT 'pending',
+
+    rejection_reason TEXT,
+
+    processed_at TIMESTAMP NULL,
+    processed_by INT NULL,
+
+    FOREIGN KEY (user_id)
+        REFERENCES users(id),
+
+    FOREIGN KEY (book_id)
+        REFERENCES books(id),
+
+    FOREIGN KEY (processed_by)
+        REFERENCES users(id)
+);
+```
+
+---
+
+# 32. BORROWINGS TABLE
+
+```sql
+CREATE TABLE borrowings (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    user_id INT NOT NULL,
+    book_id INT NOT NULL,
+
+    borrowed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    due_date DATE NOT NULL,
+    returned_at TIMESTAMP NULL,
+
+    status ENUM(
+        'borrowed',
+        'returned',
+        'overdue'
+    ) DEFAULT 'borrowed',
+
+    return_requested_at TIMESTAMP NULL,
+
+    notes TEXT,
+
+    FOREIGN KEY (user_id)
+        REFERENCES users(id),
+
+    FOREIGN KEY (book_id)
+        REFERENCES books(id)
+);
+```
+
+---
+
+# 33. DATABASE INDEXES
+
+Add appropriate indexes:
+
+```sql
+CREATE INDEX idx_books_title
+ON books(title);
+
+CREATE INDEX idx_books_author
+ON books(author);
+
+CREATE INDEX idx_books_category
+ON books(category_id);
+
+CREATE INDEX idx_books_type
+ON books(book_type);
+
+CREATE INDEX idx_borrowings_user
+ON borrowings(user_id);
+
+CREATE INDEX idx_borrowings_book
+ON borrowings(book_id);
+
+CREATE INDEX idx_borrowings_status
+ON borrowings(status);
+
+CREATE INDEX idx_requests_user
+ON borrowing_requests(user_id);
+
+CREATE INDEX idx_requests_book
+ON borrowing_requests(book_id);
+
+CREATE INDEX idx_requests_status
+ON borrowing_requests(status);
+```
+
+---
+
+# 34. API DESIGN
+
+## Authentication
+
+```text
+POST /api/auth/register
+POST /api/auth/login
+GET  /api/auth/me
+POST /api/auth/logout
+```
+
+---
+
+# 35. BOOK API
+
+```text
+GET    /api/books
+GET    /api/books/:id
+POST   /api/books
+PUT    /api/books/:id
+DELETE /api/books/:id
+GET    /api/books/:id/download
+```
+
+Admin-only:
+
+```text
+POST /api/books
+PUT /api/books/:id
+DELETE /api/books/:id
+```
+
+---
+
+# 36. CATEGORY API
+
+```text
+GET    /api/categories
+GET    /api/categories/:id
+POST   /api/categories
+PUT    /api/categories/:id
+DELETE /api/categories/:id
+```
+
+Create/update/delete should require admin authorization.
+
+---
+
+# 37. BORROWING REQUEST API
+
+```text
+POST /api/borrowing-requests
+GET  /api/borrowing-requests/my
+GET  /api/borrowing-requests
+PUT  /api/borrowing-requests/:id/approve
+PUT  /api/borrowing-requests/:id/reject
+```
+
+---
+
+# 38. BORROWING API
+
+```text
+GET  /api/borrowings/my
+GET  /api/borrowings
+POST /api/borrowings/:id/request-return
+PUT  /api/borrowings/:id/return
+```
+
+---
+
+# 39. USER API
+
+```text
+GET /api/users
+GET /api/users/:id
+PUT /api/users/:id
+PUT /api/users/:id/status
+```
+
+Admin-only where appropriate.
+
+---
+
+# 40. DASHBOARD API
+
+```text
+GET /api/dashboard/statistics
+```
+
+Return statistics such as:
+
+```text
+Total Books
+Hardcopy Books
+Softcopy Materials
+Available Books
+Borrowed Books
+Pending Requests
+Overdue Books
+Total Members
+```
+
+---
+
+# 41. FRONTEND ROUTES
+
+## Public routes
+
+```text
+/
+ /books
+ /books/:id
+ /login
+ /register
+```
+
+## Member routes
+
+```text
+/member/dashboard
+/member/books
+/member/borrowings
+/member/history
+/member/profile
+/member/requests
+```
+
+## Admin routes
+
+```text
+/admin/dashboard
+/admin/books
+/admin/categories
+/admin/members
+/admin/requests
+/admin/borrowings
+/admin/reports
+/admin/settings
+```
+
+---
+
+# 42. HOME PAGE
+
+Create a professional landing page.
+
+Header:
+
+```text
+[HU Fellowship Logo]
+
+HU Fellowship Library
+
+Home
+Library
+Login
+Register
+```
+
+Hero section:
+
+```text
+HU Fellowship Library
+
+Read. Learn. Grow.
+
+Access books and Summer Bible Study Notes
+from the fellowship library.
+```
+
+Buttons:
+
+```text
+Browse Library
+Login
+```
+
+Add a short explanation of the library.
+
+---
+
+# 43. LIBRARY PAGE
+
+The library page should contain:
+
+```text
+Library
+
+[Search books...]
+
+[Category ▼]
+
+[Type ▼]
+
+[Availability ▼]
+```
+
+Book grid.
+
+Desktop:
+
+```text
+4 cards per row
+```
+
+Tablet:
+
+```text
+2 cards per row
+```
+
+Mobile:
+
+```text
+1 card per row
+```
+
+---
+
+# 44. BOOK CARD
+
+Example:
+
+```text
+┌─────────────────────────┐
+│                         │
+│        BOOK COVER       │
+│                         │
+├─────────────────────────┤
+│ Knowing God             │
+│ J.I. Packer             │
+│                         │
+│ Summer Bible Study Notes│
+│                         │
+│ Hardcopy                │
+│ Available               │
+│                         │
+│ [View Details]           │
+└─────────────────────────┘
+```
+
+For softcopy:
+
+```text
+Softcopy
+[Download]
+```
+
+---
+
+# 45. BOOK DETAILS PAGE
+
+Display:
+
+```text
+Book Cover
+
+Title
+Author
+Category
+Type
+Description
+Publisher
+Publication Year
+ISBN
+Location
+Availability
+```
+
+Hardcopy:
+
+```text
+Available
+[Request Book]
+```
+
+Unavailable:
+
+```text
+Currently Unavailable
+```
+
+Softcopy:
+
+```text
+Digital Material
+[Download]
+```
+
+---
+
+# 46. MEMBER DASHBOARD
+
+Show:
+
+```text
+Welcome back!
+
+Total Borrowed
+Pending Requests
+Due Soon
+Overdue
+```
+
+Then:
+
+```text
+My Active Borrowings
+Recent Requests
+Recommended/Recent Books
+```
+
+Use cards and clear status badges.
+
+---
+
+# 47. MEMBER BORROWINGS PAGE
+
+Display:
+
+```text
+Book
+Borrowed Date
+Due Date
+Status
+Return
+```
+
+Example:
+
+```text
+Knowing God
+Borrowed: Sept 1
+Due: Sept 15
+
+Status: Borrowed
+
+[Request Return]
+```
+
+---
+
+# 48. MEMBER HISTORY
+
+Display returned books:
+
+```text
+Book
+Borrowed Date
+Returned Date
+Status
+```
+
+---
+
+# 49. MEMBER REQUESTS PAGE
+
+Show:
+
+```text
+Book
+Requested Date
+Status
+```
+
+Statuses:
+
+```text
+Pending
+Approved
+Rejected
+```
+
+For rejected requests:
+
+```text
+Reason
+```
+
+---
+
+# 50. ADMIN DASHBOARD
+
+Create an admin dashboard with:
+
+```text
+Total Members
+Total Books
+Hardcopy Books
+Softcopy Materials
+Available Books
+Borrowed Books
+Pending Requests
+Overdue Books
+```
+
+Include quick actions:
+
+```text
+Add Book
+Add Category
+View Requests
+View Members
+View Borrowings
+```
+
+---
+
+# 51. ADMIN BOOK MANAGEMENT
+
+Admin page:
+
+```text
+Books
+
+[Search...]
+
+[Add Book]
+```
+
+Table:
+
+```text
+Cover
+Title
+Author
+Category
+Type
+Quantity
+Available
+Actions
+```
+
+Actions:
+
+```text
+View
+Edit
+Delete
+```
+
+---
+
+# 52. ADD BOOK FORM
+
+Fields:
+
+```text
+Title *
+Author *
+ISBN
+Category *
+Book Type *
+Description
+Publisher
+Publication Year
+Quantity
+Cover Image
+Location
+Softcopy File
+```
+
+Dynamic behavior:
+
+If:
+
+```text
+book_type = hardcopy
+```
+
+show:
+
+```text
+Quantity
+Location
+```
+
+If:
+
+```text
+book_type = softcopy
+```
+
+show:
+
+```text
+Digital File
+```
+
+Do not require physical quantity for softcopy.
+
+---
+
+# 53. ADMIN CATEGORY MANAGEMENT
+
+Page:
+
+```text
+Categories
+
+[Add Category]
+```
+
+Table:
+
+```text
+Category Name
+Description
+Actions
+```
+
+The system must include:
+
+```text
+Summer Bible Study Notes
+```
+
+---
+
+# 54. ADMIN REQUEST MANAGEMENT
+
+Display:
+
+```text
+Pending Requests
+```
+
+Table:
+
+```text
+Book
+Requester
+Phone
+School Year
+Department
+Requested Date
+Status
+Actions
+```
+
+Actions:
+
+```text
+Approve
+Reject
+```
+
+Reject opens:
+
+```text
+Reject Request
+
+Reason:
+[textarea]
+
+[Cancel] [Reject Request]
+```
+
+---
+
+# 55. ADMIN BORROWINGS
+
+Display:
+
+```text
+Book
+Member
+Borrowed Date
+Due Date
+Status
+Return Requested
+Actions
+```
+
+Admin can confirm returns.
+
+---
+
+# 56. ADMIN MEMBERS
+
+Display:
+
+```text
+Name
+Email
+Phone
+School Year
+Department
+Role
+Status
+Joined Date
+```
+
+Actions:
+
+```text
+View
+Edit
+Activate
+Deactivate
+```
+
+---
+
+# 57. REPORTS
+
+Create a basic reports page.
+
+Statistics:
+
+```text
+Total Books
+Total Members
+Total Borrowings
+Returned Books
+Active Borrowings
+Overdue Books
+Pending Requests
+```
+
+Add useful tables/charts only if they improve usability.
+
+Keep reports simple.
+
+---
+
+# 58. NAVIGATION
+
+## Desktop
+
+Use a clean sidebar for logged-in users.
+
+Member:
+
+```text
+[HU Logo]
+
+Dashboard
+Library
+My Requests
+My Borrowings
+History
+Profile
+Logout
+```
+
+Admin:
+
+```text
+[HU Logo]
+
+Dashboard
+Books
+Categories
+Members
+Requests
+Borrowings
+Reports
+Settings
+Logout
+```
+
+## Mobile
+
+Use:
+
+```text
+Hamburger Menu
+```
+
+Do not make the desktop sidebar unusable on mobile.
+
+---
+
+# 59. UI DESIGN
+
+Use a clean Christian fellowship + academic library aesthetic.
+
+Primary style:
+
+```text
+White
+Blue
+Light neutral backgrounds
+Dark text
+```
+
+Status colors:
+
+```text
+Success → green
+Warning → amber
+Error → red
+Information → blue
+```
+
+Do not make the website overly decorative.
+
+The logo should provide the main fellowship identity.
+
+---
+
+# 60. TYPOGRAPHY
+
+Use a clean readable font.
+
+Prioritize:
+
+* readability
+* spacing
+* hierarchy
+* accessibility
+
+Headings should be clear.
+
+Body text should be comfortable to read.
+
+---
+
+# 61. RESPONSIVE DESIGN
+
+The application must work on:
+
+```text
+Mobile
+Tablet
+Laptop
+Desktop
+```
+
+Do not create desktop-only layouts.
+
+Test at approximately:
+
+```text
+360px
+768px
+1024px
+1440px
+```
+
+---
+
+# 62. ACCESSIBILITY
+
+Use:
+
+* Semantic HTML
+* Proper labels
+* Keyboard accessibility
+* Alt text for logo and book covers
+* Visible focus states
+* Good contrast
+* Accessible buttons
+* Meaningful error messages
+
+Do not rely only on colors to communicate status.
+
+---
+
+# 63. AUTHENTICATION
+
+Use JWT authentication.
+
+Passwords must be hashed using bcrypt.
+
+Never store:
+
+```text
+plain-text passwords
+```
+
+JWT should contain appropriate user identification/role information.
+
+Protect routes using authentication middleware.
+
+---
+
+# 64. ROLE-BASED ACCESS CONTROL
+
+Members must NOT be able to access:
+
+```text
+/admin/*
+```
+
+Members must NOT be able to:
+
+* Approve requests
+* Reject requests
+* Add books
+* Delete books
+* Manage categories
+* Manage members
+* Confirm returns
+
+Backend authorization must enforce this even if someone manually calls the API.
+
+Never rely only on frontend route protection.
+
+---
+
+# 65. VALIDATION
+
+Validate on both:
+
+```text
+Frontend
+Backend
+```
+
+Examples:
+
+Email:
+
+```text
+valid email format
+```
+
+Password:
+
+```text
+minimum reasonable length
+```
+
+Phone:
+
+```text
+valid expected format
+```
+
+Publication year:
+
+```text
+valid year
+```
+
+Quantity:
+
+```text
+positive integer for hardcopy
+```
+
+Softcopy:
+
+```text
+valid file required
+```
+
+---
+
+# 66. ERROR HANDLING
+
+Use consistent API responses.
+
+Example:
+
+```json
+{
+  "success": false,
+  "message": "Book is currently unavailable."
+}
+```
+
+Success:
+
+```json
+{
+  "success": true,
+  "message": "Book request submitted successfully."
+}
+```
+
+Frontend should display meaningful error messages.
+
+Avoid exposing database errors directly to users.
+
+---
+
+# 67. LOADING STATES
+
+Every important async operation should have loading feedback.
+
+Examples:
+
+```text
+Loading books...
+Submitting request...
+Approving request...
+Uploading file...
+Saving...
+```
+
+Use disabled buttons while appropriate operations are processing.
+
+---
+
+# 68. EMPTY STATES
+
+Create useful empty states.
+
+Example:
+
+```text
+No books found.
+
+Try changing your search or category filter.
+```
+
+No requests:
+
+```text
+You have no borrowing requests yet.
+```
+
+No borrowings:
+
+```text
+You currently have no active borrowings.
+```
+
+---
+
+# 69. SECURITY
+
+Implement:
+
+* bcrypt password hashing
+* JWT authentication
+* Role-based authorization
+* Parameterized SQL queries
+* Backend validation
+* Safe file uploads
+* MIME validation
+* File size restrictions
+* CORS configuration
+* Environment variables
+* Secure error handling
+
+Never expose:
+
+```text
+JWT_SECRET
+DB_PASSWORD
+private environment variables
+```
+
+to the frontend.
+
+---
+
+# 70. ENVIRONMENT VARIABLES
+
+Create:
+
+```text
+PORT=5000
+
+DB_HOST=********
+DB_USER=********
+DB_PASSWORD=
+DB_NAME=********
+
+JWT_SECRET=********
+
+CLIENT_URL=********
+
+DEFAULT_BORROWING_DAYS=14
+
+MAX_FILE_SIZE=...
+```
+
+Create:
+
+```text
+.env.example
+```
+
+Do not commit `.env`.
+
+---
+
+# 71. PROJECT STRUCTURE
+
+Use:
+
+```text
+church-bible-library/
+│
+├── client/
+│   ├── public/
+│   │   └── logo.png
+│   │
+│   ├── src/
+│   │   ├── assets/
+│   │   ├── components/
+│   │   │   ├── common/
+│   │   │   ├── books/
+│   │   │   ├── borrowing/
+│   │   │   └── admin/
+│   │   │
+│   │   ├── pages/
+│   │   │   ├── public/
+│   │   │   ├── member/
+│   │   │   └── admin/
+│   │   │
+│   │   ├── layouts/
+│   │   │   ├── PublicLayout.jsx
+│   │   │   ├── MemberLayout.jsx
+│   │   │   └── AdminLayout.jsx
+│   │   │
+│   │   ├── context/
+│   │   │   └── AuthContext.jsx
+│   │   │
+│   │   ├── services/
+│   │   │   └── api.js
+│   │   │
+│   │   ├── hooks/
+│   │   ├── utils/
+│   │   ├── routes/
+│   │   ├── App.jsx
+│   │   └── main.jsx
+│   │
+│   └── package.json
+│
+├── server/
+│   ├── src/
+│   │   ├── config/
+│   │   │   └── database.js
+│   │   │
+│   │   ├── controllers/
+│   │   │   ├── authController.js
+│   │   │   ├── bookController.js
+│   │   │   ├── categoryController.js
+│   │   │   ├── borrowingController.js
+│   │   │   ├── requestController.js
+│   │   │   ├── userController.js
+│   │   │   └── dashboardController.js
+│   │   │
+│   │   ├── routes/
+│   │   │   ├── authRoutes.js
+│   │   │   ├── bookRoutes.js
+│   │   │   ├── categoryRoutes.js
+│   │   │   ├── borrowingRoutes.js
+│   │   │   ├── requestRoutes.js
+│   │   │   ├── userRoutes.js
+│   │   │   └── dashboardRoutes.js
+│   │   │
+│   │   ├── middleware/
+│   │   │   ├── authMiddleware.js
+│   │   │   ├── adminMiddleware.js
+│   │   │   ├── validationMiddleware.js
+│   │   │   ├── uploadMiddleware.js
+│   │   │   └── errorMiddleware.js
+│   │   │
+│   │   ├── services/
+│   │   │   ├── authService.js
+│   │   │   ├── bookService.js
+│   │   │   ├── categoryService.js
+│   │   │   ├── borrowingService.js
+│   │   │   ├── requestService.js
+│   │   │   ├── userService.js
+│   │   │   └── dashboardService.js
+│   │   │
+│   │   ├── validators/
+│   │   ├── utils/
+│   │   └── server.js
+│   │
+│   ├── uploads/
+│   │   ├── book-covers/
+│   │   └── book-files/
+│   │
+│   ├── .env
+│   └── package.json
+│
+├── database/
+│   ├── schema.sql
+│   └── seed.sql
+│
+├── docs/
+│   ├── SRS.md
+│   └── SDD.md
+│
+├── README.md
+└── .gitignore
+```
+
+---
+
+# 72. DATABASE SEED DATA
+
+Create realistic sample data.
+
+Include categories such as:
+
+```text
+Summer Bible Study Notes
+Bible Commentary
+Christian Living
+Theology
+Devotional
+Leadership
+Biography
+```
+
+Include several sample books.
+
+For example:
+
+```text
+Knowing God
+The Purpose Driven Life
+Mere Christianity
+Spiritual Leadership
+```
+
+Also include sample Summer Bible Study Notes.
+
+Do not include copyrighted digital files.
+
+For softcopy books, use placeholder/sample files only.
+
+---
+
+# 73. ADMIN ACCOUNT
+
+Create an initial development admin account through the seed process.
+
+Do not hardcode a plain-text password into production code.
+
+Document how to create/change the admin credentials securely.
+
+---
+
+# 74. API RESPONSE DESIGN
+
+Use consistent response structures.
+
+Example:
+
+```json
+{
+  "success": true,
+  "data": {}
+}
+```
+
+Errors:
+
+```json
+{
+  "success": false,
+  "message": "Unauthorized"
+}
+```
+
+Lists can use:
+
+```json
+{
+  "success": true,
+  "data": [],
+  "pagination": {}
+}
+```
+
+---
+
+# 75. SEARCH
+
+Library search should support:
+
+```text
+Title
+Author
+ISBN
+```
+
+Search should be case-insensitive.
+
+Example:
+
+```text
+Search: knowing
+```
+
+returns:
+
+```text
+Knowing God
+```
+
+---
+
+# 76. FILTERING
+
+Allow filtering by:
+
+```text
+Category
+Book Type
+Availability
+```
+
+Examples:
+
+```text
+All
+Hardcopy
+Softcopy
+Available
+Unavailable
+Summer Bible Study Notes
+```
+
+---
+
+# 77. SORTING
+
+Useful sorting options:
+
+```text
+Newest
+Title A-Z
+Title Z-A
+Author A-Z
+```
+
+---
+
+# 78. MEMBER EXPERIENCE
+
+The member should be able to understand the status of a book immediately.
+
+Use clear labels:
+
+```text
+Available
+Reserved
+Borrowed
+Unavailable
+Softcopy
+Pending
+Approved
+Rejected
+Returned
+Overdue
+```
+
+Avoid ambiguous status messages.
+
+---
+
+# 79. RESERVATION STATUS
+
+When a hardcopy has been requested but not yet approved, display:
+
+```text
+Reserved
+```
+
+or:
+
+```text
+Request Pending
+```
+
+The book must not be requestable by another member while reserved.
+
+---
+
+# 80. IMPORTANT BUSINESS LOGIC
+
+Implement these rules exactly.
+
+### Rule 1
+
+Softcopy books do not require approval.
+
+### Rule 2
+
+Softcopy books do not create borrowing records.
+
+### Rule 3
+
+Softcopy availability is not reduced.
+
+### Rule 4
+
+Hardcopy books require a request.
+
+### Rule 5
+
+A hardcopy copy becomes reserved immediately after a successful request.
+
+### Rule 6
+
+A member cannot create duplicate pending requests.
+
+### Rule 7
+
+A member cannot request a book they already actively borrow.
+
+### Rule 8
+
+Admin approval creates a borrowing record.
+
+### Rule 9
+
+Approval must not decrease availability a second time.
+
+### Rule 10
+
+Admin rejection restores the reserved availability.
+
+### Rule 11
+
+Returning a hardcopy restores availability.
+
+### Rule 12
+
+Only admins can approve/reject requests.
+
+### Rule 13
+
+Only admins can confirm returns.
+
+### Rule 14
+
+Backend must enforce all critical rules.
+
+### Rule 15
+
+Database transactions must be used for availability-changing operations.
+
+---
+
+# 81. TESTING
+
+Create tests for:
+
+## Authentication
+
+* Register successfully
+* Duplicate email
+* Invalid email
+* Weak/invalid password
+* Login
+* Incorrect password
+* JWT validation
+* Unauthorized access
+* Admin authorization
+
+## Books
+
+* Create hardcopy
+* Create softcopy
+* Edit book
+* Delete book
+* Search
+* Filter
+* Availability
+* Softcopy download
+
+## Borrowing
+
+* Submit request
+* Prevent duplicate request
+* Prevent unavailable request
+* Reserve availability
+* Approve request
+* Reject request
+* Restore availability after rejection
+* Request return
+* Confirm return
+* Restore availability after return
+* Overdue detection
+* Transaction rollback
+
+## Uploads
+
+* Valid PDF
+* Valid EPUB
+* Invalid file
+* Oversized file
+* Missing file
+* Softcopy without file
+
+---
+
+# 82. END-TO-END TEST
+
+Verify this complete scenario:
+
+### Hardcopy
+
+```text
+Member registers
+      ↓
+Logs in
+      ↓
+Finds a hardcopy
+      ↓
+Submits request
+      ↓
+Availability decreases
+      ↓
+Another member cannot request it
+      ↓
+Admin approves
+      ↓
+Borrowing created
+      ↓
+Member requests return
+      ↓
+Admin confirms return
+      ↓
+Availability increases
+```
+
+### Rejection
+
+```text
+Member requests
+      ↓
+Availability decreases
+      ↓
+Admin rejects
+      ↓
+Availability increases
+```
+
+### Softcopy
+
+```text
+Member logs in
+      ↓
+Finds Summer Bible Study Notes
+      ↓
+Opens material
+      ↓
+Downloads file
+      ↓
+No request
+      ↓
+No borrowing
+      ↓
+No availability change
+```
+
+---
+
+# 83. ERROR/EDGE CASE TESTING
+
+Handle cases such as:
+
+```text
+Two members request the last copy simultaneously
+```
+
+The database transaction must ensure only one succeeds.
+
+Also handle:
+
+```text
+Admin approves an already rejected request
+Admin rejects an already approved request
+Member requests unavailable book
+Member requests duplicate book
+Book deleted while request exists
+Invalid book ID
+Invalid user ID
+Missing upload
+Invalid file
+Database failure during transaction
+```
+
+Do not allow inconsistent database states.
+
+---
+
+# 84. DATABASE TRANSACTIONS
+
+Use transactions for:
+
+### Request creation
+
+```text
+Check availability
+↓
+Reserve copy
+↓
+Create request
+↓
+Commit
+```
+
+### Approval
+
+```text
+Check request
+↓
+Create borrowing
+↓
+Approve request
+↓
+Commit
+```
+
+### Rejection
+
+```text
+Reject request
+↓
+Restore availability
+↓
+Commit
+```
+
+### Return
+
+```text
+Confirm return
+↓
+Restore availability
+↓
+Commit
+```
+
+If anything fails:
+
+```text
+ROLLBACK
+```
+
+---
+
+# 85. README
+
+Create a detailed README containing:
+
+```text
+Project Overview
+Features
+Technology Stack
+System Architecture
+Installation
+Database Setup
+Environment Variables
+Running Frontend
+Running Backend
+Creating Admin
+API Overview
+Testing
+Deployment
+```
+
+Development commands should be clearly explained.
+
+Example:
+
+```bash
+cd server
+npm install
+npm run dev
+```
+
+and:
+
+```bash
+cd client
+npm install
+npm run dev
+```
+
+---
+
+# 86. GITIGNORE
+
+Include:
+
+```text
+node_modules/
+.env
+.env.*
+!.env.example
+uploads/
+dist/
+build/
+*.log
+```
+
+Do not commit secrets.
+
+---
+
+# 87. CODE QUALITY
+
+Write clean, maintainable code.
+
+Follow:
+
+* DRY principle
+* Separation of concerns
+* Reusable components
+* Meaningful variable names
+* Meaningful function names
+* Small focused functions
+* Proper error handling
+* Consistent formatting
+
+Avoid:
+
+* Giant components
+* Giant controller functions
+* Duplicate API logic
+* Hardcoded secrets
+* Hardcoded user roles
+* Business logic inside UI components
+
+---
+
+# 88. FRONTEND COMPONENTS
+
+Create reusable components such as:
+
+```text
+Navbar
+Sidebar
+Footer
+Button
+Input
+Modal
+ConfirmDialog
+LoadingSpinner
+ErrorMessage
+EmptyState
+StatusBadge
+BookCard
+BookGrid
+BookSearch
+BookFilter
+BookForm
+RequestForm
+BorrowingTable
+Pagination
+```
+
+---
+
+# 89. AUTH CONTEXT
+
+Create:
+
+```text
+AuthContext.jsx
+```
+
+It should manage:
+
+```text
+Current user
+Login
+Register
+Logout
+Authentication state
+Loading state
+```
+
+Use protected routes.
+
+---
+
+# 90. PROTECTED ROUTES
+
+Implement:
+
+```text
+ProtectedRoute
+AdminRoute
+MemberRoute
+```
+
+Example:
+
+```text
+/admin/dashboard
+```
+
+must require:
+
+```text
+authenticated + admin
+```
+
+Member dashboard must require:
+
+```text
+authenticated + member
+```
+
+---
+
+# 91. FRONTEND API SERVICE
+
+Centralize Axios configuration.
+
+Example:
+
+```text
+services/api.js
+```
+
+Configure:
+
+```text
+baseURL
+JWT handling
+request interceptors if needed
+response error handling
+```
+
+Do not duplicate Axios configuration throughout the application.
+
+---
+
+# 92. SECURITY OF DOWNLOADS
+
+Do not expose unrestricted arbitrary filesystem access.
+
+The download endpoint must only serve legitimate book files associated with a database record.
+
+Never allow a user to submit a filesystem path.
+
+---
+
+# 93. ADMIN SETTINGS
+
+Provide a basic settings page.
+
+At minimum:
+
+```text
+Default Borrowing Period
+Library Name
+```
+
+The library name must remain:
+
+```text
+HU Fellowship Library
+```
+
+Default borrowing period:
+
+```text
+14 days
+```
+
+---
+
+# 94. FOOTER
+
+Footer should contain:
+
+```text
+HU Fellowship Library
+
+Read. Learn. Grow.
+
+© [Current Year] HU Fellowship Library
+```
+
+Do not add unnecessary external branding.
+
+---
+
+# 95. LOGO USAGE
+
+Use the official uploaded logo wherever branding is required.
+
+Example navbar:
+
+```text
+[HU Fellowship Logo] HU Fellowship Library
+```
+
+Login:
+
+```text
+[HU Fellowship Logo]
+
+Welcome to HU Fellowship Library
+```
+
+Dashboard:
+
+```text
+[HU Fellowship Logo]
+
+HU Fellowship Library
+```
+
+Do not use a generic Bible icon instead.
+
+---
+
+# 96. DESIGN PRIORITY
+
+Prioritize:
+
+1. Functionality
+2. Correct borrowing logic
+3. Database integrity
+4. Security
+5. Usability
+6. Responsive design
+7. Visual polish
+
+Do not sacrifice business logic for visual effects.
+
+---
+
+# 97. DO NOT OVERENGINEER
+
+This is an MVP for a fellowship library.
+
+Do NOT initially add:
+
+* Payment systems
+* Complex recommendation engines
+* Social media
+* Chat
+* AI
+* Multi-campus architecture
+* Microservices
+* Complex event sourcing
+* Blockchain
+* Unnecessary third-party services
+
+Keep the architecture appropriate for a small fellowship.
+
+---
+
+# 98. FUTURE FEATURES
+
+Keep the architecture extensible for future features such as:
+
+```text
+Telegram notifications
+Email notifications
+Due-date reminders
+QR codes
+Individual copy tracking
+Waiting lists
+Book reviews
+Reading progress
+Book recommendations
+Multiple fellowships/campuses
+AI Bible study assistant
+```
+
+These are NOT required for the MVP.
+
+---
+
+# 99. DEPLOYMENT
+
+Prepare the application for deployment.
+
+Frontend can be deployed to services such as:
+
+```text
+Netlify
+Vercel
+```
+
+Backend can be deployed to suitable Node.js hosting.
+
+Database should use a production MySQL-compatible service.
+
+Do not hardcode:
+
+```text
+********
+database passwords
+JWT secrets
+```
+
+into production code.
+
+Use environment variables.
+
+---
+
+# 100. DEVELOPMENT ORDER
+
+Build the application in this order.
+
+## Phase 1 — Project Setup
+
+Create:
+
+```text
+client
+server
+database
+docs
+```
+
+Configure React, Vite, Tailwind, Express, and MySQL.
+
+---
+
+## Phase 2 — Database
+
+Create:
+
+```text
+users
+categories
+books
+borrowing_requests
+borrowings
+```
+
+Create indexes.
+
+Create seed data.
+
+Include:
+
+```text
+Summer Bible Study Notes
+```
+
+---
+
+## Phase 3 — Branding
+
+Add the uploaded official HU Fellowship logo.
+
+Set application name:
+
+```text
+HU Fellowship Library
+```
+
+Implement branding throughout the application.
+
+---
+
+## Phase 4 — Authentication
+
+Implement:
+
+```text
+Register
+Login
+Logout
+JWT
+bcrypt
+AuthContext
+Protected Routes
+Admin Routes
+```
+
+---
+
+## Phase 5 — Library
+
+Implement:
+
+```text
+Books
+Categories
+Search
+Filters
+Book Details
+Hardcopy
+Softcopy
+```
+
+---
+
+## Phase 6 — Admin Book Management
+
+Implement:
+
+```text
+Add
+Edit
+Delete
+Upload Cover
+Upload Softcopy
+Categories
+```
+
+---
+
+## Phase 7 — Hardcopy Borrowing
+
+Implement:
+
+```text
+Request
+Reservation
+Approval
+Rejection
+Borrowing
+Return Request
+Return Confirmation
+Overdue
+```
+
+Make sure transactions work correctly.
+
+---
+
+## Phase 8 — Softcopy
+
+Implement:
+
+```text
+Upload
+Download
+File validation
+Secure download
+```
+
+---
+
+## Phase 9 — Dashboards
+
+Implement:
+
+```text
+Member Dashboard
+Admin Dashboard
+Reports
+Statistics
+```
+
+---
+
+## Phase 10 — Testing
+
+Test:
+
+```text
+Authentication
+Books
+Categories
+Requests
+Borrowings
+Returns
+Softcopy
+Uploads
+Authorization
+Transactions
+Responsive UI
+```
+
+---
+
+## Phase 11 — Documentation
+
+Generate:
+
+```text
+README.md
+SRS.md
+SDD.md
+API documentation
+Database documentation
+```
+
+---
+
+# 101. FINAL ACCEPTANCE CRITERIA
+
+The project is considered complete only when:
+
+### Branding
+
+* [ ] Application is named HU Fellowship Library
+* [ ] Uploaded HU Fellowship logo is used
+* [ ] Logo is responsive
+* [ ] Old "Bible Study" category is replaced
+* [ ] "Summer Bible Study Notes" exists
+
+### Authentication
+
+* [ ] Registration works
+* [ ] Login works
+* [ ] Logout works
+* [ ] JWT works
+* [ ] Passwords are hashed
+* [ ] Protected routes work
+
+### Library
+
+* [ ] Books display correctly
+* [ ] Search works
+* [ ] Category filtering works
+* [ ] Book type filtering works
+* [ ] Book details work
+
+### Hardcopy
+
+* [ ] Request works
+* [ ] Availability decreases immediately after successful request
+* [ ] Duplicate requests are prevented
+* [ ] Admin approval works
+* [ ] Admin rejection works
+* [ ] Rejection restores availability
+* [ ] Borrowing is created after approval
+* [ ] Return request works
+* [ ] Admin return confirmation works
+* [ ] Return restores availability
+* [ ] Overdue books are detected
+
+### Softcopy
+
+* [ ] Softcopy upload works
+* [ ] PDF/EPUB validation works
+* [ ] Download works
+* [ ] No approval is required
+* [ ] No borrowing record is created
+* [ ] Availability is unaffected
+
+### Admin
+
+* [ ] Dashboard works
+* [ ] Books management works
+* [ ] Category management works
+* [ ] Member management works
+* [ ] Request management works
+* [ ] Borrowing management works
+* [ ] Reports work
+
+### Security
+
+* [ ] Passwords hashed
+* [ ] JWT protected
+* [ ] Role authorization implemented
+* [ ] SQL injection prevented
+* [ ] File uploads validated
+* [ ] Secrets stored in environment variables
+
+### UI
+
+* [ ] Mobile responsive
+* [ ] Tablet responsive
+* [ ] Desktop responsive
+* [ ] Loading states
+* [ ] Empty states
+* [ ] Error states
+* [ ] Accessible forms
+* [ ] Clean fellowship/library design
+
+---
+
+# 102. FINAL INSTRUCTION TO THE AI CODING AGENT
+
+Do not merely create a mockup.
+
+Build the actual working application.
+
+The frontend, backend, database, authentication, APIs, file uploads, borrowing workflow, reservation logic, admin management, and responsive UI must work together.
+
+Do not fake data in the final application.
+
+Do not implement important business rules only on the frontend.
+
+The backend and database must enforce the rules.
+
+Pay particular attention to the hardcopy reservation transaction because two members may attempt to request the last available copy at the same time.
+
+The system must maintain consistent availability.
+
+The final application identity must be:
+
+# HU Fellowship Library
+
+with the uploaded HU Fellowship logo as the official logo.
+
+The main Bible-study category must be:
+
+# Summer Bible Study Notes
+
+The final experience should feel like a **real, simple, modern fellowship library**, not a generic CRUD demonstration.
+
+Build it systematically, test every major workflow, fix errors, and provide complete setup instructions when finished.
