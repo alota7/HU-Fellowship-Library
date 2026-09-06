@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "HU Fellowship Library"
+description = "A bilingual fellowship library platform for browsing books, discovering Bible study resources, and managing borrowing and study notes for members and administrators."
+version = "1.0.0"
+id = "artifacts/hu-fellowship-library"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 24167
+
+[services.development]
+run = "pnpm --filter @workspace/hu-fellowship-library run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/hu-fellowship-library", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/hu-fellowship-library/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "24167"
+BASE_PATH = "/"

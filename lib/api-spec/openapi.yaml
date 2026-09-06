@@ -3,20 +3,23 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: API for the HU Fellowship Library
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
-    description: Health operations
+  - name: auth
+  - name: books
+  - name: categories
+  - name: borrowing
+  - name: study-notes
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,13 +27,534 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /auth/me:
+    get:
+      operationId: getCurrentUser
+      tags: [auth]
+      summary: Get the signed-in user
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Sign in
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginInput"
+      responses:
+        "200":
+          description: Signed-in user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /auth/register:
+    post:
+      operationId: register
+      tags: [auth]
+      summary: Create a member account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterInput"
+      responses:
+        "201":
+          description: Created account
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "409":
+          $ref: "#/components/responses/Conflict"
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: Sign out
+      responses:
+        "204":
+          description: Signed out
+  /books:
+    get:
+      operationId: listBooks
+      tags: [books]
+      summary: Browse books
+      parameters:
+        - $ref: "#/components/parameters/Search"
+        - $ref: "#/components/parameters/Category"
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [all, hardcopy, softcopy]
+            default: all
+      responses:
+        "200":
+          description: Books
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Book"
+    post:
+      operationId: createBook
+      tags: [books]
+      summary: Add a book
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BookInput"
+      responses:
+        "201":
+          description: Created book
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Book"
+  /books/{id}:
+    get:
+      operationId: getBook
+      tags: [books]
+      summary: View book details
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Book
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Book"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    put:
+      operationId: updateBook
+      tags: [books]
+      summary: Update a book
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BookInput"
+      responses:
+        "200":
+          description: Updated book
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Book"
+    delete:
+      operationId: deleteBook
+      tags: [books]
+      summary: Delete a book
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "204":
+          description: Deleted
+  /categories:
+    get:
+      operationId: listCategories
+      tags: [categories]
+      summary: List book categories
+      responses:
+        "200":
+          description: Categories
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Category"
+    post:
+      operationId: createCategory
+      tags: [categories]
+      summary: Add a category
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CategoryInput"
+      responses:
+        "201":
+          description: Created category
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Category"
+  /borrowing-requests:
+    get:
+      operationId: listBorrowingRequests
+      tags: [borrowing]
+      summary: List borrowing requests
+      responses:
+        "200":
+          description: Borrowing requests
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BorrowingRequest"
+    post:
+      operationId: createBorrowingRequest
+      tags: [borrowing]
+      summary: Request a hardcopy book
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BorrowingRequestInput"
+      responses:
+        "201":
+          description: Created request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BorrowingRequest"
+  /borrowing-requests/{id}/approve:
+    put:
+      operationId: approveBorrowingRequest
+      tags: [borrowing]
+      summary: Approve a borrowing request
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Approved request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BorrowingRequest"
+  /borrowing-requests/{id}/reject:
+    put:
+      operationId: rejectBorrowingRequest
+      tags: [borrowing]
+      summary: Reject a borrowing request
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RejectionInput"
+      responses:
+        "200":
+          description: Rejected request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BorrowingRequest"
+  /borrowings:
+    get:
+      operationId: listBorrowings
+      tags: [borrowing]
+      summary: List active and past borrowings
+      responses:
+        "200":
+          description: Borrowings
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Borrowing"
+  /study-notes:
+    get:
+      operationId: listStudyNotes
+      tags: [study-notes]
+      summary: Browse approved study notes
+      parameters:
+        - $ref: "#/components/parameters/Search"
+      responses:
+        "200":
+          description: Study notes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/StudyNote"
+    post:
+      operationId: createStudyNote
+      tags: [study-notes]
+      summary: Submit a study note
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StudyNoteInput"
+      responses:
+        "201":
+          description: Created study note
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StudyNote"
+  /study-notes/{id}/approve:
+    put:
+      operationId: approveStudyNote
+      tags: [study-notes]
+      summary: Approve a study note
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Approved note
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StudyNote"
+  /study-notes/{id}/reject:
+    put:
+      operationId: rejectStudyNote
+      tags: [study-notes]
+      summary: Reject a study note
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RejectionInput"
+      responses:
+        "200":
+          description: Rejected note
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StudyNote"
+    delete:
+      operationId: deleteStudyNote
+      tags: [study-notes]
+      summary: Delete a study note
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "204":
+          description: Deleted
+  /dashboard/summary:
+    get:
+      operationId: getDashboardSummary
+      tags: [books]
+      summary: Get dashboard totals
+      responses:
+        "200":
+          description: Dashboard summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
 components:
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+    Search:
+      name: search
+      in: query
+      schema:
+        type: string
+    Category:
+      name: category
+      in: query
+      schema:
+        type: string
+  responses:
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    Conflict:
+      description: Resource conflict
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
   schemas:
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
     HealthStatus:
       type: object
+      required: [status]
       properties:
         status:
           type: string
-      required:
-        - status
-
+    User:
+      type: object
+      required: [id, name, email, role, emailVerified]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        email: { type: string, format: email }
+        role: { type: string, enum: [member, admin] }
+        phone: { type: string }
+        department: { type: string }
+        schoolYear: { type: string }
+        emailVerified: { type: boolean }
+    AuthResponse:
+      type: object
+      required: [user]
+      properties:
+        user:
+          $ref: "#/components/schemas/User"
+    LoginInput:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string, minLength: 1 }
+    RegisterInput:
+      type: object
+      required: [name, email, password, phone, department, schoolYear]
+      properties:
+        name: { type: string, minLength: 2 }
+        email: { type: string, format: email }
+        password: { type: string, minLength: 8 }
+        phone: { type: string, minLength: 7 }
+        department: { type: string, minLength: 2 }
+        schoolYear: { type: string, minLength: 1 }
+    Category:
+      type: object
+      required: [id, name, bookCount]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        bookCount: { type: integer }
+    CategoryInput:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string, minLength: 2 }
+    Book:
+      type: object
+      required: [id, title, author, type, category, description, available, total]
+      properties:
+        id: { type: integer }
+        title: { type: string }
+        author: { type: string }
+        type: { type: string, enum: [hardcopy, softcopy] }
+        category: { type: string }
+        description: { type: string }
+        isbn: { type: ["string", "null"] }
+        publisher: { type: ["string", "null"] }
+        year: { type: ["integer", "null"] }
+        coverUrl: { type: ["string", "null"] }
+        fileUrl: { type: ["string", "null"] }
+        available: { type: integer }
+        total: { type: integer }
+        featured: { type: boolean }
+    BookInput:
+      type: object
+      required: [title, author, type, category, description, total]
+      properties:
+        title: { type: string, minLength: 1 }
+        author: { type: string, minLength: 1 }
+        type: { type: string, enum: [hardcopy, softcopy] }
+        category: { type: string, minLength: 1 }
+        description: { type: string, minLength: 1 }
+        isbn: { type: ["string", "null"] }
+        publisher: { type: ["string", "null"] }
+        year: { type: ["integer", "null"] }
+        coverUrl: { type: ["string", "null"] }
+        fileUrl: { type: ["string", "null"] }
+        total: { type: integer, minimum: 0 }
+        featured: { type: boolean }
+    BorrowingRequest:
+      type: object
+      required: [id, book, member, status, requestedAt]
+      properties:
+        id: { type: integer }
+        book: { $ref: "#/components/schemas/Book" }
+        member: { $ref: "#/components/schemas/User" }
+        status: { type: string, enum: [pending, approved, rejected] }
+        requestedAt: { type: string }
+        rejectionReason: { type: ["string", "null"] }
+    BorrowingRequestInput:
+      type: object
+      required: [bookId]
+      properties:
+        bookId: { type: integer }
+    Borrowing:
+      type: object
+      required: [id, book, dueDate, status]
+      properties:
+        id: { type: integer }
+        book: { $ref: "#/components/schemas/Book" }
+        dueDate: { type: string }
+        status: { type: string, enum: [borrowed, returned, overdue] }
+        borrowedAt: { type: string }
+        returnedAt: { type: ["string", "null"] }
+    StudyNote:
+      type: object
+      required: [id, title, author, type, status, submittedAt]
+      properties:
+        id: { type: integer }
+        title: { type: string }
+        author: { type: string }
+        type: { type: string, enum: [summer, personal] }
+        status: { type: string, enum: [approved, pending, rejected] }
+        description: { type: string }
+        fileUrl: { type: ["string", "null"] }
+        submittedAt: { type: string }
+    StudyNoteInput:
+      type: object
+      required: [title, description, type]
+      properties:
+        title: { type: string, minLength: 1 }
+        description: { type: string, minLength: 1 }
+        type: { type: string, enum: [summer, personal] }
+        fileUrl: { type: ["string", "null"] }
+    RejectionInput:
+      type: object
+      properties:
+        reason: { type: string }
+    DashboardSummary:
+      type: object
+      required: [books, studyNotes, activeBorrowings, pendingRequests]
+      properties:
+        books: { type: integer }
+        studyNotes: { type: integer }
+        activeBorrowings: { type: integer }
+        pendingRequests: { type: integer }

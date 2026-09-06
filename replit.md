@@ -1,6 +1,6 @@
-# [Project name]
+# HU Fellowship Library
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+HU Fellowship Library is a bilingual library and Bible-study resource platform for fellowship members and stewards.
 
 ## Run & Operate
 
@@ -9,7 +9,7 @@ _Replace the heading above with the project's name, and this line with one sente
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- Required env: `DATABASE_URL` — Postgres connection string
+- Required env for the shared API: `SESSION_SECRET` is available through the workspace secrets manager.
 
 ## Stack
 
@@ -22,23 +22,31 @@ _Replace the heading above with the project's name, and this line with one sente
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `artifacts/hu-fellowship-library/src/App.tsx` — routed member/admin experience and shared UI
+- `artifacts/hu-fellowship-library/src/index.css` — visual tokens, typography, and motion
+- `artifacts/hu-fellowship-library/src/assets/hu-logo.png` — provided HU Fellowship logo
+- `artifacts/api-server/src/routes/library.ts` — auth, books, categories, borrowing, and study-note API
+- `lib/api-spec/openapi.yaml` — source of truth for API contracts
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- The provided HU Fellowship mark is the primary brand asset and is reused across public, auth, member, and admin surfaces.
+- The public landing page intentionally reflects the empty initial library state instead of inventing sample books.
+- Auth uses one shared login page and redirects by the returned role.
+- English is the initial auth language; signed-in navigation exposes English/Amharic switching.
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+Members can browse and search books, view details, request hardcopy books, access study notes, submit personal notes, view borrowings, and manage their profile. Stewards can manage books and categories, review borrowing requests, moderate notes, and see collection totals.
 
 ## User preferences
 
-_Populate as you build — explicit user instructions worth remembering across sessions._
+- Use the uploaded HU Fellowship logo rather than a generic replacement.
 
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
+- Re-run `pnpm --filter @workspace/api-spec run codegen` after any OpenAPI change.
+- Restart both managed app workflows after backend or frontend code changes.
 
 ## Pointers
 
