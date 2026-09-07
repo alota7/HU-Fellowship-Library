@@ -36,6 +36,10 @@ export interface AuthResponse {
   user: User;
 }
 
+export interface MessageResponse {
+  message: string;
+}
+
 export interface LoginInput {
   email: string;
   /** @minLength 1 */
@@ -54,6 +58,18 @@ export interface RegisterInput {
   department: string;
   /** @minLength 1 */
   schoolYear: string;
+}
+
+export interface PasswordResetRequestInput {
+  email: string;
+}
+
+export interface PasswordResetInput {
+  email: string;
+  /** @pattern ^[0-9]{6}$ */
+  code: string;
+  /** @minLength 8 */
+  password: string;
 }
 
 export interface Category {

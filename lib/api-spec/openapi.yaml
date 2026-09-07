@@ -81,6 +81,50 @@ paths:
                 $ref: "#/components/schemas/AuthResponse"
         "409":
           $ref: "#/components/responses/Conflict"
+  /auth/request-password-reset:
+    post:
+      operationId: requestPasswordReset
+      tags: [auth]
+      summary: Send a password reset code
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PasswordResetRequestInput"
+      responses:
+        "202":
+          description: Password reset request accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "502":
+          description: Email delivery failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /auth/reset-password:
+    post:
+      operationId: resetPassword
+      tags: [auth]
+      summary: Reset a password with a code
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PasswordResetInput"
+      responses:
+        "200":
+          description: Password reset
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "400":
+          $ref: "#/components/responses/Conflict"
   /auth/logout:
     post:
       operationId: logout
@@ -439,6 +483,12 @@ components:
       properties:
         user:
           $ref: "#/components/schemas/User"
+    MessageResponse:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
     LoginInput:
       type: object
       required: [email, password]
@@ -455,6 +505,18 @@ components:
         phone: { type: string, minLength: 7 }
         department: { type: string, minLength: 2 }
         schoolYear: { type: string, minLength: 1 }
+    PasswordResetRequestInput:
+      type: object
+      required: [email]
+      properties:
+        email: { type: string, format: email }
+    PasswordResetInput:
+      type: object
+      required: [email, code, password]
+      properties:
+        email: { type: string, format: email }
+        code: { type: string, pattern: '^[0-9]{6}$' }
+        password: { type: string, minLength: 8 }
     Category:
       type: object
       required: [id, name, bookCount]

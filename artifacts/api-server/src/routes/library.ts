@@ -1,5 +1,6 @@
 import { Router, type IRouter, type Request } from "express";
 import crypto from "node:crypto";
+import { ReplitConnectors } from "@replit/connectors-sdk";
 import {
   CreateBookBody,
   CreateBorrowingRequestBody,
@@ -44,6 +45,8 @@ type Book = {
 
 const router: IRouter = Router();
 const sessions = new Map<string, User>();
+const passwordResetRequests = new Map<string, { codeHash: string; expiresAt: number }>();
+const connectors = new ReplitConnectors();
 const users: User[] = [
   {
     id: 1,
@@ -105,6 +108,10 @@ function publicUser(user: User) {
 
 function hashPassword(password: string) {
   return crypto.scryptSync(password, "hu-fellowship-admin-2026", 64).toString("hex");
+}
+
+function hashResetCode(code: string) {
+  return crypto.createHash("sha256").update(code).digest("hex");
 }
 
 function currentUser(req: Request) {
@@ -179,6 +186,59 @@ router.post("/auth/register", (req, res) => {
   sessions.set(token, member);
   res.cookie("hu_session", token, { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", maxAge: 1000 * 60 * 60 * 24 * 7 });
   return res.status(201).json({ user: publicUser(member) });
+});
+
+router.post("/auth/request-password-reset", async (req, res) => {
+  const email = typeof req.body?.email === "string" ? req.body.email.trim().toLowerCase() : "";
+  if (!email || !email.includes("@")) return res.status(400).json({ error: "Enter a valid email address." });
+
+  const genericMessage = "If an account exists for this email, a six-digit recovery code is on its way.";
+  const user = users.find((item) => item.email.toLowerCase() === email);
+  if (!user) return res.status(202).json({ message: genericMessage });
+
+  const code = crypto.randomInt(100000, 1000000).toString();
+  passwordResetRequests.set(email, { codeHash: hashResetCode(code), expiresAt: Date.now() + 10 * 60 * 1000 });
+
+  const emailResponse = await connectors.proxy("resend", "/emails", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      from: process.env.RESEND_FROM_EMAIL ?? "HU Fellowship Library <onboarding@resend.dev>",
+      to: [email],
+      subject: "Your HU Fellowship Library recovery code",
+      html: `<div style="font-family:Arial,sans-serif;line-height:1.6;color:#241d3b"><h2>HU Fellowship Library</h2><p>Use this six-digit code to reset your password:</p><p style="font-size:32px;font-weight:700;letter-spacing:8px">${code}</p><p>This code expires in 10 minutes. If you did not request it, you can ignore this email.</p></div>`,
+    }),
+  });
+
+  if (!emailResponse.ok) {
+    passwordResetRequests.delete(email);
+    const providerError = await emailResponse.text().catch(() => "");
+    console.error("Password reset email delivery failed", emailResponse.status, providerError);
+    return res.status(502).json({ error: "We could not deliver the recovery email. Please try again shortly." });
+  }
+
+  return res.status(202).json({ message: genericMessage });
+});
+
+router.post("/auth/reset-password", (req, res) => {
+  const email = typeof req.body?.email === "string" ? req.body.email.trim().toLowerCase() : "";
+  const code = typeof req.body?.code === "string" ? req.body.code.trim() : "";
+  const password = typeof req.body?.password === "string" ? req.body.password : "";
+  if (!email || !email.includes("@") || !/^\d{6}$/.test(code) || password.length < 8) {
+    return res.status(400).json({ error: "Enter your email, six-digit code, and a password with at least 8 characters." });
+  }
+
+  const request = passwordResetRequests.get(email);
+  if (!request || request.expiresAt < Date.now() || request.codeHash !== hashResetCode(code)) {
+    if (request?.expiresAt && request.expiresAt < Date.now()) passwordResetRequests.delete(email);
+    return res.status(400).json({ error: "That recovery code is invalid or expired." });
+  }
+
+  const user = users.find((item) => item.email.toLowerCase() === email);
+  if (!user) return res.status(400).json({ error: "That recovery code is invalid or expired." });
+  user.passwordHash = hashPassword(password);
+  passwordResetRequests.delete(email);
+  return res.json({ message: "Your password has been reset. You can now sign in." });
 });
 
 router.post("/auth/logout", (req, res) => {

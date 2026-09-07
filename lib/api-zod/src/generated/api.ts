@@ -94,6 +94,37 @@ export const RegisterResponse = zod.object({
 
 
 /**
+ * @summary Send a password reset code
+ */
+export const RequestPasswordResetBody = zod.object({
+  "email": zod.string().email()
+})
+
+export const RequestPasswordResetResponse = zod.object({
+  "message": zod.string()
+})
+
+
+/**
+ * @summary Reset a password with a code
+ */
+export const resetPasswordBodyCodeRegExp = new RegExp('^[0-9]{6}$');
+export const resetPasswordBodyPasswordMin = 8;
+
+
+
+export const ResetPasswordBody = zod.object({
+  "email": zod.string().email(),
+  "code": zod.string().regex(resetPasswordBodyCodeRegExp),
+  "password": zod.string().min(resetPasswordBodyPasswordMin)
+})
+
+export const ResetPasswordResponse = zod.object({
+  "message": zod.string()
+})
+
+
+/**
  * @summary Sign out
  */
 export const LogoutResponse = zod.void()
