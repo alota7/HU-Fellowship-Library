@@ -23,6 +23,7 @@ type User = {
   department: string;
   schoolYear: string;
   emailVerified: boolean;
+  passwordHash: string;
 };
 type Book = {
   id: number;
@@ -53,6 +54,7 @@ const users: User[] = [
     department: "HU Fellowship",
     schoolYear: "Alumni",
     emailVerified: true,
+    passwordHash: "fb5b6b868171db4f262e1f46bb0fc6aa2a2384ed07f7dfd1a266e20d35ccecb5c559d6c6c13dbac90f65d3af6a4af65178b5f87e383f606704850f5a81f8ca18",
   },
 ];
 const books: Book[] = [];
@@ -101,6 +103,10 @@ function publicUser(user: User) {
   };
 }
 
+function hashPassword(password: string) {
+  return crypto.scryptSync(password, "hu-fellowship-admin-2026", 64).toString("hex");
+}
+
 function currentUser(req: Request) {
   const token = req.cookies?.hu_session ?? req.headers.authorization?.replace("Bearer ", "");
   return token ? sessions.get(token) : undefined;
@@ -113,6 +119,10 @@ function requireUser(req: any, res: any) {
     return undefined;
   }
   return user;
+}
+
+export function getSessionUser(req: Request) {
+  return currentUser(req);
 }
 
 function requireAdmin(req: any, res: any) {
@@ -140,7 +150,7 @@ router.post("/auth/login", (req, res) => {
   if (!parsed.success) return res.status(400).json({ error: "Enter a valid email and password." });
   const email = parsed.data.email.toLowerCase();
   const existing = users.find((item) => item.email.toLowerCase() === email);
-  if (!existing) return res.status(401).json({ error: "Invalid email or password." });
+  if (!existing || existing.passwordHash !== hashPassword(parsed.data.password)) return res.status(401).json({ error: "Invalid email or password." });
   const token = crypto.randomUUID();
   sessions.set(token, existing);
   res.cookie("hu_session", token, { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", maxAge: 1000 * 60 * 60 * 24 * 7 });
@@ -162,6 +172,7 @@ router.post("/auth/register", (req, res) => {
     department: parsed.data.department,
     schoolYear: parsed.data.schoolYear,
     emailVerified: false,
+    passwordHash: hashPassword(parsed.data.password),
   };
   users.push(member);
   const token = crypto.randomUUID();

@@ -1,0 +1,1980 @@
+MASTER PROMPT — HU FELLOWSHIP LIBRARY FRONTEND
+
+You are an expert frontend engineer, React developer, and UI/UX designer.
+
+Build a complete, polished, production-quality FRONTEND for a digital library called:
+
+HU FELLOWSHIP LIBRARY
+
+IMPORTANT:
+This is a FRONTEND-ONLY project.
+
+DO NOT build or modify:
+- Backend
+- Node.js/Express server
+- MySQL/database
+- JWT implementation
+- bcrypt
+- SMTP/Nodemailer
+- Server-side authentication
+- Server-side authorization
+- Server-side file storage
+
+The frontend must instead be architected cleanly so that it can connect to a real backend later.
+
+==================================================
+1. PROJECT PURPOSE
+==================================================
+
+HU Fellowship Library is a digital library for a fellowship/church community.
+
+The system has two roles:
+
+1. Admin
+2. Member
+
+Both roles use the SAME LOGIN PAGE.
+
+The difference between them is their role and permissions.
+
+The system must never ask users to select their role during login.
+
+The backend will eventually return the authenticated user's role.
+
+==================================================
+2. ROLE SYSTEM
+==================================================
+
+There are exactly two main roles:
+
+ADMIN
+MEMBER
+
+Admin:
+- Manages the library
+- Manages books
+- Manages categories
+- Manages members
+- Manages borrowing requests
+- Manages borrowings
+- Manages Summer Bible Study Notes
+- Reviews Personal Study Notes
+- Views reports
+- Manages settings
+
+Member:
+- Uses the library
+- Browses books
+- Searches books
+- Views book details
+- Requests hardcopy books
+- Downloads available softcopy books
+- Views borrowing requests
+- Views borrowings
+- Views borrowing history
+- Reads/downloads approved study materials
+- Uploads Personal Study Notes
+- Views profile
+
+==================================================
+3. SHARED LOGIN PAGE
+==================================================
+
+IMPORTANT:
+
+Admin and Member MUST use the same login page.
+
+Route:
+
+/login
+
+Do NOT create:
+
+/admin-login
+/member-login
+
+Do NOT provide a role selector.
+
+Do NOT show:
+
+Admin
+Member
+
+as login options.
+
+The user only enters:
+
+- Email
+- Password
+
+Example:
+
+--------------------------------
+HU Fellowship Library
+
+Welcome Back
+
+Email
+[ Enter your email ]
+
+Password
+[ Enter your password ]
+
+Forgot Password?
+
+[ LOGIN ]
+
+Don't have an account? Register
+--------------------------------
+
+The LOGIN PAGE MUST BE ENGLISH ONLY.
+
+Do not show the Amharic language selector on the login page.
+
+==================================================
+4. LOGIN FLOW
+==================================================
+
+The frontend should follow this conceptual flow:
+
+Login Page
+    ↓
+Authenticate
+    ↓
+Receive authenticated user
+    ↓
+Check user.role
+    ↓
+    ┌───────────────┐
+    │               │
+  ADMIN          MEMBER
+    │               │
+    ↓               ↓
+Admin Dashboard   Member Dashboard
+
+Admin:
+
+/admin/dashboard
+
+Member:
+
+/member/dashboard
+
+The frontend must not determine the role from user input.
+
+The role must come from the authentication result.
+
+==================================================
+5. ADMIN LANGUAGE RULE
+==================================================
+
+CRITICAL:
+
+ADMIN INTERFACE IS ENGLISH ONLY.
+
+Admin does NOT have a language selector.
+
+Admin does NOT switch to Amharic.
+
+Every admin system-generated UI element must remain English.
+
+This includes:
+
+- Dashboard
+- Sidebar
+- Navbar
+- Buttons
+- Forms
+- Tables
+- Modals
+- Notifications
+- Validation messages
+- Empty states
+- Loading states
+- Error messages
+- Settings
+- Reports
+- Book management
+- Member management
+- Borrowing management
+- Study note management
+
+Admin UI must never randomly contain Amharic system text.
+
+Admin:
+
+Language = English only
+
+==================================================
+6. MEMBER LANGUAGE RULE
+==================================================
+
+Members can choose:
+
+English
+Amharic
+
+The language selector MUST be available to members after login.
+
+The language selector should be located in the member interface, such as:
+
+- Navbar
+- Profile menu
+- Settings
+
+Example:
+
+Language
+English
+አማርኛ
+
+Members can switch:
+
+English → Amharic
+
+Amharic → English
+
+The selected language must persist after refresh.
+
+Use localStorage or another appropriate frontend persistence mechanism.
+
+==================================================
+7. NO MIXED LANGUAGE
+==================================================
+
+This is extremely important.
+
+When a member selects ENGLISH:
+
+ALL system-generated member UI must be English.
+
+When a member selects AMHARIC:
+
+ALL system-generated member UI must be Amharic.
+
+Do NOT mix languages.
+
+This includes:
+
+- Navigation
+- Buttons
+- Forms
+- Labels
+- Validation
+- Error messages
+- Success messages
+- Empty states
+- Loading states
+- Search
+- Filters
+- Modals
+- Confirmations
+- Dashboard
+- Book details
+- Borrowing pages
+- Study notes
+- Profile
+- Notifications
+
+User-created content such as book titles, author names, filenames, and uploaded content does not need automatic translation.
+
+==================================================
+8. INTERNATIONALIZATION
+==================================================
+
+Create centralized i18n.
+
+Structure:
+
+src/i18n/
+├── en.js
+├── am.js
+└── index.js
+
+Create:
+
+LanguageContext.jsx
+
+Do not hardcode system-generated UI text throughout components.
+
+Example:
+
+GOOD:
+
+t("books.title")
+
+BAD:
+
+<h1>Books</h1>
+
+Use a centralized translation function.
+
+==================================================
+9. TRANSLATION EXAMPLES
+==================================================
+
+English:
+
+Home
+Dashboard
+Books
+Summer Bible Study Notes
+Personal Study Notes
+My Requests
+My Borrowings
+Borrowing History
+Profile
+Search
+Add Book
+Edit Book
+Delete Book
+Add Study Note
+Download
+Borrow
+Return
+Save
+Cancel
+Logout
+Login
+Register
+Language
+Available
+Unavailable
+Pending
+Approved
+Rejected
+Returned
+Overdue
+
+Amharic:
+
+መነሻ
+ዳሽቦርድ
+መጻሕፍት
+የበጋ መጽሐፍ ቅዱስ ጥናት ማስታወሻዎች
+የግል ጥናት ማስታወሻዎች
+የእኔ ጥያቄዎች
+የእኔ ብድሮች
+የብድር ታሪክ
+መገለጫ
+ፈልግ
+መጽሐፍ ጨምር
+መጽሐፍ አርትዕ
+መጽሐፍ ሰርዝ
+የጥናት ማስታወሻ ጨምር
+አውርድ
+ተዋስ
+መመለስ
+አስቀምጥ
+ሰርዝ
+ውጣ
+መግቢያ
+መመዝገቢያ
+ቋንቋ
+ይገኛል
+አይገኝም
+በመጠባበቅ ላይ
+ጸድቋል
+ውድቅ ተደርጓል
+ተመልሷል
+ጊዜው አልፏል
+
+Ensure the entire translation dictionary is complete.
+
+==================================================
+10. LOGOUT
+==================================================
+
+Both roles have Logout.
+
+Admin:
+
+Logout
+
+Member:
+
+Logout / ውጣ
+
+Logout should clear frontend authentication state and redirect to:
+
+/login
+
+The frontend should be structured to call the real backend logout API later.
+
+==================================================
+11. REGISTRATION
+==================================================
+
+Registration is ONLY for normal members.
+
+Route:
+
+/register
+
+Do NOT allow users to register as Admin.
+
+Do NOT include:
+
+Role:
+Admin / Member
+
+The registration form contains:
+
+- Full Name
+- Email
+- Phone
+- School Year
+- Department
+- Password
+- Confirm Password
+
+The page is English only.
+
+Validate:
+- Required fields
+- Email
+- Password
+- Confirm password
+- Phone
+- Appropriate lengths
+
+Show:
+- Validation errors
+- Loading
+- Success
+- Error
+
+The backend will eventually create the member account.
+
+==================================================
+12. FORGOT PASSWORD
+==================================================
+
+Create:
+
+/forgot-password
+
+English only.
+
+Fields:
+
+Email
+
+Button:
+
+Send Reset Link
+
+Create:
+
+/reset-password
+
+Fields:
+
+New Password
+Confirm Password
+
+The frontend should be ready to receive a reset token from the backend.
+
+Do not implement the actual reset logic.
+
+==================================================
+13. EMAIL VERIFICATION UI
+==================================================
+
+Create:
+
+/verify-email
+
+Support frontend states:
+
+- Verifying
+- Verification successful
+- Verification failed
+- Expired
+- Already verified
+
+Provide:
+
+Continue to Login
+
+Resend Verification Email
+
+The actual email functionality belongs to the backend.
+
+==================================================
+14. AUTH CONTEXT
+==================================================
+
+Create:
+
+src/context/AuthContext.jsx
+
+Manage:
+
+user
+isAuthenticated
+loading
+
+Methods:
+
+login()
+register()
+logout()
+refreshUser()
+
+The application should be designed around real API authentication.
+
+Do NOT implement fake authentication such as:
+
+localStorage.setItem("isLoggedIn", "true")
+
+Do NOT hardcode admin credentials.
+
+Do NOT put passwords in frontend source code.
+
+==================================================
+15. ROUTING
+==================================================
+
+Public:
+
+/
+ /login
+ /register
+ /forgot-password
+ /reset-password
+ /verify-email
+
+Member:
+
+/member/dashboard
+/member/books
+/member/books/:id
+/member/borrowings
+/member/history
+/member/requests
+/member/profile
+/member/summer-study-notes
+/member/personal-study-notes
+
+Admin:
+
+/admin/dashboard
+/admin/books
+/admin/books/add
+/admin/books/:id/edit
+/admin/categories
+/admin/members
+/admin/requests
+/admin/borrowings
+/admin/summer-study-notes
+/admin/personal-study-notes
+/admin/reports
+/admin/settings
+
+Create:
+
+ProtectedRoute
+
+AdminRoute
+
+MemberRoute
+
+Frontend guards should prevent unauthorized navigation.
+
+Real authorization will ultimately be handled by the backend.
+
+==================================================
+16. WEBSITE BRANDING
+==================================================
+
+Website:
+
+HU Fellowship Library
+
+Use the provided logo throughout the application.
+
+Use logo in:
+
+- Home
+- Login
+- Register
+- Navbar
+- Sidebar
+- Dashboard
+- Mobile menu
+- Footer where appropriate
+
+Maintain correct aspect ratio.
+
+==================================================
+17. MAIN BIBLE VERSE
+==================================================
+
+Display this prominently on the Home page and/or Bible verse section:
+
+“የእግዚአብሔር ሰው ፍጹምና ለበጎ ሥራ ሁሉ የተዘጋጀ ይሆን ዘንድ፥ የእግዚአብሔር መንፈስ ያለበት መጽሐፍ ሁሉ ለትምህርትና ለተግሣጽ ልብንም ለማቅናት በጽድቅም ላለው ምክር ደግሞ ይጠቅማል።”
+
+For member language:
+
+English → show an appropriate English translation.
+
+Amharic → show the Amharic version.
+
+Admin → English only.
+
+==================================================
+18. HOME PAGE
+==================================================
+
+Create a polished public homepage.
+
+Sections:
+
+Hero:
+- Logo
+- HU Fellowship Library
+- Short description
+- Browse Books
+- Login
+- Register
+
+Bible verse section
+
+Library features:
+- Books
+- Digital Books
+- Bible Study Notes
+- Personal Study Notes
+
+Simple footer.
+
+==================================================
+19. MEMBER DASHBOARD
+==================================================
+
+Route:
+
+/member/dashboard
+
+Display:
+
+- Available Books
+- My Borrowings
+- Pending Requests
+- Study Notes
+- My Personal Notes
+
+Quick actions:
+
+Browse Books
+My Borrowings
+Summer Bible Study Notes
+Personal Study Notes
+Profile
+
+All text follows selected member language.
+
+==================================================
+20. ADMIN DASHBOARD
+==================================================
+
+Route:
+
+/admin/dashboard
+
+ADMIN DASHBOARD IS ENGLISH ONLY.
+
+Show:
+
+- Total Books
+- Available Books
+- Borrowed Books
+- Pending Requests
+- Total Members
+- Summer Study Notes
+- Pending Personal Notes
+
+Quick actions:
+
+Add Book
+Manage Books
+Manage Members
+Manage Requests
+Add Study Note
+Review Personal Notes
+
+==================================================
+21. BOOK STORE
+==================================================
+
+Create:
+
+/member/books
+
+IMPORTANT:
+
+REMOVE ALL EXISTING SAMPLE BOOKS.
+
+The Books Store must initially contain ZERO books.
+
+Do not create fake books.
+
+Do not create demo books.
+
+Do not populate the store with placeholder book records.
+
+When there are no books, show:
+
+English:
+
+No books available yet.
+
+Amharic:
+
+እስካሁን ምንም መጽሐፍ የለም።
+
+==================================================
+22. BOOK GRID
+==================================================
+
+Desktop:
+
+4 columns
+
+Tablet:
+
+2 columns
+
+Mobile:
+
+1 column
+
+Book card:
+
+- Cover
+- Title
+- Author
+- Category
+- Book Type
+- Availability
+- Description preview
+- View Details
+
+Types:
+
+Hardcopy
+Softcopy
+
+==================================================
+23. BOOK DETAILS
+==================================================
+
+Route:
+
+/member/books/:id
+
+Show:
+
+- Cover
+- Title
+- Author
+- ISBN
+- Category
+- Description
+- Publisher
+- Publication Year
+- Book Type
+- Availability
+- Location
+
+Hardcopy:
+
+Show:
+
+Borrow
+
+Softcopy:
+
+Show:
+
+Download
+
+If no digital file exists:
+
+Disable or hide Download.
+
+Show a clear message.
+
+==================================================
+24. ADMIN BOOK MANAGEMENT
+==================================================
+
+Route:
+
+/admin/books
+
+Admin can:
+
+- View
+- Search
+- Filter
+- Add
+- Edit
+- Delete
+
+Admin interface is English only.
+
+==================================================
+25. ADD BOOK
+==================================================
+
+Route:
+
+/admin/books/add
+
+Fields:
+
+Title *
+Author *
+ISBN
+Category *
+Book Type *
+Description *
+Publisher
+Publication Year
+Quantity
+Cover Image
+Digital File
+Location
+
+Required:
+
+Title
+Author
+Category
+Book Type
+Description
+
+==================================================
+26. HARD COPY
+==================================================
+
+If Book Type = Hardcopy:
+
+Show:
+
+Quantity
+
+Availability information.
+
+Quantity must be a positive number.
+
+==================================================
+27. SOFT COPY
+==================================================
+
+If Book Type = Softcopy:
+
+Hide or disable physical quantity fields.
+
+Show:
+
+Digital File Upload
+
+Allowed:
+
+PDF
+EPUB
+
+Cover image:
+
+JPG
+JPEG
+PNG
+WEBP
+
+==================================================
+28. COVER IMAGE UPLOAD
+==================================================
+
+Admin can:
+
+- Select image
+- Preview image
+- Replace image
+- Remove image
+
+Show:
+- Filename
+- File size
+- Validation errors
+
+==================================================
+29. DIGITAL FILE UPLOAD
+==================================================
+
+Admin can upload:
+
+PDF
+EPUB
+
+Show:
+
+- Filename
+- File size
+- Replace
+- Remove
+- Upload state
+
+Do not implement server-side storage.
+
+Prepare frontend for multipart/form-data API integration.
+
+==================================================
+30. CRITICAL BOOK VISIBILITY REQUIREMENT
+==================================================
+
+This is one of the most important requirements.
+
+When an admin successfully adds a book:
+
+The newly added book MUST immediately appear in the Books Store.
+
+Do not require a browser refresh.
+
+Do not leave stale book data.
+
+Flow:
+
+Admin adds book
+↓
+API request succeeds
+↓
+Receive created book
+↓
+Update/invalidate frontend book state
+↓
+Books Store refreshes
+↓
+New book appears immediately
+↓
+Show success notification
+
+Do not hide books because:
+
+- Cover is missing
+- Availability is zero
+- Some optional metadata is missing
+
+Only apply intentional filters.
+
+==================================================
+31. SEARCH AND FILTER
+==================================================
+
+Books Store:
+
+Search by:
+
+- Title
+- Author
+
+Filter by:
+
+- Category
+- Book Type
+- Availability
+
+Provide:
+
+- Clear filters
+- Empty results state
+- Loading state
+- Error state
+
+==================================================
+32. BORROWING
+==================================================
+
+Members can request hardcopy books.
+
+Flow:
+
+Book
+↓
+Details
+↓
+Borrow
+↓
+Request
+↓
+Pending
+↓
+Admin reviews
+↓
+Approved / Rejected
+↓
+If approved → Borrowed
+↓
+Return request
+↓
+Returned
+
+Default borrowing period:
+
+14 days
+
+Frontend should display due dates when supplied by backend.
+
+==================================================
+33. MY REQUESTS
+==================================================
+
+Route:
+
+/member/requests
+
+Show:
+
+- Book
+- Requested date
+- Status
+- Rejection reason
+
+Statuses:
+
+Pending
+Approved
+Rejected
+
+==================================================
+34. MY BORROWINGS
+==================================================
+
+Route:
+
+/member/borrowings
+
+Show:
+
+- Book
+- Borrowed date
+- Due date
+- Return date
+- Status
+
+Action:
+
+Request Return
+
+Statuses:
+
+Borrowed
+Returned
+Overdue
+
+==================================================
+35. BORROWING HISTORY
+==================================================
+
+Route:
+
+/member/history
+
+Show previous borrowing records.
+
+Features:
+
+- Search
+- Filter
+- Status
+- Dates
+
+==================================================
+36. ADMIN BORROWING REQUESTS
+==================================================
+
+Route:
+
+/admin/requests
+
+Admin can:
+
+- View pending requests
+- View member information
+- View book information
+- Approve
+- Reject
+
+Reject should allow:
+
+Rejection reason
+
+==================================================
+37. ADMIN BORROWINGS
+==================================================
+
+Route:
+
+/admin/borrowings
+
+Admin can view:
+
+- Member
+- Book
+- Borrowed date
+- Due date
+- Return date
+- Status
+
+Filters:
+
+- Active
+- Overdue
+- Returned
+
+==================================================
+38. SUMMER BIBLE STUDY NOTES
+==================================================
+
+The old "Bible Study" label must NOT be used in the user-facing interface.
+
+Use:
+
+English:
+
+Summer Bible Study Notes
+
+Amharic:
+
+የበጋ መጽሐፍ ቅዱስ ጥናት ማስታወሻዎች
+
+Member route:
+
+/member/summer-study-notes
+
+Admin route:
+
+/admin/summer-study-notes
+
+Materials can include:
+
+- Summer Bible Study
+- Bible study guides
+- Teaching materials
+- Family Bible study resources
+- Personal study resources
+- Reference materials
+
+==================================================
+39. ADMIN SUMMER STUDY NOTES
+==================================================
+
+Admin can:
+
+- Add
+- Edit
+- Delete
+- Upload
+- View
+
+Admin interface remains English only.
+
+==================================================
+40. MEMBER PERSONAL STUDY NOTES
+==================================================
+
+Route:
+
+/member/personal-study-notes
+
+Member can:
+
+- Create note
+- Add title
+- Add description
+- Upload PDF/EPUB
+- Submit
+- View own submissions
+- View status
+
+Statuses:
+
+Pending
+Approved
+Rejected
+
+==================================================
+41. ADMIN PERSONAL STUDY NOTES
+==================================================
+
+Route:
+
+/admin/personal-study-notes
+
+Admin can:
+
+- View submissions
+- View uploader
+- Download
+- Approve
+- Reject
+- Provide rejection reason
+- Delete inappropriate notes
+
+Workflow:
+
+Member uploads
+↓
+Pending
+↓
+Admin reviews
+↓
+Approved / Rejected
+
+Only approved notes should become publicly available.
+
+==================================================
+42. CATEGORIES
+==================================================
+
+Route:
+
+/admin/categories
+
+Admin can:
+
+- Add category
+- Edit category
+- Delete category
+- View categories
+
+Admin interface English only.
+
+==================================================
+43. MEMBERS
+==================================================
+
+Route:
+
+/admin/members
+
+Admin can view:
+
+- Name
+- Email
+- Phone
+- School Year
+- Department
+- Status
+- Registration Date
+
+Features:
+
+- Search
+- Filter
+- View member
+- Manage appropriate account state
+
+Do not expose unnecessary administrative controls to members.
+
+==================================================
+44. MEMBER PROFILE
+==================================================
+
+Route:
+
+/member/profile
+
+Display:
+
+- Name
+- Email
+- Phone
+- School Year
+- Department
+
+Allow appropriate profile editing.
+
+Do not allow members to edit:
+
+- Role
+- Admin permissions
+- Account privileges
+
+==================================================
+45. ADMIN SETTINGS
+==================================================
+
+Route:
+
+/admin/settings
+
+Admin interface is English only.
+
+Possible settings:
+
+- Library information
+- Default borrowing period
+- System preferences
+
+Do not implement backend settings logic.
+
+Create frontend settings UI ready for API integration.
+
+==================================================
+46. ADMIN REPORTS
+==================================================
+
+Route:
+
+/admin/reports
+
+English only.
+
+Show useful library statistics such as:
+
+- Total books
+- Available books
+- Borrowed books
+- Overdue books
+- Total members
+- Pending requests
+- Approved requests
+- Personal notes
+- Study materials
+
+Use charts/cards only where useful.
+
+Do not overload the page.
+
+==================================================
+47. NAVIGATION — ADMIN
+==================================================
+
+Admin sidebar:
+
+HU Fellowship Library
+
+Dashboard
+Books
+Categories
+Members
+Borrowing Requests
+Borrowings
+Summer Bible Study Notes
+Personal Study Notes
+Reports
+Settings
+
+Logout
+
+IMPORTANT:
+
+No language selector.
+
+Everything is English.
+
+==================================================
+48. NAVIGATION — MEMBER
+==================================================
+
+Member sidebar:
+
+HU Fellowship Library
+
+Dashboard
+Books
+Summer Bible Study Notes
+Personal Study Notes
+My Requests
+My Borrowings
+Borrowing History
+Profile
+
+Language
+
+Logout
+
+Language selector is available ONLY to members.
+
+==================================================
+49. RESPONSIVE DESIGN
+==================================================
+
+Desktop:
+
+Sidebar + main content.
+
+Tablet:
+
+Responsive sidebar.
+
+Mobile:
+
+Hamburger menu.
+
+The entire application must work on:
+
+- Desktop
+- Laptop
+- Tablet
+- Mobile
+
+No horizontal overflow.
+
+Book grid:
+
+Desktop → 4
+Tablet → 2
+Mobile → 1
+
+Forms must become single-column on mobile.
+
+Buttons must be touch-friendly.
+
+==================================================
+50. UI DESIGN
+==================================================
+
+Design should be:
+
+- Clean
+- Modern
+- Professional
+- Peaceful
+- Christian/fellowship oriented
+- Library-focused
+
+Colors:
+
+Primary:
+Blue
+
+Background:
+White/light neutral
+
+Text:
+Dark neutral
+
+Success:
+Green
+
+Warning:
+Amber
+
+Error:
+Red
+
+Avoid:
+
+- Excessive gradients
+- Excessive animation
+- Clutter
+- Random colors
+- Overdecorated church graphics
+- Generic dashboard templates
+
+==================================================
+51. REUSABLE COMPONENTS
+==================================================
+
+Create reusable components such as:
+
+Button
+Input
+Select
+Modal
+ConfirmDialog
+Toast
+Badge
+Card
+BookCard
+BookGrid
+FileUpload
+ImageUpload
+SearchBar
+Pagination
+LoadingSpinner
+LoadingSkeleton
+EmptyState
+ErrorState
+Navbar
+Sidebar
+MobileMenu
+LanguageSelector
+
+==================================================
+52. LOADING STATES
+==================================================
+
+Every data-driven page must have loading states.
+
+Examples:
+
+- Book loading skeleton
+- Dashboard loading skeleton
+- Member table loading
+- Notes loading
+- Borrowing loading
+
+Do not show blank screens.
+
+==================================================
+53. EMPTY STATES
+==================================================
+
+Every major page should have an intentional empty state.
+
+Example:
+
+Books:
+
+No books available yet.
+
+Borrowings:
+
+You have no active borrowings.
+
+Requests:
+
+You have no borrowing requests.
+
+Personal Notes:
+
+You have not submitted any study notes yet.
+
+All member empty states must be translated.
+
+Admin empty states remain English.
+
+==================================================
+54. ERROR STATES
+==================================================
+
+Create reusable error UI.
+
+Handle:
+
+- Network errors
+- Unauthorized
+- Forbidden
+- Not found
+- Validation errors
+- Server errors
+- File errors
+
+Use friendly messages.
+
+Do not expose technical stack traces.
+
+Admin errors → English.
+
+Member errors → selected language.
+
+==================================================
+55. NOTIFICATIONS
+==================================================
+
+Create a reusable toast/notification system.
+
+Examples:
+
+Book added successfully.
+
+Book updated successfully.
+
+Book deleted successfully.
+
+Borrowing request submitted.
+
+Request approved.
+
+Request rejected.
+
+Study note submitted.
+
+Note approved.
+
+Note rejected.
+
+Translate all member notifications.
+
+Admin notifications remain English.
+
+==================================================
+56. CONFIRMATION DIALOGS
+==================================================
+
+Use confirmation dialogs before:
+
+- Delete book
+- Delete note
+- Delete category
+- Reject request
+
+Example:
+
+Are you sure you want to delete this book?
+
+This action cannot be undone.
+
+Admin version is English.
+
+Member confirmations must follow selected language.
+
+==================================================
+57. API ARCHITECTURE
+==================================================
+
+Create:
+
+src/services/api.js
+
+Create service modules:
+
+authService.js
+bookService.js
+categoryService.js
+borrowingService.js
+studyNoteService.js
+userService.js
+dashboardService.js
+
+Do not implement backend.
+
+Do not place API requests directly everywhere in UI components.
+
+Keep the architecture ready for real backend integration.
+
+==================================================
+58. STATE MANAGEMENT
+==================================================
+
+Use React state appropriately.
+
+Contexts:
+
+AuthContext
+LanguageContext
+
+For server state, structure the project so it can use:
+
+TanStack Query / React Query
+
+or another clean approach.
+
+Critical:
+
+When books are added, edited, or deleted:
+
+Invalidate/update the book state.
+
+The Books Store must immediately reflect the latest data.
+
+==================================================
+59. FILE UPLOAD COMPONENTS
+==================================================
+
+Create reusable file upload components.
+
+Support:
+
+PDF
+EPUB
+
+Cover:
+
+JPG
+JPEG
+PNG
+WEBP
+
+Features:
+
+- File selection
+- Drag and drop where appropriate
+- File preview
+- Filename
+- File size
+- Replace
+- Remove
+- Validation
+- Upload progress UI
+
+Actual storage belongs to the backend.
+
+==================================================
+60. ACCESSIBILITY
+==================================================
+
+Use:
+
+- Semantic HTML
+- Proper labels
+- Keyboard navigation
+- Focus states
+- Accessible dialogs
+- Accessible buttons
+- Alt text
+- Good contrast
+- ARIA when necessary
+
+Do not communicate information using color alone.
+
+==================================================
+61. SECURITY FRONTEND RULES
+==================================================
+
+Never expose:
+
+- Admin password
+- Database password
+- SMTP credentials
+- JWT secrets
+- Backend secrets
+
+Never hardcode credentials.
+
+Never implement fake security.
+
+Never assume hiding a button is sufficient security.
+
+The backend will eventually enforce real authorization.
+
+==================================================
+62. PROJECT STRUCTURE
+==================================================
+
+Use a structure similar to:
+
+client/
+├── public/
+├── src/
+│   ├── assets/
+│   ├── components/
+│   │   ├── common/
+│   │   ├── books/
+│   │   ├── borrowing/
+│   │   ├── notes/
+│   │   └── admin/
+│   ├── pages/
+│   │   ├── public/
+│   │   ├── auth/
+│   │   ├── member/
+│   │   └── admin/
+│   ├── layouts/
+│   ├── context/
+│   │   ├── AuthContext.jsx
+│   │   └── LanguageContext.jsx
+│   ├── i18n/
+│   │   ├── en.js
+│   │   ├── am.js
+│   │   └── index.js
+│   ├── services/
+│   │   ├── api.js
+│   │   ├── authService.js
+│   │   ├── bookService.js
+│   │   ├── categoryService.js
+│   │   ├── borrowingService.js
+│   │   ├── studyNoteService.js
+│   │   ├── userService.js
+│   │   └── dashboardService.js
+│   ├── hooks/
+│   ├── routes/
+│   ├── utils/
+│   ├── App.jsx
+│   └── main.jsx
+
+You may improve the structure if necessary.
+
+==================================================
+63. IMPORTANT ROLE UI RULE
+==================================================
+
+Never show Admin functionality to members.
+
+Member should never see:
+
+- Add Book
+- Edit Book
+- Delete Book
+- Manage Members
+- Approve Request
+- Reject Request
+- Reports
+- Admin Settings
+- Admin Categories
+
+Admin should see the complete administration interface.
+
+==================================================
+64. FINAL ROLE STRUCTURE
+==================================================
+
+ONE LOGIN:
+
+/login
+
+After authentication:
+
+                  LOGIN
+                    │
+             Check user.role
+                    │
+          ┌─────────┴─────────┐
+          │                   │
+        ADMIN               MEMBER
+          │                   │
+          ↓                   ↓
+ /admin/dashboard      /member/dashboard
+          │                   │
+          │                   ├── Books
+          │                   ├── Borrowing
+          │                   ├── Study Notes
+          │                   ├── Personal Notes
+          │                   ├── History
+          │                   ├── Profile
+          │                   └── Language
+          │
+          ├── Books
+          ├── Categories
+          ├── Members
+          ├── Requests
+          ├── Borrowings
+          ├── Summer Study Notes
+          ├── Personal Study Notes
+          ├── Reports
+          └── Settings
+
+ADMIN:
+English only.
+
+MEMBER:
+English or Amharic.
+
+==================================================
+65. FINAL QUALITY CHECK
+==================================================
+
+Before declaring the frontend complete, verify:
+
+AUTH:
+- One shared login page
+- Login is English only
+- No role selector
+- Registration is member-only
+- No credentials exposed
+- AuthContext works
+- Protected routes work
+
+ADMIN:
+- Admin dashboard works
+- Admin interface is English only
+- No language selector for admin
+- Book management works
+- Category management works
+- Member management works
+- Borrowing request management works
+- Borrowing management works
+- Summer Study Notes management works
+- Personal Study Notes review works
+- Reports work
+- Settings UI works
+
+MEMBER:
+- Member dashboard works
+- Books work
+- Book details work
+- Borrowing UI works
+- Requests work
+- Borrowing history works
+- Summer Study Notes work
+- Personal Study Notes work
+- Profile works
+- Language selector works
+
+LANGUAGE:
+- Login English only
+- Register English only
+- Admin English only
+- Member can switch English/Amharic
+- Language persists after refresh
+- No mixed system language
+- All system UI is translated
+
+BOOKS:
+- All sample books removed
+- Initial Books Store is empty
+- Empty state works
+- Admin can add books
+- Admin can edit books
+- Admin can delete books
+- Cover upload UI works
+- PDF/EPUB upload UI works
+- New book immediately appears in Books Store
+- No stale book state
+
+RESPONSIVE:
+- Desktop works
+- Tablet works
+- Mobile works
+- No horizontal overflow
+- Mobile navigation works
+
+QUALITY:
+- No console errors
+- No broken routes
+- No missing imports
+- No hardcoded system UI strings outside i18n
+- No fake credentials
+- No backend code
+- Clean component architecture
+- Reusable components
+- Accessible forms
+- Loading states
+- Empty states
+- Error states
+- Success notifications
+
+==================================================
+66. FINAL INSTRUCTION
+==================================================
+
+Do not stop after creating the visual design.
+
+Implement the complete FRONTEND experience.
+
+The frontend must be:
+
+- Functional
+- Responsive
+- Accessible
+- Multilingual for members
+- English-only for admins
+- Role-aware
+- Ready for real backend integration
+- Cleanly structured
+- Maintainable
+- Production-quality
+
+MOST IMPORTANT RULES:
+
+1. ONE LOGIN PAGE FOR BOTH ADMIN AND MEMBER.
+2. LOGIN PAGE IS ENGLISH ONLY.
+3. ADMIN INTERFACE IS ENGLISH ONLY.
+4. ADMIN HAS NO LANGUAGE SWITCHER.
+5. MEMBERS CAN SWITCH BETWEEN ENGLISH AND AMHARIC AFTER LOGIN.
+6. MEMBER LANGUAGE MUST PERSIST.
+7. NEVER MIX ENGLISH AND AMHARIC SYSTEM UI.
+8. MEMBERS CANNOT ACCESS ADMIN UI.
+9. REMOVE ALL SAMPLE BOOKS.
+10. BOOK STORE STARTS EMPTY.
+11. ADMIN-ADDED BOOKS MUST APPEAR IMMEDIATELY IN THE BOOK STORE.
+12. DO NOT BUILD A BACKEND.
+13. DO NOT EXPOSE ANY CREDENTIALS OR SECRETS.
+14. DO NOT USE FAKE FRONTEND-ONLY SECURITY.
+15. KEEP THE FRONTEND READY FOR REAL API INTEGRATION.
+
+Build the frontend according to these requirements and fix all frontend errors before considering the task complete.
