@@ -131,6 +131,33 @@ export const LogoutResponse = zod.void()
 
 
 /**
+ * @summary Request a presigned file upload URL
+ */
+
+
+
+
+
+export const RequestUploadUrlBody = zod.object({
+  "name": zod.string().min(1),
+  "size": zod.number().int().min(1),
+  "contentType": zod.string().min(1),
+  "purpose": zod.enum(['cover', 'book', 'study-note'])
+})
+
+export const RequestUploadUrlResponse = zod.object({
+  "uploadURL": zod.string().url(),
+  "objectPath": zod.string(),
+  "metadata": zod.object({
+  "name": zod.string(),
+  "size": zod.number().int(),
+  "contentType": zod.string(),
+  "purpose": zod.enum(['cover', 'book', 'study-note'])
+})
+})
+
+
+/**
  * @summary Browse books
  */
 export const listBooksQueryTypeDefault = `all`;

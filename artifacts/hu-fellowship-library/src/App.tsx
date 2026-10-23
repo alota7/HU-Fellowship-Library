@@ -56,7 +56,29 @@ const Field = ({ label, ...props }: { label: string } & React.InputHTMLAttribute
 const TextAreaField = ({ label, ...props }: { label: string } & React.TextareaHTMLAttributes<HTMLTextAreaElement>) => (
   <label className="grid gap-2 text-sm font-semibold text-foreground">{label}<textarea {...props} className="min-h-28 rounded-lg border border-input bg-card px-3.5 py-3 font-normal outline-none ring-primary/20 placeholder:text-muted-foreground focus:ring-4" /></label>
 );
-const Logo = ({ dark = false }: { dark?: boolean }) => <Link href="/" data-testid="link-brand" className="flex items-center gap-3"><span className="h-11 w-11 overflow-hidden rounded-full border-2 border-black/70 bg-white"><img src={logo} alt="HU Fellowship Library" className="h-full w-full scale-125 object-contain" /></span><span className={`font-serif text-sm font-bold leading-tight ${dark ? 'text-sidebar-foreground' : 'text-foreground'}`}>HU Fellowship<br /><span className="font-sans text-[10px] font-medium uppercase tracking-[.2em] opacity-70">Library</span></span></Link>;
+type UploadPurpose = 'cover' | 'book' | 'study-note';
+async function uploadLibraryFile(file: File, purpose: UploadPurpose) {
+  const mimeByExtension: Record<string, string> = {
+    png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', webp: 'image/webp',
+    pdf: 'application/pdf', epub: 'application/epub+zip', doc: 'application/msword',
+    docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', txt: 'text/plain',
+  };
+  const extension = file.name.toLowerCase().split('.').pop() ?? '';
+  const contentType = file.type || mimeByExtension[extension] || '';
+  const maxSize = purpose === 'cover' ? 10 * 1024 * 1024 : 50 * 1024 * 1024;
+  if (file.size > maxSize) throw new Error(purpose === 'cover' ? 'Cover images must be 10 MB or smaller.' : 'Files must be 50 MB or smaller.');
+  const request = await fetch('/api/storage/uploads/request-url', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: file.name, size: file.size, contentType, purpose }),
+  });
+  if (!request.ok) throw new Error((await request.json().catch(() => ({}))).error ?? 'Could not prepare the file upload.');
+  const { uploadURL, objectPath } = await request.json();
+  const uploaded = await fetch(uploadURL, { method: 'PUT', body: file, headers: { 'Content-Type': contentType } });
+  if (!uploaded.ok) throw new Error('The file could not be uploaded. Please try again.');
+  return `/api/storage${objectPath}`;
+}
+const Logo = ({ dark = false }: { dark?: boolean }) => <Link href="/" data-testid="link-brand" className="flex items-center gap-3"><span className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border-2 border-black/70 bg-white"><img src={logo} alt="HU Fellowship Library" className="block h-full w-full origin-center scale-125 object-contain object-center" /></span><span className={`font-serif text-sm font-bold leading-tight ${dark ? 'text-sidebar-foreground' : 'text-foreground'}`}>HU Fellowship<br /><span className="font-sans text-[10px] font-medium uppercase tracking-[.2em] opacity-70">Library</span></span></Link>;
 const Status = ({ children, tone = 'neutral' }: { children: ReactNode; tone?: 'neutral' | 'good' | 'warn' | 'bad' }) => <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider ${tone === 'good' ? 'bg-emerald-100 text-emerald-700' : tone === 'warn' ? 'bg-amber-100 text-amber-700' : tone === 'bad' ? 'bg-red-100 text-red-700' : 'bg-secondary text-secondary-foreground'}`}>{children}</span>;
 const Skeleton = ({ className = '' }: { className?: string }) => <div className={`skeleton rounded-lg ${className}`} />;
 const EmptyState = ({ icon: Icon = Library, title, detail, action }: { icon?: typeof Library; title: string; detail: string; action?: ReactNode }) => <div className="flex min-h-64 flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-card/60 px-6 text-center"><span className="mb-4 rounded-full bg-secondary p-4 text-primary"><Icon size={24} /></span><h3 className="font-serif text-lg font-bold">{title}</h3><p className="mt-1 max-w-sm text-sm text-muted-foreground">{detail}</p>{action && <div className="mt-5">{action}</div>}</div>;
@@ -82,7 +104,7 @@ function Home() {
           <div className="mt-9 flex flex-wrap gap-3"><Link href="/login" data-testid="link-start-exploring" className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-3 text-sm font-bold text-primary-foreground shadow-lg shadow-primary/15">Start exploring <ChevronRight size={17} /></Link><a href="#featured" data-testid="link-view-featured" className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-5 py-3 text-sm font-bold">View featured resources</a></div>
           <div className="mt-12 flex items-center gap-8 border-t border-border pt-6"><div><div className="font-mono text-2xl font-bold text-primary">{booksQuery.isLoading ? '—' : books.length}</div><div className="text-xs text-muted-foreground">books in the collection</div></div><div className="h-9 w-px bg-border" /><div><div className="font-mono text-2xl font-bold text-primary">{categoriesQuery.isLoading ? '—' : (categoriesQuery.data?.length ?? 0)}</div><div className="text-xs text-muted-foreground">ways to find your next study</div></div></div>
         </div>
-         <div className="paper-grid relative mx-auto w-full max-w-lg animate-rise stagger-1"><div className="absolute -right-8 -top-8 h-40 w-40 rounded-full bg-accent/10 blur-3xl" /><div className="relative rounded-[2rem] border border-primary/15 bg-secondary/45 p-5 shadow-2xl shadow-primary/10"><div className="rounded-[1.5rem] bg-sidebar p-8 text-sidebar-foreground"><div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-[.2em] text-sidebar-primary"><span>HU / 01</span><span>Est. 2004</span></div><div className="mt-16 max-w-xs font-serif text-3xl font-bold leading-tight">“Study to show yourself approved.”</div><div className="mt-3 font-mono text-[10px] uppercase tracking-widest text-sidebar-primary">2 Timothy 2:15</div><div className="mt-12 flex items-end justify-between"><div className="h-14 w-14 overflow-hidden rounded-full border border-sidebar-primary/40 p-1"><img src={logo} alt="" className="h-full w-full scale-[1.35] rounded-full object-contain" /></div><div className="text-right text-xs text-sidebar-foreground/50">Fellowship<br />Library</div></div></div></div></div>
+         <div className="paper-grid relative mx-auto w-full max-w-lg animate-rise stagger-1"><div className="absolute -right-8 -top-8 h-40 w-40 rounded-full bg-accent/10 blur-3xl" /><div className="relative rounded-[2rem] border border-primary/15 bg-secondary/45 p-5 shadow-2xl shadow-primary/10"><div className="rounded-[1.5rem] bg-sidebar p-8 text-sidebar-foreground"><div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-[.2em] text-sidebar-primary"><span>HU / 01</span><span>Est. 2004</span></div><div className="mt-16 max-w-xs font-serif text-3xl font-bold leading-tight">“Study to show yourself approved.”</div><div className="mt-3 font-mono text-[10px] uppercase tracking-widest text-sidebar-primary">2 Timothy 2:15</div><div className="mt-12 flex items-end justify-between"><div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-full border border-sidebar-primary/40 p-1"><img src={logo} alt="" className="block h-full w-full origin-center scale-[1.25] object-contain object-center" /></div><div className="text-right text-xs text-sidebar-foreground/50">Fellowship<br />Library</div></div></div></div></div>
       </section>
       <section id="featured" className="border-y border-border bg-card/50 px-5 py-20 lg:px-10"><div className="mx-auto max-w-7xl"><div className="flex flex-wrap items-end justify-between gap-5"><div><div className="text-xs font-bold uppercase tracking-[.2em] text-accent">From the shelves</div><h2 className="mt-2 font-serif text-3xl font-bold">Resources worth returning to.</h2></div><Link href="/login" data-testid="link-browse-all" className="text-sm font-bold text-primary">Browse the whole library <ArrowUpRight size={15} className="ml-1 inline" /></Link></div>{booksQuery.isLoading ? <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">{[1,2,3,4].map(i => <Skeleton key={i} className="h-72" />)}</div> : featured.length ? <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">{featured.map(book => <BookCard key={book.id} book={book} publicCard />)}</div> : <div className="mt-10"><EmptyState icon={BookOpen} title="The shelves are being prepared" detail="Featured resources will appear here as the collection grows." /></div>}</div></section>
       <section id="about" className="mx-auto grid max-w-7xl gap-10 px-5 py-20 lg:grid-cols-[.7fr_1fr] lg:px-10"><div><div className="text-xs font-bold uppercase tracking-[.2em] text-accent">A shared table</div><h2 className="mt-3 font-serif text-3xl font-bold leading-tight">Learning becomes richer when it is shared.</h2></div><div className="grid gap-8 text-sm leading-7 text-muted-foreground sm:grid-cols-2"><div><Sparkles size={20} className="mb-4 text-primary" /><p>Find the next book for your quiet hour, keep track of what you borrow, and return with a thought worth bringing to fellowship.</p></div><div><Users size={20} className="mb-4 text-primary" /><p>Members and stewards care for the same collection. Every shelf is kept useful, current, and open to thoughtful questions.</p></div></div></section>
@@ -148,7 +170,7 @@ function Metric({ label, value, icon: Icon, accent = 'primary' }: { label: strin
 function MemberDashboard() {
   const { lang } = useLang(); const summary = useGetDashboardSummary(); const books = useListBooks(); const borrowings = useListBorrowings(); const notes = useListStudyNotes();
   const data = summary.data; const latest = (books.data ?? []).slice(0, 3);
-  return <AuthenticatedLayout><PageHeading eyebrow={t('overview', lang)} title={`${t('welcome', lang)}.`} detail="A good study habit starts by knowing where to look." action={<Link href="/member/books" data-testid="link-dashboard-browse" className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground">{t('browse', lang)} <ChevronRight size={16} /></Link>} /><div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{summary.isLoading ? [1,2,3,4].map(i => <Skeleton key={i} className="h-36" />) : <><Metric label={lang === 'am' ? 'በስብስቡ ውስጥ መጻሕፍት' : 'Books in collection'} value={data?.books ?? 0} icon={BookOpen} /><Metric label={lang === 'am' ? 'የእኔ የነባር ውሰቶች' : 'Active borrowings'} value={data?.activeBorrowings ?? (borrowings.data?.length ?? 0)} icon={Bookmark} accent="accent" /><Metric label={lang === 'am' ? 'የጥናት ማስታወሻዎች' : 'Study notes'} value={data?.studyNotes ?? (notes.data?.length ?? 0)} icon={FileText} /><Metric label={lang === 'am' ? 'በመጠባበቅ ላይ ጥያቄዎች' : 'Pending requests'} value={data?.pendingRequests ?? 0} icon={Clock3} /></>}</div><div className="mt-8 grid gap-6 xl:grid-cols-[1.25fr_.75fr]"><section className="rounded-2xl border border-border bg-card p-6"><div className="flex items-center justify-between"><div><div className="text-xs font-bold uppercase tracking-[.2em] text-accent">{t('featured', lang)}</div><h2 className="mt-1 font-serif text-2xl font-bold">Begin with a good question.</h2></div><Link href="/member/books" data-testid="link-dashboard-books" className="text-sm font-bold text-primary">See all</Link></div>{books.isLoading ? <div className="mt-6 grid gap-3">{[1,2,3].map(i => <Skeleton key={i} className="h-20" />)}</div> : latest.length ? <div className="mt-6 grid gap-3">{latest.map(book => <Link key={book.id} href={`/member/books/${book.id}`} data-testid={`row-dashboard-book-${book.id}`} className="flex items-center gap-4 rounded-xl border border-border/70 p-3 hover:border-primary/40 hover:bg-secondary/40"><div className="h-16 w-12 shrink-0 overflow-hidden rounded-md"><BookCover book={book} /></div><div className="min-w-0 flex-1"><h3 className="truncate font-serif font-bold">{book.title}</h3><p className="truncate text-xs text-muted-foreground">{book.author} · {book.category}</p></div><ArrowUpRight size={17} className="text-muted-foreground" /></Link>)}</div> : <div className="mt-6"><EmptyState icon={BookOpen} title="The shelves are quiet" detail="Newly added books will appear here." /></div>}</section><section className="relative overflow-hidden rounded-2xl bg-sidebar p-7 text-sidebar-foreground"><div className="absolute -right-14 -top-14 h-44 w-44 rounded-full border border-sidebar-primary/20" /><div className="absolute -right-4 -top-4 h-24 w-24 rounded-full border border-sidebar-primary/20" /><div className="relative"><div className="font-mono text-[10px] uppercase tracking-[.2em] text-sidebar-primary">A verse for the week</div><p className="mt-12 font-serif text-2xl font-bold leading-relaxed">“Trust in the Lord with all your heart and lean not on your own understanding.”</p><p className="mt-5 text-xs text-sidebar-foreground/55">Proverbs 3:5</p><div className="mt-14 flex justify-end"><span className="h-14 w-14 overflow-hidden rounded-full border-2 border-black/70 bg-white opacity-80"><img src={logo} alt="" className="h-full w-full scale-125 object-contain" /></span></div></div></section></div></AuthenticatedLayout>;
+  return <AuthenticatedLayout><PageHeading eyebrow={t('overview', lang)} title={`${t('welcome', lang)}.`} detail="A good study habit starts by knowing where to look." action={<Link href="/member/books" data-testid="link-dashboard-browse" className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground">{t('browse', lang)} <ChevronRight size={16} /></Link>} /><div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{summary.isLoading ? [1,2,3,4].map(i => <Skeleton key={i} className="h-36" />) : <><Metric label={lang === 'am' ? 'በስብስቡ ውስጥ መጻሕፍት' : 'Books in collection'} value={data?.books ?? 0} icon={BookOpen} /><Metric label={lang === 'am' ? 'የእኔ የነባር ውሰቶች' : 'Active borrowings'} value={data?.activeBorrowings ?? (borrowings.data?.length ?? 0)} icon={Bookmark} accent="accent" /><Metric label={lang === 'am' ? 'የጥናት ማስታወሻዎች' : 'Study notes'} value={data?.studyNotes ?? (notes.data?.length ?? 0)} icon={FileText} /><Metric label={lang === 'am' ? 'በመጠባበቅ ላይ ጥያቄዎች' : 'Pending requests'} value={data?.pendingRequests ?? 0} icon={Clock3} /></>}</div><div className="mt-8 grid gap-6 xl:grid-cols-[1.25fr_.75fr]"><section className="rounded-2xl border border-border bg-card p-6"><div className="flex items-center justify-between"><div><div className="text-xs font-bold uppercase tracking-[.2em] text-accent">{t('featured', lang)}</div><h2 className="mt-1 font-serif text-2xl font-bold">Begin with a good question.</h2></div><Link href="/member/books" data-testid="link-dashboard-books" className="text-sm font-bold text-primary">See all</Link></div>{books.isLoading ? <div className="mt-6 grid gap-3">{[1,2,3].map(i => <Skeleton key={i} className="h-20" />)}</div> : latest.length ? <div className="mt-6 grid gap-3">{latest.map(book => <Link key={book.id} href={`/member/books/${book.id}`} data-testid={`row-dashboard-book-${book.id}`} className="flex items-center gap-4 rounded-xl border border-border/70 p-3 hover:border-primary/40 hover:bg-secondary/40"><div className="h-16 w-12 shrink-0 overflow-hidden rounded-md"><BookCover book={book} /></div><div className="min-w-0 flex-1"><h3 className="truncate font-serif font-bold">{book.title}</h3><p className="truncate text-xs text-muted-foreground">{book.author} · {book.category}</p></div><ArrowUpRight size={17} className="text-muted-foreground" /></Link>)}</div> : <div className="mt-6"><EmptyState icon={BookOpen} title="The shelves are quiet" detail="Newly added books will appear here." /></div>}</section><section className="relative overflow-hidden rounded-2xl bg-sidebar p-7 text-sidebar-foreground"><div className="absolute -right-14 -top-14 h-44 w-44 rounded-full border border-sidebar-primary/20" /><div className="absolute -right-4 -top-4 h-24 w-24 rounded-full border border-sidebar-primary/20" /><div className="relative"><div className="font-mono text-[10px] uppercase tracking-[.2em] text-sidebar-primary">A verse for the week</div><p className="mt-12 font-serif text-2xl font-bold leading-relaxed">“Trust in the Lord with all your heart and lean not on your own understanding.”</p><p className="mt-5 text-xs text-sidebar-foreground/55">Proverbs 3:5</p><div className="mt-14 flex justify-end"><span className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-full border-2 border-black/70 bg-white opacity-80"><img src={logo} alt="" className="block h-full w-full origin-center scale-125 object-contain object-center" /></span></div></div></section></div></AuthenticatedLayout>;
 }
 
 function MemberBooks() {
@@ -166,8 +188,55 @@ function BookDetail() {
 }
 
 function MemberNotes() {
-  const { lang } = useLang(); const query = useListStudyNotes(); const [showForm, setShowForm] = useState(false); const create = useCreateStudyNote(); const [form, setForm] = useState({ title: '', description: '', type: 'personal', fileUrl: '' });
-  return <AuthenticatedLayout><PageHeading eyebrow={t('membersOnly', lang)} title={t('notes', lang)} detail="Approved reflections and study guides from the fellowship." action={<Button onClick={() => setShowForm(!showForm)} data-testid="button-new-note"><Plus size={17} />Submit a note</Button>} />{showForm && <form className="mb-7 grid gap-4 rounded-2xl border border-primary/20 bg-secondary/35 p-5 md:grid-cols-2" onSubmit={e => { e.preventDefault(); create.mutate({ data: form as any }, { onSuccess: () => { setShowForm(false); setForm({ title: '', description: '', type: 'personal', fileUrl: '' }); query.refetch(); } }); }}><Field label="Title" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} required data-testid="input-note-title" /><label className="grid gap-2 text-sm font-semibold">Type<select value={form.type} onChange={e => setForm({ ...form, type: e.target.value })} className="h-11 rounded-lg border border-input bg-card px-3" data-testid="select-note-type"><option value="personal">Personal study</option><option value="summer">Summer study</option></select></label><div className="md:col-span-2"><TextAreaField label="Description" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} required data-testid="textarea-note-description" /></div><div className="flex gap-3 md:col-span-2"><Button type="submit" disabled={create.isPending} data-testid="button-submit-note">Submit for review</Button><Button type="button" variant="ghost" onClick={() => setShowForm(false)} data-testid="button-cancel-note">Cancel</Button></div></form>}{query.isLoading ? <div className="grid gap-4 md:grid-cols-2">{[1,2,3,4].map(i => <Skeleton key={i} className="h-40" />)}</div> : query.data?.length ? <div className="grid gap-4 md:grid-cols-2">{query.data.map(note => <NoteCard key={note.id} note={note} />)}</div> : <EmptyState icon={FileText} title="No approved notes yet" detail="Your submitted reflections can become part of this shared shelf." action={<Button variant="soft" onClick={() => setShowForm(true)} data-testid="button-empty-note">Submit a study note</Button>} />}</AuthenticatedLayout>;
+  const { lang } = useLang();
+  const query = useListStudyNotes();
+  const [showForm, setShowForm] = useState(false);
+  const [noteFile, setNoteFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState('');
+  const create = useCreateStudyNote();
+  const [form, setForm] = useState({ title: '', description: '', type: 'personal', fileUrl: '' });
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setUploadError('');
+    setUploading(true);
+    try {
+      const fileUrl = noteFile ? await uploadLibraryFile(noteFile, 'study-note') : null;
+      create.mutate({ data: { ...form, fileUrl } as any }, {
+        onSuccess: () => {
+          setShowForm(false);
+          setNoteFile(null);
+          setForm({ title: '', description: '', type: 'personal', fileUrl: '' });
+          query.refetch();
+        },
+      });
+    } catch (error) {
+      setUploadError(error instanceof Error ? error.message : 'The attachment could not be uploaded.');
+    } finally {
+      setUploading(false);
+    }
+  };
+  return <AuthenticatedLayout>
+    <PageHeading eyebrow={t('membersOnly', lang)} title={t('notes', lang)} detail="Approved reflections and study guides from the fellowship." action={<Button onClick={() => setShowForm(!showForm)} data-testid="button-new-note"><Plus size={17} />Submit a note</Button>} />
+    {showForm && <form className="mb-7 grid gap-4 rounded-2xl border border-primary/20 bg-secondary/35 p-5 md:grid-cols-2" onSubmit={submit}>
+      <Field label="Title" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} required data-testid="input-note-title" />
+      <label className="grid gap-2 text-sm font-semibold">Type
+        <select value={form.type} onChange={e => setForm({ ...form, type: e.target.value })} className="h-11 rounded-lg border border-input bg-card px-3" data-testid="select-note-type"><option value="personal">Personal study</option><option value="summer">Summer study</option></select>
+      </label>
+      <div className="md:col-span-2"><TextAreaField label="Description" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} required data-testid="textarea-note-description" /></div>
+      <label className="grid gap-2 text-sm font-semibold md:col-span-2">Attach a study note file (optional)
+        <input type="file" accept=".pdf,.epub,.doc,.docx,.txt,application/pdf,application/epub+zip,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain" onChange={e => setNoteFile(e.target.files?.[0] ?? null)} className="block h-11 rounded-lg border border-input bg-card px-3 py-2 text-sm font-normal" data-testid="input-note-file-upload" />
+        <span className="text-xs font-normal text-muted-foreground">{noteFile?.name ?? 'PDF, EPUB, Word document, or text file · max 50 MB'}</span>
+      </label>
+      {uploadError && <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive md:col-span-2" data-testid="status-note-upload-error">{uploadError}</div>}
+      {create.isError && <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive md:col-span-2" data-testid="status-note-submit-error">The note could not be submitted. Check your connection and try again.</div>}
+      <div className="flex gap-3 md:col-span-2">
+        <Button type="submit" disabled={uploading || create.isPending} data-testid="button-submit-note">{uploading ? 'Uploading…' : create.isPending ? 'Submitting…' : 'Submit for review'}</Button>
+        <Button type="button" variant="ghost" onClick={() => setShowForm(false)} data-testid="button-cancel-note">Cancel</Button>
+      </div>
+    </form>}
+    {query.isLoading ? <div className="grid gap-4 md:grid-cols-2">{[1,2,3,4].map(i => <Skeleton key={i} className="h-40" />)}</div> : query.data?.length ? <div className="grid gap-4 md:grid-cols-2">{query.data.map(note => <NoteCard key={note.id} note={note} />)}</div> : <EmptyState icon={FileText} title="No approved notes yet" detail="Your submitted reflections can become part of this shared shelf." action={<Button variant="soft" onClick={() => setShowForm(true)} data-testid="button-empty-note">Submit a study note</Button>} />}
+  </AuthenticatedLayout>;
 }
 function NoteCard({ note }: { note: StudyNote }) { return <article className="rounded-xl border border-border bg-card p-5 transition hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/5"><div className="flex items-center justify-between gap-3"><Status tone={note.status === 'approved' ? 'good' : note.status === 'pending' ? 'warn' : 'bad'}>{note.status}</Status><span className="font-mono text-[10px] uppercase text-muted-foreground">{note.type}</span></div><h3 className="mt-4 font-serif text-xl font-bold">{note.title}</h3><p className="mt-2 line-clamp-3 text-sm leading-6 text-muted-foreground">{note.description}</p><div className="mt-5 flex items-center justify-between border-t border-border pt-4 text-xs text-muted-foreground"><span>by {note.author}</span>{note.fileUrl && <a href={note.fileUrl} target="_blank" rel="noreferrer" data-testid={`link-note-file-${note.id}`} className="font-bold text-primary">Open file <ArrowUpRight size={13} className="inline" /></a>}</div></article>; }
 
@@ -187,22 +256,118 @@ function AdminDashboard() {
 }
 
 function AdminBooks() {
-  const query = useListBooks(); const cats = useListCategories(); const create = useCreateBook(); const del = useDeleteBook(); const client = useQueryClient(); const [formOpen, setFormOpen] = useState(false); const [editing, setEditing] = useState<Book | null>(null); const [coverFile, setCoverFile] = useState<File | null>(null); const [uploadError, setUploadError] = useState('');
-  const empty = { title: '', author: '', type: 'hardcopy', category: '', description: '', total: '1', year: '', coverUrl: '', fileUrl: '' }; const [form, setForm] = useState(empty);
-  const openForm = (book?: Book) => { setEditing(book ?? null); setCoverFile(null); setUploadError(''); setForm(book ? { title: book.title, author: book.author, type: book.type, category: book.category, description: book.description, total: String(book.total), year: book.year ? String(book.year) : '', coverUrl: book.coverUrl ?? '', fileUrl: book.fileUrl ?? '' } : empty); setFormOpen(true); };
+  const query = useListBooks();
+  const cats = useListCategories();
+  const create = useCreateBook();
   const update = useUpdateBook();
-  const uploadCover = async (file: File) => {
-    if (!file.type.startsWith('image/')) throw new Error('Choose a PNG, JPG, or WebP image.');
-    if (file.size > 10 * 1024 * 1024) throw new Error('Cover images must be 10 MB or smaller.');
-    const request = await fetch('/api/storage/uploads/request-url', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: file.name, size: file.size, contentType: file.type }) });
-    if (!request.ok) throw new Error((await request.json().catch(() => ({}))).error ?? 'Could not prepare the cover upload.');
-    const { uploadURL, objectPath } = await request.json();
-    const uploaded = await fetch(uploadURL, { method: 'PUT', body: file, headers: { 'Content-Type': file.type } });
-    if (!uploaded.ok) throw new Error('The cover image could not be uploaded.');
-    return `/api/storage${objectPath}`;
+  const del = useDeleteBook();
+  const client = useQueryClient();
+  const [formOpen, setFormOpen] = useState(false);
+  const [editing, setEditing] = useState<Book | null>(null);
+  const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [bookFile, setBookFile] = useState<File | null>(null);
+  const [uploadError, setUploadError] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const empty = { title: '', author: '', type: 'hardcopy', category: '', description: '', total: '1', year: '', coverUrl: '', fileUrl: '' };
+  const [form, setForm] = useState(empty);
+  const openForm = (book?: Book) => {
+    setEditing(book ?? null);
+    setCoverFile(null);
+    setBookFile(null);
+    setUploadError('');
+    setForm(book ? {
+      title: book.title,
+      author: book.author,
+      type: book.type,
+      category: book.category,
+      description: book.description,
+      total: String(book.total),
+      year: book.year ? String(book.year) : '',
+      coverUrl: book.coverUrl ?? '',
+      fileUrl: book.fileUrl ?? '',
+    } : empty);
+    setFormOpen(true);
   };
-  const submit = async (e: React.FormEvent) => { e.preventDefault(); setUploadError(''); try { const coverUrl = coverFile ? await uploadCover(coverFile) : form.coverUrl || null; const data = { ...form, total: Number(form.total), year: form.year ? Number(form.year) : null, coverUrl, fileUrl: form.fileUrl || null, featured: editing?.featured ?? false } as any; const done = () => { setFormOpen(false); query.refetch(); }; if (editing) update.mutate({ id: editing.id, data }, { onSuccess: done }); else create.mutate({ data }, { onSuccess: done }); } catch (error) { setUploadError(error instanceof Error ? error.message : 'The cover image could not be uploaded.'); } };
-  return <AuthenticatedLayout admin><PageHeading eyebrow="Collection management" title="Books" detail="Add, update, and care for the collection." action={<Button onClick={() => openForm()} data-testid="button-add-book"><Plus size={17} />Add a book</Button>} />{formOpen && <form onSubmit={submit} className="mb-7 grid gap-4 rounded-2xl border border-primary/20 bg-secondary/35 p-5 md:grid-cols-2"><div className="md:col-span-2 flex items-center justify-between"><h2 className="font-serif text-xl font-bold">{editing ? 'Edit book' : 'Add a book'}</h2><button type="button" onClick={() => setFormOpen(false)} data-testid="button-close-book-form"><X size={18} /></button></div><Field label="Title" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} required data-testid="input-book-title" /><Field label="Author" value={form.author} onChange={e => setForm({ ...form, author: e.target.value })} required data-testid="input-book-author" /><label className="grid gap-2 text-sm font-semibold">Format<select value={form.type} onChange={e => setForm({ ...form, type: e.target.value })} className="h-11 rounded-lg border border-input bg-card px-3" data-testid="select-admin-book-type"><option value="hardcopy">Hardcopy</option><option value="softcopy">Softcopy</option></select></label><label className="grid gap-2 text-sm font-semibold">Category<select value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} required className="h-11 rounded-lg border border-input bg-card px-3" data-testid="select-admin-book-category"><option value="">Choose a category</option>{(cats.data ?? []).map(c => <option key={c.id} value={c.name}>{c.name}</option>)}</select></label><Field label="Total copies" type="number" min="0" value={form.total} onChange={e => setForm({ ...form, total: e.target.value })} required data-testid="input-book-total" /><Field label="Year" type="number" value={form.year} onChange={e => setForm({ ...form, year: e.target.value })} data-testid="input-book-year" /><div className="md:col-span-2"><TextAreaField label="Description" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} required data-testid="textarea-book-description" /></div><label className="grid gap-2 text-sm font-semibold">Cover image<input type="file" accept="image/png,image/jpeg,image/webp" onChange={e => setCoverFile(e.target.files?.[0] ?? null)} className="block h-11 rounded-lg border border-input bg-card px-3 py-2 text-sm font-normal" data-testid="input-book-cover-upload" /><span className="text-xs font-normal text-muted-foreground">{coverFile?.name ?? (form.coverUrl ? 'Current cover will be kept unless replaced.' : 'PNG, JPG, or WebP · max 10 MB')}</span></label><Field label="File URL (softcopy)" value={form.fileUrl} onChange={e => setForm({ ...form, fileUrl: e.target.value })} data-testid="input-book-file" />{uploadError && <div className="md:col-span-2 rounded-lg bg-destructive/10 p-3 text-sm text-destructive" data-testid="status-cover-upload-error">{uploadError}</div>}<div className="flex gap-3 md:col-span-2"><Button type="submit" variant="primary" className="min-w-28 whitespace-nowrap !text-white" disabled={create.isPending || update.isPending || Boolean(coverFile && uploadError)} data-testid="button-save-book"><span className="text-white">{create.isPending || update.isPending ? 'Saving…' : 'Save book'}</span></Button><Button type="button" variant="ghost" onClick={() => setFormOpen(false)} data-testid="button-cancel-book">Cancel</Button></div></form>}{query.isLoading ? <div className="grid gap-3">{[1,2,3,4].map(i => <Skeleton key={i} className="h-20" />)}</div> : query.data?.length ? <div className="overflow-hidden rounded-2xl border border-border bg-card"><div className="hidden grid-cols-[1fr_160px_130px_110px_90px] gap-4 border-b border-border bg-secondary/40 px-5 py-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground sm:grid"><span>Title</span><span>Category</span><span>Format</span><span>Availability</span><span /></div>{query.data.map(book => <div key={book.id} className="grid gap-3 border-b border-border p-4 last:border-0 sm:grid-cols-[1fr_160px_130px_110px_90px] sm:items-center sm:gap-4 sm:px-5"><div className="flex items-center gap-3"><div className="h-12 w-9 shrink-0 overflow-hidden rounded"><BookCover book={book} /></div><div className="min-w-0"><div className="truncate font-serif font-bold">{book.title}</div><div className="truncate text-xs text-muted-foreground">{book.author}</div></div></div><span className="text-sm text-muted-foreground">{book.category}</span><span className="text-xs font-mono uppercase">{book.type}</span><Status tone={book.available ? 'good' : 'bad'}>{book.available}/{book.total}</Status><div className="flex gap-1"><button onClick={() => openForm(book)} title="Edit book" data-testid={`button-edit-book-${book.id}`} className="rounded p-2 text-muted-foreground hover:bg-secondary hover:text-primary"><Pencil size={16} /></button><button onClick={() => { if (window.confirm('Remove this book from the collection?')) del.mutate({ id: book.id }, { onSuccess: () => client.invalidateQueries({ queryKey: getListBooksQueryKey() }) }); }} title="Delete book" data-testid={`button-delete-book-${book.id}`} className="rounded p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"><X size={16} /></button></div></div>)}</div> : <EmptyState icon={BookOpen} title="Your collection is empty" detail="Add the first book to give members somewhere to begin." action={<Button onClick={() => openForm()} data-testid="button-empty-add-book"><Plus size={17} />Add a book</Button>} />}</AuthenticatedLayout>;
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setUploadError('');
+    setUploading(true);
+    try {
+      if (form.type === 'softcopy' && !bookFile && !form.fileUrl) {
+        throw new Error('Upload a softcopy file for this book.');
+      }
+      const coverUrl = coverFile ? await uploadLibraryFile(coverFile, 'cover') : form.coverUrl || null;
+      const fileUrl = form.type === 'softcopy'
+        ? (bookFile ? await uploadLibraryFile(bookFile, 'book') : form.fileUrl || null)
+        : null;
+      const data = {
+        ...form,
+        total: Number(form.total),
+        year: form.year ? Number(form.year) : null,
+        coverUrl,
+        fileUrl,
+        featured: editing?.featured ?? false,
+      } as any;
+      const done = () => {
+        setFormOpen(false);
+        setCoverFile(null);
+        setBookFile(null);
+        query.refetch();
+      };
+      if (editing) update.mutate({ id: editing.id, data }, { onSuccess: done });
+      else create.mutate({ data }, { onSuccess: done });
+    } catch (error) {
+      setUploadError(error instanceof Error ? error.message : 'The selected file could not be uploaded.');
+    } finally {
+      setUploading(false);
+    }
+  };
+  const busy = uploading || create.isPending || update.isPending;
+  return <AuthenticatedLayout admin>
+    <PageHeading eyebrow="Collection management" title="Books" detail="Add, update, and care for the collection." action={<Button onClick={() => openForm()} data-testid="button-add-book"><Plus size={17} />Add a book</Button>} />
+    {formOpen && <form onSubmit={submit} className="mb-7 grid gap-4 rounded-2xl border border-primary/20 bg-secondary/35 p-5 md:grid-cols-2">
+      <div className="md:col-span-2 flex items-center justify-between">
+        <h2 className="font-serif text-xl font-bold">{editing ? 'Edit book' : 'Add a book'}</h2>
+        <button type="button" onClick={() => setFormOpen(false)} data-testid="button-close-book-form"><X size={18} /></button>
+      </div>
+      <Field label="Title" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} required data-testid="input-book-title" />
+      <Field label="Author" value={form.author} onChange={e => setForm({ ...form, author: e.target.value })} required data-testid="input-book-author" />
+      <label className="grid gap-2 text-sm font-semibold">Format
+        <select value={form.type} onChange={e => { setForm({ ...form, type: e.target.value }); if (e.target.value !== 'softcopy') setBookFile(null); }} className="h-11 rounded-lg border border-input bg-card px-3" data-testid="select-admin-book-type">
+          <option value="hardcopy">Hardcopy</option><option value="softcopy">Softcopy</option>
+        </select>
+      </label>
+      <label className="grid gap-2 text-sm font-semibold">Category
+        <select value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} required className="h-11 rounded-lg border border-input bg-card px-3" data-testid="select-admin-book-category">
+          <option value="">Choose a category</option>{(cats.data ?? []).map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+        </select>
+      </label>
+      <Field label="Total copies" type="number" min="0" value={form.total} onChange={e => setForm({ ...form, total: e.target.value })} required data-testid="input-book-total" />
+      <Field label="Year" type="number" value={form.year} onChange={e => setForm({ ...form, year: e.target.value })} data-testid="input-book-year" />
+      <div className="md:col-span-2"><TextAreaField label="Description" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} required data-testid="textarea-book-description" /></div>
+      <label className="grid gap-2 text-sm font-semibold">Cover image
+        <input type="file" accept="image/png,image/jpeg,image/webp" onChange={e => setCoverFile(e.target.files?.[0] ?? null)} className="block h-11 rounded-lg border border-input bg-card px-3 py-2 text-sm font-normal" data-testid="input-book-cover-upload" />
+        <span className="text-xs font-normal text-muted-foreground">{coverFile?.name ?? (form.coverUrl ? 'Current cover will be kept unless replaced.' : 'PNG, JPG, or WebP · max 10 MB')}</span>
+      </label>
+      {form.type === 'softcopy' && <label className="grid gap-2 text-sm font-semibold">Softcopy file
+        <input type="file" accept=".pdf,.epub,.doc,.docx,application/pdf,application/epub+zip,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" onChange={e => setBookFile(e.target.files?.[0] ?? null)} className="block h-11 rounded-lg border border-input bg-card px-3 py-2 text-sm font-normal" data-testid="input-book-file-upload" />
+        <span className="text-xs font-normal text-muted-foreground">{bookFile?.name ?? (form.fileUrl ? 'A softcopy is already attached; select a file to replace it.' : 'PDF, EPUB, or Word document · max 50 MB')}</span>
+      </label>}
+      {uploadError && <div className="md:col-span-2 rounded-lg bg-destructive/10 p-3 text-sm text-destructive" data-testid="status-book-upload-error">{uploadError}</div>}
+      <div className="flex gap-3 md:col-span-2">
+        <Button type="submit" variant="primary" className="min-w-28 whitespace-nowrap !text-white" disabled={busy} data-testid="button-save-book"><span className="text-white">{busy ? 'Uploading & saving…' : 'Save book'}</span></Button>
+        <Button type="button" variant="ghost" onClick={() => setFormOpen(false)} data-testid="button-cancel-book">Cancel</Button>
+      </div>
+    </form>}
+    {query.isLoading ? <div className="grid gap-3">{[1,2,3,4].map(i => <Skeleton key={i} className="h-20" />)}</div> : query.data?.length ? <div className="overflow-hidden rounded-2xl border border-border bg-card">
+      <div className="hidden grid-cols-[1fr_160px_130px_110px_90px] gap-4 border-b border-border bg-secondary/40 px-5 py-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground sm:grid"><span>Title</span><span>Category</span><span>Format</span><span>Availability</span><span /></div>
+      {query.data.map(book => <div key={book.id} className="grid gap-3 border-b border-border p-4 last:border-0 sm:grid-cols-[1fr_160px_130px_110px_90px] sm:items-center sm:gap-4 sm:px-5">
+        <div className="flex items-center gap-3"><div className="h-12 w-9 shrink-0 overflow-hidden rounded"><BookCover book={book} /></div><div className="min-w-0"><div className="truncate font-serif font-bold">{book.title}</div><div className="truncate text-xs text-muted-foreground">{book.author}</div></div></div>
+        <span className="text-sm text-muted-foreground">{book.category}</span><span className="text-xs font-mono uppercase">{book.type}</span><Status tone={book.available ? 'good' : 'bad'}>{book.available}/{book.total}</Status>
+        <div className="flex gap-1"><button onClick={() => openForm(book)} title="Edit book" data-testid={`button-edit-book-${book.id}`} className="rounded p-2 text-muted-foreground hover:bg-secondary hover:text-primary"><Pencil size={16} /></button><button onClick={() => { if (window.confirm('Remove this book from the collection?')) del.mutate({ id: book.id }, { onSuccess: () => client.invalidateQueries({ queryKey: getListBooksQueryKey() }) }); }} title="Delete book" data-testid={`button-delete-book-${book.id}`} className="rounded p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"><X size={16} /></button></div>
+      </div>)}
+    </div> : <EmptyState icon={BookOpen} title="Your collection is empty" detail="Add the first book to give members somewhere to begin." action={<Button onClick={() => openForm()} data-testid="button-empty-add-book"><Plus size={17} />Add a book</Button>} />}
+  </AuthenticatedLayout>;
 }
 
 function AdminCategories() {

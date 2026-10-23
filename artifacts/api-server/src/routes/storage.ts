@@ -5,6 +5,7 @@ import {
   ObjectNotFoundError,
   ObjectStorageService,
 } from '../lib/objectStorage';
+import { RequestUploadUrlBody, RequestUploadUrlResponse } from '@workspace/api-zod';
 import { getSessionUser } from './library';
 
 const router: IRouter = Router();
@@ -20,21 +21,47 @@ const objectStorageService = new ObjectStorageService();
  */
 router.post(
   '/storage/uploads/request-url',
-  async (req: Request, res: Response) => {
+  async (req: Request, res: Response): Promise<void> => {
     const user = getSessionUser(req);
     if (!user) {
       res.status(401).json({ error: 'Please log in first.' });
       return;
     }
-    if (user.role !== 'admin') {
+    const parsed = RequestUploadUrlBody.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.message });
+      return;
+    }
+    const { name, size, contentType, purpose } = parsed.data;
+    if (purpose !== 'study-note' && user.role !== 'admin') {
       res.status(403).json({ error: 'Administrator access is required.' });
-
       return;
     }
 
-    const { name, size, contentType } = req.body ?? {};
-    if (typeof name !== 'string' || !Number.isFinite(size) || size <= 0 || typeof contentType !== 'string' || !contentType.startsWith('image/')) {
-      res.status(400).json({ error: 'Missing or invalid required fields' });
+    const extension = name.toLowerCase().split('.').pop() ?? '';
+    const mimeByExtension: Record<string, string[]> = {
+      png: ['image/png'],
+      jpg: ['image/jpeg'],
+      jpeg: ['image/jpeg'],
+      webp: ['image/webp'],
+      pdf: ['application/pdf'],
+      epub: ['application/epub+zip'],
+      doc: ['application/msword'],
+      docx: ['application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
+      txt: ['text/plain'],
+    };
+    const allowedExtensions = purpose === 'cover'
+      ? ['png', 'jpg', 'jpeg', 'webp']
+      : purpose === 'book'
+        ? ['pdf', 'epub', 'doc', 'docx']
+        : ['pdf', 'epub', 'doc', 'docx', 'txt'];
+    const maxSize = purpose === 'cover' ? 10 * 1024 * 1024 : 50 * 1024 * 1024;
+    if (!allowedExtensions.includes(extension) || !mimeByExtension[extension]?.includes(contentType)) {
+      res.status(400).json({ error: purpose === 'cover' ? 'Cover images must be PNG, JPG, or WebP.' : 'Unsupported file type. Choose a PDF, EPUB, Word document, or text file where allowed.' });
+      return;
+    }
+    if (size > maxSize) {
+      res.status(413).json({ error: purpose === 'cover' ? 'Cover images must be 10 MB or smaller.' : 'Files must be 50 MB or smaller.' });
       return;
     }
 
@@ -43,7 +70,11 @@ router.post(
       const objectPath =
         objectStorageService.normalizeObjectEntityPath(uploadURL);
 
-      res.json({ uploadURL, objectPath, metadata: { name, size, contentType } });
+      res.json(RequestUploadUrlResponse.parse({
+        uploadURL,
+        objectPath,
+        metadata: { name, size, contentType, purpose },
+      }));
     } catch (error) {
       req.log.error({ err: error }, 'Error generating upload URL');
       res.status(500).json({ error: 'Failed to generate upload URL' });

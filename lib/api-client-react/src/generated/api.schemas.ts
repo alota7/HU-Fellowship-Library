@@ -72,6 +72,47 @@ export interface PasswordResetInput {
   password: string;
 }
 
+export type UploadUrlRequestPurpose = typeof UploadUrlRequestPurpose[keyof typeof UploadUrlRequestPurpose];
+
+
+export const UploadUrlRequestPurpose = {
+  cover: 'cover',
+  book: 'book',
+  'study-note': 'study-note',
+} as const;
+
+export interface UploadUrlRequest {
+  /** @minLength 1 */
+  name: string;
+  /** @minimum 1 */
+  size: number;
+  /** @minLength 1 */
+  contentType: string;
+  purpose: UploadUrlRequestPurpose;
+}
+
+export type UploadUrlResponseMetadataPurpose = typeof UploadUrlResponseMetadataPurpose[keyof typeof UploadUrlResponseMetadataPurpose];
+
+
+export const UploadUrlResponseMetadataPurpose = {
+  cover: 'cover',
+  book: 'book',
+  'study-note': 'study-note',
+} as const;
+
+export type UploadUrlResponseMetadata = {
+  name: string;
+  size: number;
+  contentType: string;
+  purpose: UploadUrlResponseMetadataPurpose;
+};
+
+export interface UploadUrlResponse {
+  uploadURL: string;
+  objectPath: string;
+  metadata: UploadUrlResponseMetadata;
+}
+
 export interface Category {
   id: number;
   name: string;
