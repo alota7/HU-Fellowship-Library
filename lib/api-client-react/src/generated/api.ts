@@ -1134,7 +1134,7 @@ export const createCategory = async (categoryInput: CategoryInput, options?: Par
 
 
 
-export const getCreateCategoryMutationOptions = <TError = ErrorType<unknown>,
+export const getCreateCategoryMutationOptions = <TError = ErrorType<Error | UnauthorizedResponse | ConflictResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCategory>>, TError,{data: BodyType<CategoryInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof createCategory>>, TError,{data: BodyType<CategoryInput>}, TContext> => {
 
@@ -1163,12 +1163,12 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type CreateCategoryMutationResult = NonNullable<Awaited<ReturnType<typeof createCategory>>>
     export type CreateCategoryMutationBody = BodyType<CategoryInput>
-    export type CreateCategoryMutationError = ErrorType<unknown>
+    export type CreateCategoryMutationError = ErrorType<Error | UnauthorizedResponse | ConflictResponse>
 
     /**
  * @summary Add a category
  */
-export const useCreateCategory = <TError = ErrorType<unknown>,
+export const useCreateCategory = <TError = ErrorType<Error | UnauthorizedResponse | ConflictResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCategory>>, TError,{data: BodyType<CategoryInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof createCategory>>,

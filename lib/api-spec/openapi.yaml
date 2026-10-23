@@ -281,6 +281,22 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Category"
+        "400":
+          description: Invalid category name
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Administrator access required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "409":
+          $ref: "#/components/responses/Conflict"
   /borrowing-requests:
     get:
       operationId: listBorrowingRequests

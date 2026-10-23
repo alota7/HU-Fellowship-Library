@@ -371,8 +371,41 @@ function AdminBooks() {
 }
 
 function AdminCategories() {
-  const query = useListCategories(); const create = useCreateCategory(); const client = useQueryClient(); const [name, setName] = useState('');
-  return <AuthenticatedLayout admin><PageHeading eyebrow="Collection management" title="Categories" detail="Give members clear paths through the shelves." /><form className="mb-7 flex max-w-xl gap-3" onSubmit={e => { e.preventDefault(); if (!name.trim()) return; create.mutate({ data: { name } }, { onSuccess: () => { setName(''); client.invalidateQueries({ queryKey: getListCategoriesQueryKey() }); } }); }}><input value={name} onChange={e => setName(e.target.value)} placeholder="New category name" required data-testid="input-category-name" className="h-11 min-w-0 flex-1 rounded-lg border border-input bg-card px-3.5 text-sm outline-none focus:ring-4 focus:ring-primary/15" /><Button type="submit" disabled={create.isPending} data-testid="button-add-category"><Plus size={17} />{t('newCategory', useLang().lang)}</Button></form>{query.isLoading ? <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{[1,2,3].map(i => <Skeleton key={i} className="h-24" />)}</div> : query.data?.length ? <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{query.data.map(category => <div key={category.id} className="flex items-center justify-between rounded-xl border border-border bg-card p-5"><div><div className="font-serif text-lg font-bold">{category.name}</div><div className="mt-1 text-xs text-muted-foreground">{category.bookCount} books</div></div><FolderOpen className="text-primary/50" size={20} /></div>)}</div> : <EmptyState icon={FolderOpen} title="No categories yet" detail="Add a category to make the library easier to navigate." />}</AuthenticatedLayout>;
+  const query = useListCategories();
+  const create = useCreateCategory();
+  const client = useQueryClient();
+  const [name, setName] = useState('');
+  const [validationError, setValidationError] = useState('');
+  const requestError = create.error instanceof Error ? create.error.message : '';
+  const errorMessage = requestError.includes('HTTP 401')
+    ? 'Your administrator sign-in expired. Sign in again, then try adding the category.'
+    : requestError.includes('HTTP 403')
+      ? 'Only an administrator can add categories.'
+      : requestError || 'The category could not be added. Please try again.';
+
+  return <AuthenticatedLayout admin>
+    <PageHeading eyebrow="Collection management" title="Categories" detail="Give members clear paths through the shelves." />
+    <form className="mb-7 flex max-w-xl flex-wrap gap-3" onSubmit={e => {
+      e.preventDefault();
+      const categoryName = name.trim();
+      if (categoryName.length < 2) {
+        setValidationError('Enter a category name with at least two characters.');
+        return;
+      }
+      setValidationError('');
+      create.mutate({ data: { name: categoryName } }, {
+        onSuccess: () => {
+          setName('');
+          void client.invalidateQueries({ queryKey: getListCategoriesQueryKey() });
+        },
+      });
+    }}>
+      <input value={name} onChange={e => { setName(e.target.value); setValidationError(''); }} placeholder="New category name" required minLength={2} maxLength={80} data-testid="input-category-name" className="h-11 min-w-0 flex-1 rounded-lg border border-input bg-card px-3.5 text-sm outline-none focus:ring-4 focus:ring-primary/15" />
+      <Button type="submit" disabled={create.isPending} data-testid="button-add-category"><Plus size={17} />{t('newCategory', useLang().lang)}</Button>
+      {(validationError || create.isError) && <p role="alert" className="w-full text-sm text-destructive">{validationError || errorMessage}</p>}
+    </form>
+    {query.isLoading ? <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{[1,2,3].map(i => <Skeleton key={i} className="h-24" />)}</div> : query.data?.length ? <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{query.data.map(category => <div key={category.id} className="flex items-center justify-between rounded-xl border border-border bg-card p-5"><div><div className="font-serif text-lg font-bold">{category.name}</div><div className="mt-1 text-xs text-muted-foreground">{category.bookCount} books</div></div><FolderOpen className="text-primary/50" size={20} /></div>)}</div> : <EmptyState icon={FolderOpen} title="No categories yet" detail="Add a category to make the library easier to navigate." />}
+  </AuthenticatedLayout>;
 }
 
 function AdminMembers() {

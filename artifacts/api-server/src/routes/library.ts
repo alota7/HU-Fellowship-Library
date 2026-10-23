@@ -65,6 +65,7 @@ const categories = [
   { id: 1, name: "Bible Study", bookCount: 0 },
   { id: 2, name: "Leadership", bookCount: 0 },
   { id: 3, name: "Christian Living", bookCount: 0 },
+  { id: 4, name: "Other", bookCount: 0 },
 ];
 const requests: Array<{
   id: number;
@@ -321,7 +322,16 @@ router.post("/categories", (req, res) => {
   if (!requireAdmin(req, res)) return;
   const parsed = CreateCategoryBody.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "Enter a category name." });
-  const category = { id: categories.length + 1, name: parsed.data.name, bookCount: 0 };
+  const name = parsed.data.name.trim();
+  if (name.length < 2) return res.status(400).json({ error: "Enter a category name with at least two characters." });
+  if (categories.some((item) => item.name.toLocaleLowerCase() === name.toLocaleLowerCase())) {
+    return res.status(409).json({ error: "A category with that name already exists." });
+  }
+  const category = {
+    id: Math.max(0, ...categories.map((item) => item.id)) + 1,
+    name,
+    bookCount: books.filter((book) => book.category === name).length,
+  };
   categories.push(category);
   return res.status(201).json(category);
 });
