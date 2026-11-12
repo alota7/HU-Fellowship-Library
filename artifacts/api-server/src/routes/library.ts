@@ -544,7 +544,8 @@ router.delete("/study-notes/:id", async (req, res) => {
 });
 
 router.get("/dashboard/summary", async (req, res) => {
-  const user = currentUser(req);
+  const user = requireUser(req, res);
+  if (!user) return;
   const [bookRows, approvedNotes] = await Promise.all([
     db.select({ id: libraryBooks.id }).from(libraryBooks),
     db
@@ -555,7 +556,7 @@ router.get("/dashboard/summary", async (req, res) => {
   return res.json({
     books: bookRows.length,
     studyNotes: approvedNotes.length,
-    activeBorrowings: user?.role === "admin" ? borrowings.length : borrowings.length,
+    activeBorrowings: user.role === "admin" ? borrowings.length : borrowings.length,
     pendingRequests: requests.filter((request) => request.status === "pending").length,
   });
 });

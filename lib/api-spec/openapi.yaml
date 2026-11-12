@@ -457,6 +457,8 @@ paths:
       operationId: getDashboardSummary
       tags: [books]
       summary: Get dashboard totals
+      security:
+        - SessionCookie: []
       responses:
         "200":
           description: Dashboard summary
@@ -464,7 +466,14 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/DashboardSummary"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
 components:
+  securitySchemes:
+    SessionCookie:
+      type: apiKey
+      in: cookie
+      name: hu_session
   parameters:
     Id:
       name: id
