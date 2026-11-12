@@ -97,7 +97,7 @@ async function uploadLibraryFile(file: File, purpose: UploadPurpose) {
     docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', txt: 'text/plain',
   };
   const extension = file.name.toLowerCase().split('.').pop() ?? '';
-  const contentType = file.type || mimeByExtension[extension] || '';
+  const contentType = mimeByExtension[extension] || file.type || '';
   const maxSize = purpose === 'cover' ? 10 * 1024 * 1024 : 50 * 1024 * 1024;
   if (file.size > maxSize) throw new Error(purpose === 'cover' ? 'Cover images must be 10 MB or smaller.' : 'Files must be 50 MB or smaller.');
   const request = await fetch('/api/storage/uploads/request-url', {
@@ -324,6 +324,11 @@ function AdminBooks() {
   const [bookFile, setBookFile] = useState<File | null>(null);
   const [uploadError, setUploadError] = useState('');
   const [uploading, setUploading] = useState(false);
+  const saveError = create.error instanceof Error
+    ? create.error.message
+    : update.error instanceof Error
+      ? update.error.message
+      : '';
   const empty = { title: '', author: '', type: 'hardcopy', category: '', description: '', total: '1', year: '', coverUrl: '', fileUrl: '' };
   const [form, setForm] = useState(empty);
   const openForm = (book?: Book) => {
@@ -392,6 +397,7 @@ function AdminBooks() {
         <select value={form.type} onChange={e => { setForm({ ...form, type: e.target.value }); if (e.target.value !== 'softcopy') setBookFile(null); }} className="h-11 rounded-lg border border-input bg-card px-3" data-testid="select-admin-book-type">
           <option value="hardcopy">Hardcopy</option><option value="softcopy">Softcopy</option>
         </select>
+        <span className="text-xs font-normal text-muted-foreground">Choose Softcopy to attach the full book as a PDF or eBook file.</span>
       </label>
       <label className="grid gap-2 text-sm font-semibold">Category
         <select value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} required className="h-11 rounded-lg border border-input bg-card px-3" data-testid="select-admin-book-category">
@@ -405,11 +411,11 @@ function AdminBooks() {
         <input type="file" accept="image/png,image/jpeg,image/webp" onChange={e => setCoverFile(e.target.files?.[0] ?? null)} className="block h-11 rounded-lg border border-input bg-card px-3 py-2 text-sm font-normal" data-testid="input-book-cover-upload" />
         <span className="text-xs font-normal text-muted-foreground">{coverFile?.name ?? (form.coverUrl ? 'Current cover will be kept unless replaced.' : 'PNG, JPG, or WebP · max 10 MB')}</span>
       </label>
-      {form.type === 'softcopy' && <label className="grid gap-2 text-sm font-semibold">Softcopy file
-        <input type="file" accept=".pdf,.epub,.doc,.docx,application/pdf,application/epub+zip,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" onChange={e => setBookFile(e.target.files?.[0] ?? null)} className="block h-11 rounded-lg border border-input bg-card px-3 py-2 text-sm font-normal" data-testid="input-book-file-upload" />
+      {form.type === 'softcopy' && <label className="grid gap-2 text-sm font-semibold">Book file
+        <input type="file" accept=".pdf,application/pdf,.epub,application/epub+zip,.doc,application/msword,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" required={!form.fileUrl} onChange={e => setBookFile(e.target.files?.[0] ?? null)} className="block h-11 rounded-lg border border-input bg-card px-3 py-2 text-sm font-normal" data-testid="input-book-file-upload" />
         <span className="text-xs font-normal text-muted-foreground">{bookFile?.name ?? (form.fileUrl ? 'A softcopy is already attached; select a file to replace it.' : 'PDF, EPUB, or Word document · max 50 MB')}</span>
       </label>}
-      {uploadError && <div className="md:col-span-2 rounded-lg bg-destructive/10 p-3 text-sm text-destructive" data-testid="status-book-upload-error">{uploadError}</div>}
+      {(uploadError || saveError) && <div className="md:col-span-2 rounded-lg bg-destructive/10 p-3 text-sm text-destructive" data-testid="status-book-upload-error">{uploadError || saveError}</div>}
       <div className="flex gap-3 md:col-span-2">
         <Button type="submit" variant="primary" className="min-w-28 whitespace-nowrap !text-white" disabled={busy} data-testid="button-save-book"><span className="text-white">{busy ? 'Uploading & saving…' : 'Save book'}</span></Button>
         <Button type="button" variant="ghost" onClick={() => setFormOpen(false)} data-testid="button-cancel-book">Cancel</Button>
