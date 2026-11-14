@@ -73,7 +73,7 @@ export async function initializeLibraryData() {
       schoolYear: "Alumni",
       emailVerified: true,
       passwordHash:
-        "fb5b6b868171db4f262e1f46bb0fc6aa2a2384ed07f7dfd1a266e20d35ccecb5c559d6c6c13dbac90f65d3af6a4af65178b5f87e383f606704850f5a81f8ca18",
+        "1376571567b1952226779a2bc9a425d3cfa132c3a6d137b21c03df8829869edd797cb492e1a3c45d89ae558bf0943518d3df03bf1848b04b465da0407f5b46da",
     })
     .onConflictDoNothing({ target: libraryUsers.email });
   await db
