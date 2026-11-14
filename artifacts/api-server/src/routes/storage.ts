@@ -1,4 +1,7 @@
 import { Readable } from 'stream';
+import fs from 'node:fs';
+import path from 'node:path';
+import crypto from 'node:crypto';
 import { Router, type IRouter, type Request, type Response } from 'express';
 
 import {
@@ -10,6 +13,11 @@ import { getSessionUser } from './library';
 
 const router: IRouter = Router();
 const objectStorageService = new ObjectStorageService();
+
+const LOCAL_UPLOADS_DIR = path.resolve(process.cwd(), 'uploads');
+if (!fs.existsSync(LOCAL_UPLOADS_DIR)) {
+  fs.mkdirSync(LOCAL_UPLOADS_DIR, { recursive: true });
+}
 
 /**
  * POST /storage/uploads/request-url
@@ -66,9 +74,19 @@ router.post(
     }
 
     try {
-      const uploadURL = await objectStorageService.getObjectEntityUploadURL(purpose);
-      const objectPath =
-        objectStorageService.normalizeObjectEntityPath(uploadURL);
+      let uploadURL: string;
+      let objectPath: string;
+      try {
+        uploadURL = await objectStorageService.getObjectEntityUploadURL(purpose);
+        objectPath = objectStorageService.normalizeObjectEntityPath(uploadURL);
+      } catch {
+        const fileId = crypto.randomUUID();
+        const safeName = encodeURIComponent(name);
+        const host = req.get('host') || 'localhost:5173';
+        const protocol = req.protocol || 'http';
+        uploadURL = `${protocol}://${host}/api/storage/uploads/file/${fileId}/${safeName}`;
+        objectPath = `/api/storage/uploads/file/${fileId}/${safeName}`;
+      }
 
       res.json(RequestUploadUrlResponse.parse({
         uploadURL,
@@ -81,6 +99,49 @@ router.post(
     }
   },
 );
+
+/**
+ * PUT /storage/uploads/file/:fileId/:filename
+ *
+ * Direct local file upload endpoint for development and standalone environments.
+ */
+router.put('/storage/uploads/file/:fileId/:filename', (req: Request, res: Response): void => {
+  const { fileId, filename } = req.params;
+  const decoded = decodeURIComponent(filename);
+  const targetDir = path.join(LOCAL_UPLOADS_DIR, fileId);
+  fs.mkdirSync(targetDir, { recursive: true });
+  const targetPath = path.join(targetDir, decoded);
+
+  const writeStream = fs.createWriteStream(targetPath);
+  req.pipe(writeStream);
+
+  writeStream.on('finish', () => {
+    res.status(200).json({ ok: true });
+  });
+
+  writeStream.on('error', (err) => {
+    req.log.error({ err }, 'Error writing uploaded file');
+    res.status(500).json({ error: 'Failed to save uploaded file' });
+  });
+});
+
+/**
+ * GET /storage/uploads/file/:fileId/:filename
+ *
+ * Serve locally uploaded files directly with correct content type and caching.
+ */
+router.get('/storage/uploads/file/:fileId/:filename', (req: Request, res: Response): void => {
+  const { fileId, filename } = req.params;
+  const decoded = decodeURIComponent(filename);
+  const targetPath = path.join(LOCAL_UPLOADS_DIR, fileId, decoded);
+
+  if (!fs.existsSync(targetPath)) {
+    res.status(404).json({ error: 'File not found' });
+    return;
+  }
+
+  res.sendFile(targetPath);
+});
 
 /**
  * GET /storage/public-objects/*
