@@ -124,7 +124,7 @@ function PublicNav() {
 function Home() {
   const booksQuery = useListBooks();
   const categoriesQuery = useListCategories();
-  const books = booksQuery.data ?? [];
+  const books = Array.isArray(booksQuery.data) ? booksQuery.data : [];
   const featured = books.filter((book) => book.featured).slice(0, 4);
   return <div className="noise min-h-[100dvh] overflow-hidden">
     <PublicNav />
@@ -209,7 +209,7 @@ function MemberDashboard({ preview = false }: { preview?: boolean }) {
   const borrowings = useListBorrowings({ query: { queryKey: getListBorrowingsQueryKey(), enabled: !preview } });
   const notes = useListStudyNotes(undefined, { query: { queryKey: getListStudyNotesQueryKey(), enabled: !preview } });
   const data = preview ? previewMemberSummary : summary.data;
-  const latest = preview ? previewBooks : (books.data ?? []).slice(0, 3);
+  const latest = preview ? previewBooks : (Array.isArray(books.data) ? books.data : []).slice(0, 3);
   const action = preview
     ? <Button disabled variant="soft" data-testid="button-preview-browse"><ChevronRight size={16} />Preview only</Button>
     : <Link href="/member/books" data-testid="link-dashboard-browse" className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground">{t('browse', lang)} <ChevronRight size={16} /></Link>;
@@ -224,7 +224,7 @@ function MemberDashboard({ preview = false }: { preview?: boolean }) {
 function MemberBooks() {
   const { lang } = useLang(); const [search, setSearch] = useState(''); const [category, setCategory] = useState(''); const [type, setType] = useState('');
   const query = useListBooks({ search: search || undefined, category: category || undefined, type: (type || undefined) as any }); const cats = useListCategories();
-  return <AuthenticatedLayout><PageHeading eyebrow={t('library', lang)} title={t('books', lang)} detail={lang === 'am' ? 'ለጥናትዎ ትክክለኛውን መጽሐፍ ያግኙ።' : 'Find the right book for your next hour of study.'} /><div className="mb-7 grid gap-3 rounded-2xl border border-border bg-card p-4 md:grid-cols-[1fr_180px_150px]"><label className="relative block"><Search size={17} className="absolute left-3 top-3.5 text-muted-foreground" /><input value={search} onChange={e => setSearch(e.target.value)} placeholder={`${t('search', lang)} books, authors…`} data-testid="input-book-search" className="h-11 w-full rounded-lg border border-input bg-background pl-10 pr-3 text-sm outline-none focus:ring-4 focus:ring-primary/15" /></label><select value={category} onChange={e => setCategory(e.target.value)} data-testid="select-book-category" className="h-11 rounded-lg border border-input bg-background px-3 text-sm outline-none"><option value="">{lang === 'am' ? 'ሁሉም ምድቦች' : 'All categories'}</option>{(cats.data ?? []).map(c => <option key={c.id} value={c.name}>{c.name}</option>)}</select><select value={type} onChange={e => setType(e.target.value)} data-testid="select-book-type" className="h-11 rounded-lg border border-input bg-background px-3 text-sm outline-none"><option value="">All formats</option><option value="hardcopy">Hardcopy</option><option value="softcopy">Softcopy</option></select></div>{query.isError ? <ErrorState retry={() => query.refetch()} /> : query.isLoading ? <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">{[1,2,3,4,5,6].map(i => <Skeleton key={i} className="h-80" />)}</div> : query.data?.length ? <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">{query.data.map(book => <BookCard key={book.id} book={book} />)}</div> : <EmptyState icon={Search} title="No books found" detail="Try a different title, author, or category." action={<Button variant="soft" onClick={() => { setSearch(''); setCategory(''); setType(''); }} data-testid="button-clear-search">Clear filters</Button>} />}</AuthenticatedLayout>;
+  return <AuthenticatedLayout><PageHeading eyebrow={t('library', lang)} title={t('books', lang)} detail={lang === 'am' ? 'ለጥናትዎ ትክክለኛውን መጽሐፍ ያግኙ።' : 'Find the right book for your next hour of study.'} /><div className="mb-7 grid gap-3 rounded-2xl border border-border bg-card p-4 md:grid-cols-[1fr_180px_150px]"><label className="relative block"><Search size={17} className="absolute left-3 top-3.5 text-muted-foreground" /><input value={search} onChange={e => setSearch(e.target.value)} placeholder={`${t('search', lang)} books, authors…`} data-testid="input-book-search" className="h-11 w-full rounded-lg border border-input bg-background pl-10 pr-3 text-sm outline-none focus:ring-4 focus:ring-primary/15" /></label><select value={category} onChange={e => setCategory(e.target.value)} data-testid="select-book-category" className="h-11 rounded-lg border border-input bg-background px-3 text-sm outline-none"><option value="">{lang === 'am' ? 'ሁሉም ምድቦች' : 'All categories'}</option>{(Array.isArray(cats.data) ? cats.data : []).map(c => <option key={c.id} value={c.name}>{c.name}</option>)}</select><select value={type} onChange={e => setType(e.target.value)} data-testid="select-book-type" className="h-11 rounded-lg border border-input bg-background px-3 text-sm outline-none"><option value="">All formats</option><option value="hardcopy">Hardcopy</option><option value="softcopy">Softcopy</option></select></div>{query.isError ? <ErrorState retry={() => query.refetch()} /> : query.isLoading ? <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">{[1,2,3,4,5,6].map(i => <Skeleton key={i} className="h-80" />)}</div> : query.data?.length ? <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">{query.data.map(book => <BookCard key={book.id} book={book} />)}</div> : <EmptyState icon={Search} title="No books found" detail="Try a different title, author, or category." action={<Button variant="soft" onClick={() => { setSearch(''); setCategory(''); setType(''); }} data-testid="button-clear-search">Clear filters</Button>} />}</AuthenticatedLayout>;
 }
 
 function BookDetail() {
@@ -244,12 +244,21 @@ function MemberNotes() {
   const [uploadError, setUploadError] = useState('');
   const create = useCreateStudyNote();
   const [form, setForm] = useState({ title: '', description: '', type: 'personal', fileUrl: '' });
+  const isSummer = form.type === 'summer';
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!noteFile) {
+      setUploadError(
+        isSummer
+          ? 'Summer study notes require a file attachment. Please upload your study document before submitting.'
+          : 'Please attach a study note file before submitting.'
+      );
+      return;
+    }
     setUploadError('');
     setUploading(true);
     try {
-      const fileUrl = noteFile ? await uploadLibraryFile(noteFile, 'study-note') : null;
+      const fileUrl = await uploadLibraryFile(noteFile, 'study-note');
       create.mutate({ data: { ...form, fileUrl } as any }, {
         onSuccess: () => {
           setShowForm(false);
@@ -269,12 +278,15 @@ function MemberNotes() {
     {showForm && <form className="mb-7 grid gap-4 rounded-2xl border border-primary/20 bg-secondary/35 p-5 md:grid-cols-2" onSubmit={submit}>
       <Field label="Title" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} required data-testid="input-note-title" />
       <label className="grid gap-2 text-sm font-semibold">Type
-        <select value={form.type} onChange={e => setForm({ ...form, type: e.target.value })} className="h-11 rounded-lg border border-input bg-card px-3" data-testid="select-note-type"><option value="personal">Personal study</option><option value="summer">Summer study</option></select>
+        <select value={form.type} onChange={e => { setForm({ ...form, type: e.target.value }); setNoteFile(null); setUploadError(''); }} className="h-11 rounded-lg border border-input bg-card px-3" data-testid="select-note-type"><option value="personal">Personal study</option><option value="summer">Summer study</option></select>
       </label>
       <div className="md:col-span-2"><TextAreaField label="Description" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} required data-testid="textarea-note-description" /></div>
-      <label className="grid gap-2 text-sm font-semibold md:col-span-2">Attach a study note file (optional)
-        <input type="file" accept=".pdf,.epub,.doc,.docx,.txt,application/pdf,application/epub+zip,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain" onChange={e => setNoteFile(e.target.files?.[0] ?? null)} className="block h-11 rounded-lg border border-input bg-card px-3 py-2 text-sm font-normal" data-testid="input-note-file-upload" />
-        <span className="text-xs font-normal text-muted-foreground">{noteFile?.name ?? 'PDF, EPUB, Word document, or text file · max 50 MB'}</span>
+      <label className="grid gap-2 text-sm font-semibold md:col-span-2">
+        {isSummer ? 'Attach study document (required for Summer studies) *' : 'Attach a study note file (required) *'}
+        <input type="file" accept=".pdf,.epub,.doc,.docx,.txt,application/pdf,application/epub+zip,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain" onChange={e => setNoteFile(e.target.files?.[0] ?? null)} required className="block h-11 rounded-lg border border-input bg-card px-3 py-2 text-sm font-normal" data-testid="input-note-file-upload" />
+        <span className="text-xs font-normal text-muted-foreground">
+          {noteFile?.name ?? (isSummer ? 'Summer study notes must include a file — PDF, EPUB, Word document, or text file · max 50 MB' : 'PDF, EPUB, Word document, or text file · max 50 MB')}
+        </span>
       </label>
       {uploadError && <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive md:col-span-2" data-testid="status-note-upload-error">{uploadError}</div>}
       {create.isError && <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive md:col-span-2" data-testid="status-note-submit-error">The note could not be submitted. Check your connection and try again.</div>}
@@ -304,7 +316,7 @@ function AdminDashboard({ preview = false }: { preview?: boolean }) {
   const requests = useListBorrowingRequests({ query: { queryKey: getListBorrowingRequestsQueryKey(), enabled: !preview } });
   const notes = useListStudyNotes(undefined, { query: { queryKey: getListStudyNotesQueryKey(), enabled: !preview } });
   const data = preview ? previewAdminSummary : summary.data;
-  const requestItems = preview ? previewBorrowingRequests : requests.data ?? [];
+  const requestItems = preview ? previewBorrowingRequests : (Array.isArray(requests.data) ? requests.data : []);
   const action = preview
     ? <Button disabled variant="soft" data-testid="button-preview-add-book"><Plus size={17} />Preview only</Button>
     : <Link href="/admin/books" data-testid="link-admin-add-book" className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground"><Plus size={17} />{t('newBook', lang)}</Link>;
@@ -355,7 +367,7 @@ function AdminBooks() {
     setUploading(true);
     try {
       if (form.type === 'softcopy' && !bookFile && !form.fileUrl) {
-        throw new Error('Upload a softcopy file for this book.');
+        throw new Error('A softcopy book requires a file. Please upload the book file (PDF, EPUB, or Word document) before saving.');
       }
       const coverUrl = coverFile ? await uploadLibraryFile(coverFile, 'cover') : form.coverUrl || null;
       const fileUrl = form.type === 'softcopy'
@@ -401,7 +413,7 @@ function AdminBooks() {
       </label>
       <label className="grid gap-2 text-sm font-semibold">Category
         <select value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} required className="h-11 rounded-lg border border-input bg-card px-3" data-testid="select-admin-book-category">
-          <option value="">Choose a category</option>{(cats.data ?? []).map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+          <option value="">Choose a category</option>{(Array.isArray(cats.data) ? cats.data : []).map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
         </select>
       </label>
       <Field label="Total copies" type="number" min="0" value={form.total} onChange={e => setForm({ ...form, total: e.target.value })} required data-testid="input-book-total" />

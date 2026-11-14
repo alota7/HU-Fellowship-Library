@@ -111,7 +111,7 @@ export class ObjectStorageService {
     return new Response(webStream, { headers });
   }
 
-  async getObjectEntityUploadURL(): Promise<string> {
+  async getObjectEntityUploadURL(purpose?: string): Promise<string> {
     const privateObjectDir = this.getPrivateObjectDir();
     if (!privateObjectDir) {
       throw new Error(
@@ -121,7 +121,18 @@ export class ObjectStorageService {
     }
 
     const objectId = randomUUID();
-    const fullPath = `${privateObjectDir}/uploads/${objectId}`;
+    
+    // Organize files by purpose into specific folders
+    let folderPath = 'uploads';
+    if (purpose === 'study-note') {
+      folderPath = 'study-notes';
+    } else if (purpose === 'book') {
+      folderPath = 'books';
+    } else if (purpose === 'cover') {
+      folderPath = 'covers';
+    }
+    
+    const fullPath = `${privateObjectDir}/${folderPath}/${objectId}`;
 
     const { bucketName, objectName } = parseObjectPath(fullPath);
 
