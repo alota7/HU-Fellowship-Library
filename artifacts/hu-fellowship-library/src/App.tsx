@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/reac
 import { ErrorBoundary } from '@/components/error-boundary';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import {
   BookOpen, BookMarked, Bookmark, Check, ChevronRight, CircleUserRound, Clock3, Download, Eye,
   FileText, FolderOpen, Home as HomeIcon, Languages, LayoutGrid, Library, LogOut, Menu, Pencil, Plus, Search, Settings, ShieldCheck, Sparkles,
@@ -139,20 +140,20 @@ function Home() {
         </div>
          <div className="paper-grid relative mx-auto w-full max-w-lg animate-rise stagger-1"><div className="absolute -right-8 -top-8 h-40 w-40 rounded-full bg-accent/10 blur-3xl" /><div className="relative rounded-[2rem] border border-primary/15 bg-secondary/45 p-5 shadow-2xl shadow-primary/10"><div className="rounded-[1.5rem] bg-sidebar p-8 text-sidebar-foreground"><div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-[.2em] text-sidebar-primary"><span>HU / 01</span><span>Est. 2004</span></div><div className="mt-16 max-w-xs font-serif text-3xl font-bold leading-tight">“Study to show yourself approved.”</div><div className="mt-3 font-mono text-[10px] uppercase tracking-widest text-sidebar-primary">2 Timothy 2:15</div><div className="mt-12 flex items-end justify-between"><div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-full border border-sidebar-primary/40 p-1"><img src={logo} alt="" className="block h-full w-full origin-center scale-[1.25] object-contain object-center" /></div><div className="text-right text-xs text-sidebar-foreground/50">Fellowship<br />Library</div></div></div></div></div>
       </section>
-      <section id="featured" className="border-y border-border bg-card/50 px-5 py-20 lg:px-10">
+      <section id="featured" className="border-y border-border bg-[#0d0e11] px-5 py-20 lg:px-10">
         <div className="mx-auto max-w-7xl">
           <div className="mb-8 flex flex-wrap items-end justify-between gap-5">
             <div>
-              <div className="text-xs font-bold uppercase tracking-[.2em] text-accent">From the shelves</div>
-              <h2 className="mt-2 font-serif text-3xl font-bold">Resources worth returning to.</h2>
+              <div className="text-xs font-bold uppercase tracking-[.2em] text-[#008080]">From the shelves</div>
+              <h2 className="mt-2 font-serif text-3xl font-bold text-white">Popular books</h2>
             </div>
-            <Link href="/login" data-testid="link-browse-all" className="text-sm font-bold text-primary">Browse the whole library <ArrowUpRight size={15} className="ml-1 inline" /></Link>
+            <Link href="/login" data-testid="link-browse-all" className="text-sm font-semibold text-[#00b4b4] hover:text-[#008080] transition flex items-center gap-1">Browse the whole library <ArrowUpRight size={15} className="ml-1 inline" /></Link>
           </div>
           {booksQuery.isLoading ? (
-            <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">{[1,2,3,4].map(i => <Skeleton key={i} className="h-72" />)}</div>
+            <div className="mt-10 grid gap-4 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">{[1,2,3,4,5,6].map(i => <Skeleton key={i} className="h-72 rounded-2xl bg-neutral-900" />)}</div>
           ) : featured.length ? (
-            <div className="mt-6">
-              <BookshelfRow books={featured} publicShelf />
+            <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
+              {featured.map(book => <ModernBookCard key={book.id} book={book} publicCard />)}
             </div>
           ) : (
             <div className="mt-10"><EmptyState icon={BookOpen} title="The shelves are being prepared" detail="Featured resources will appear here as the collection grows." /></div>
@@ -216,6 +217,185 @@ function BookCover({ book, large = false, className = '' }: { book: Book; large?
       )}
       <div className="book-crease-overlay" />
       <div className="book-pages-side" />
+    </div>
+  );
+}
+
+function ModernBookCard({ book, publicCard = false }: { book: Book; publicCard?: boolean }) {
+  const detailLink = publicCard ? '/login' : `/member/books/${book.id}`;
+  const cleanFileUrl = book.fileUrl?.replace(/^\/api\/storage\/api\/storage\//, '/api/storage/');
+  const [imgError, setImgError] = useState(false);
+  const normalizedCoverUrl = book.coverUrl
+    ? book.coverUrl.replace(/^\/api\/storage\/api\/storage\//, '/api/storage/')
+    : null;
+
+  return (
+    <div
+      className="group relative flex flex-col justify-between rounded-2xl bg-[#141517] border border-neutral-800/80 p-2.5 sm:p-3 shadow-lg hover:border-neutral-700 hover:shadow-2xl transition duration-200"
+      data-testid={`card-book-${book.id}`}
+    >
+      <Link href={detailLink} className="relative block aspect-[2/3] w-full overflow-hidden rounded-xl bg-neutral-900 shadow">
+        {normalizedCoverUrl && !imgError ? (
+          <img
+            src={normalizedCoverUrl}
+            alt={book.title}
+            onError={() => setImgError(true)}
+            className="h-full w-full object-cover rounded-xl transition duration-300 group-hover:scale-[1.03]"
+          />
+        ) : (
+          <div className="flex h-full w-full flex-col justify-between p-3.5 bg-gradient-to-br from-neutral-800 via-neutral-900 to-neutral-950 text-white rounded-xl">
+            <div className="text-[10px] font-mono uppercase tracking-wider text-teal-400 truncate">{book.category}</div>
+            <BookOpen className="self-center text-teal-400/30" size={36} />
+            <div>
+              <div className="font-serif font-bold text-xs sm:text-sm leading-tight line-clamp-2 text-white">{book.title}</div>
+              <div className="text-[10px] sm:text-[11px] text-neutral-400 truncate mt-1">{book.author}</div>
+            </div>
+          </div>
+        )}
+
+        <div className="absolute top-2 right-2 z-10">
+          <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider shadow ${
+            book.type === 'softcopy' ? 'bg-[#008080]/90 text-white ring-1 ring-white/10' : 'bg-amber-600/90 text-white ring-1 ring-white/10'
+          }`}>
+            {book.type === 'softcopy' ? 'Softcopy' : 'Hardcopy'}
+          </span>
+        </div>
+      </Link>
+
+      <div className="mt-2.5 mb-2 text-center text-xs font-semibold text-emerald-400 tracking-wide">
+        {book.type === 'softcopy' ? 'Free' : (book.available > 0 ? 'Free' : 'On loan')}
+      </div>
+
+      <div className="w-full">
+        <Link
+          href={detailLink}
+          className="w-full rounded-xl bg-[#008080] hover:bg-[#006e6e] active:bg-[#005a5a] text-white py-2 sm:py-2.5 px-3 text-xs sm:text-sm font-bold text-center block transition shadow-sm"
+        >
+          View details
+        </Link>
+        {book.type === 'softcopy' && cleanFileUrl && !publicCard && (
+          <div className="mt-1.5 flex items-center justify-center gap-2 text-[11px] text-neutral-400">
+            <a
+              href={cleanFileUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1 hover:text-teal-400 transition"
+              data-testid={`shelf-open-${book.id}`}
+              title="Open online"
+            >
+              <Eye size={12} /> Open
+            </a>
+            <span className="text-neutral-600">·</span>
+            <a
+              href={`${cleanFileUrl}?download=1`}
+              target="_blank"
+              rel="noreferrer"
+              download
+              className="inline-flex items-center gap-1 hover:text-teal-400 transition"
+              data-testid={`shelf-download-${book.id}`}
+              title="Download file"
+            >
+              <Download size={12} /> Download
+            </a>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function StudyNoteStoreCard({
+  note,
+  onSelect,
+}: {
+  note: StudyNote;
+  onSelect: (note: StudyNote) => void;
+}) {
+  const isSummer = note.type === 'summer';
+  const cleanFileUrl = note.fileUrl?.replace(/^\/api\/storage\/api\/storage\//, '/api/storage/');
+
+  return (
+    <div
+      className="group relative flex flex-col justify-between rounded-2xl bg-[#141517] border border-neutral-800/80 p-2.5 sm:p-3 shadow-lg hover:border-neutral-700 hover:shadow-2xl transition duration-200"
+      data-testid={`card-note-${note.id}`}
+    >
+      <div
+        onClick={() => onSelect(note)}
+        className="relative block aspect-[2/3] w-full overflow-hidden rounded-xl cursor-pointer bg-neutral-900 shadow transition duration-300 group-hover:scale-[1.03]"
+      >
+        <div className={`relative h-full w-full flex flex-col justify-between p-3.5 text-white ${
+          isSummer
+            ? 'bg-gradient-to-br from-[#12232a] via-[#0d1a20] to-[#070e12]'
+            : 'bg-gradient-to-br from-[#261c16] via-[#1a130f] to-[#0d0907]'
+        }`}>
+          <div className="book-crease-overlay" />
+
+          <div className="flex items-center justify-between z-10">
+            <span className={`text-[9px] font-mono uppercase font-bold tracking-wider px-1.5 py-0.5 rounded ${
+              isSummer ? 'bg-[#008080]/30 text-teal-300 ring-1 ring-teal-500/20' : 'bg-amber-500/20 text-amber-300 ring-1 ring-amber-500/20'
+            }`}>
+              {isSummer ? 'Summer Study' : 'Personal Note'}
+            </span>
+            <span className="text-[9px] font-mono text-white/50">HU</span>
+          </div>
+
+          <div className="my-auto py-2 text-center z-10">
+            <div className={`mx-auto mb-2 flex h-9 w-9 items-center justify-center rounded-full border ${
+              isSummer ? 'border-teal-400/40 bg-teal-400/10 text-teal-300' : 'border-amber-400/40 bg-amber-400/10 text-amber-300'
+            }`}>
+              {isSummer ? <BookOpen size={16} /> : <FileText size={16} />}
+            </div>
+            <h4 className="font-serif text-xs sm:text-sm font-bold leading-snug line-clamp-3 text-white">
+              {note.title}
+            </h4>
+          </div>
+
+          <div className="z-10 text-center border-t border-white/10 pt-2">
+            <div className="text-[10px] text-white/60 truncate">by {note.author}</div>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-2.5 mb-2 text-center text-xs font-semibold text-emerald-400 tracking-wide">
+        Free
+      </div>
+
+      <div className="w-full">
+        <button
+          type="button"
+          onClick={() => onSelect(note)}
+          data-testid={`btn-view-note-${note.id}`}
+          className="w-full rounded-xl bg-[#008080] hover:bg-[#006e6e] active:bg-[#005a5a] text-white py-2 sm:py-2.5 px-3 text-xs sm:text-sm font-bold text-center block transition shadow-sm"
+        >
+          View details
+        </button>
+        {cleanFileUrl && (
+          <div className="mt-1.5 flex items-center justify-center gap-2 text-[11px] text-neutral-400">
+            <a
+              href={cleanFileUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1 hover:text-teal-400 transition"
+              data-testid={`link-note-open-${note.id}`}
+              title="Open online"
+            >
+              <Eye size={12} /> Open
+            </a>
+            <span className="text-neutral-600">·</span>
+            <a
+              href={`${cleanFileUrl}?download=1`}
+              target="_blank"
+              rel="noreferrer"
+              download
+              className="inline-flex items-center gap-1 hover:text-teal-400 transition"
+              data-testid={`link-note-file-${note.id}`}
+              title="Download file"
+            >
+              <Download size={12} /> Download
+            </a>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -331,53 +511,7 @@ function BookshelfRow({ title, eyebrow, books, publicShelf = false }: { title?: 
 }
 
 function BookCard({ book, publicCard = false }: { book: Book; publicCard?: boolean }) {
-  const detailLink = publicCard ? '/login' : `/member/books/${book.id}`;
-  const cleanFileUrl = book.fileUrl?.replace(/^\/api\/storage\/api\/storage\//, '/api/storage/');
-
-  return (
-    <div className="group flex flex-col justify-between overflow-hidden rounded-2xl border border-border bg-card p-3 shadow-sm transition duration-300 hover:-translate-y-1.5 hover:shadow-xl hover:shadow-primary/10">
-      <Link href={detailLink} data-testid={`card-book-${book.id}`} className="block">
-        <div className="overflow-hidden rounded-xl">
-          <BookCover book={book} className="h-60 w-full" />
-        </div>
-        <div className="pt-3.5 pb-2">
-          <div className="mb-1.5 flex items-center justify-between gap-2">
-            <Status tone={book.available > 0 ? 'good' : 'bad'}>
-              {book.available > 0 ? `${book.available} available` : 'On loan'}
-            </Status>
-            <span className={`font-mono text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ${
-              book.type === 'softcopy' ? 'bg-indigo-100 text-indigo-700' : 'bg-amber-100 text-amber-700'
-            }`}>
-              {book.type}
-            </span>
-          </div>
-          <h3 className="line-clamp-2 min-h-11 font-serif text-base font-bold group-hover:text-primary transition-colors">
-            {book.title}
-          </h3>
-          <p className="truncate text-xs text-muted-foreground">{book.author} · <span className="italic">{book.category}</span></p>
-        </div>
-      </Link>
-
-      <div className="mt-2 pt-2.5 border-t border-border flex items-center justify-between text-xs">
-        {book.type === 'softcopy' && cleanFileUrl && !publicCard ? (
-          <div className="flex items-center gap-2">
-            <a href={cleanFileUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 font-bold text-primary hover:underline">
-              <Eye size={13} /> Open
-            </a>
-            <span className="text-border">·</span>
-            <a href={`${cleanFileUrl}?download=1`} target="_blank" rel="noreferrer" download className="inline-flex items-center gap-1 font-bold text-muted-foreground hover:text-primary hover:underline">
-              <Download size={13} /> Download
-            </a>
-          </div>
-        ) : (
-          <span className="text-muted-foreground font-mono text-[11px]">{book.year ? `Est. ${book.year}` : 'Fellowship'}</span>
-        )}
-        <Link href={detailLink} className="inline-flex items-center gap-1 font-bold text-primary hover:underline ml-auto">
-          Details <ArrowRight size={13} />
-        </Link>
-      </div>
-    </div>
-  );
+  return <ModernBookCard book={book} publicCard={publicCard} />;
 }
 
 const memberLinks = [{ href: '/member/dashboard', key: 'dashboard', icon: HomeIcon }, { href: '/member/books', key: 'books', icon: BookOpen }, { href: '/member/notes', key: 'notes', icon: FileText }, { href: '/member/borrowings', key: 'borrowings', icon: Bookmark }, { href: '/member/profile', key: 'profile', icon: UserRound }];
@@ -427,7 +561,7 @@ function MemberBooks() {
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('');
   const [type, setType] = useState('');
-  const [viewMode, setViewMode] = useState<'shelf' | 'grid'>('shelf');
+  const [viewMode, setViewMode] = useState<'store' | 'shelf' | 'grid'>('store');
   const query = useListBooks({ search: search || undefined, category: category || undefined, type: (type || undefined) as any });
   const cats = useListCategories();
   const books = Array.isArray(query.data) ? query.data : [];
@@ -444,6 +578,10 @@ function MemberBooks() {
     }
   }
 
+  const popularBooks = books.filter(b => b.featured).length > 0
+    ? books.filter(b => b.featured)
+    : books.slice(0, 6);
+
   return (
     <AuthenticatedLayout>
       <PageHeading
@@ -453,13 +591,21 @@ function MemberBooks() {
         action={
           <div className="flex items-center gap-1 rounded-xl border border-border bg-card p-1 shadow-sm">
             <button
+              onClick={() => setViewMode('store')}
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition ${
+                viewMode === 'store' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+              }`}
+              data-testid="button-view-shelf"
+            >
+              <Library size={15} /> Store Shelf
+            </button>
+            <button
               onClick={() => setViewMode('shelf')}
               className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition ${
                 viewMode === 'shelf' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
               }`}
-              data-testid="button-view-shelf"
             >
-              <Library size={15} /> Bookshelf
+              <BookOpen size={15} /> Wooden Shelf
             </button>
             <button
               onClick={() => setViewMode('grid')}
@@ -499,11 +645,60 @@ function MemberBooks() {
       {query.isError ? (
         <ErrorState retry={() => query.refetch()} />
       ) : query.isLoading ? (
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {[1,2,3,4,5,6].map(i => <Skeleton key={i} className="h-80" />)}
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
+          {[1,2,3,4,5,6].map(i => <Skeleton key={i} className="h-72 rounded-2xl" />)}
         </div>
       ) : books.length ? (
-        viewMode === 'shelf' ? (
+        viewMode === 'store' ? (
+          <div className="space-y-10">
+            {category || search ? (
+              <div>
+                <div className="mb-4 flex items-center justify-between">
+                  <h3 className="font-serif text-xl sm:text-2xl font-bold text-foreground">
+                    {category || 'Search Results'}
+                  </h3>
+                  <span className="text-xs sm:text-sm font-semibold text-[#00b4b4]">
+                    {books.length} {books.length === 1 ? 'book' : 'books'}
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3.5 sm:gap-4">
+                  {books.map(book => <ModernBookCard key={book.id} book={book} />)}
+                </div>
+              </div>
+            ) : (
+              <>
+                <div>
+                  <div className="mb-4 flex items-center justify-between">
+                    <h3 className="font-serif text-xl sm:text-2xl font-bold text-foreground">Popular books</h3>
+                    <span className="text-xs sm:text-sm font-semibold text-[#00b4b4] hover:text-[#008080] cursor-pointer">
+                      View all
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3.5 sm:gap-4">
+                    {popularBooks.map(book => <ModernBookCard key={book.id} book={book} />)}
+                  </div>
+                </div>
+
+                {Object.entries(booksByCategory).map(([catName, catBooks]) => (
+                  <div key={catName}>
+                    <div className="mb-4 flex items-center justify-between">
+                      <h3 className="font-serif text-xl sm:text-2xl font-bold text-foreground">{catName}</h3>
+                      <button
+                        onClick={() => setCategory(catName)}
+                        className="text-xs sm:text-sm font-semibold text-[#00b4b4] hover:text-[#008080] transition"
+                      >
+                        View all ({catBooks.length})
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3.5 sm:gap-4">
+                      {catBooks.map(book => <ModernBookCard key={book.id} book={book} />)}
+                    </div>
+                  </div>
+                ))}
+              </>
+            )}
+          </div>
+        ) : viewMode === 'shelf' ? (
           <div className="bookshelf-stage space-y-6">
             {Object.keys(booksByCategory).length > 0 ? (
               Object.entries(booksByCategory).map(([catName, catBooks]) => (
@@ -519,8 +714,8 @@ function MemberBooks() {
             )}
           </div>
         ) : (
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {books.map(book => <BookCard key={book.id} book={book} />)}
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3.5 sm:gap-4">
+            {books.map(book => <ModernBookCard key={book.id} book={book} />)}
           </div>
         )
       ) : (
@@ -547,6 +742,7 @@ function MemberNotes() {
   const { lang } = useLang();
   const query = useListStudyNotes();
   const [showForm, setShowForm] = useState(false);
+  const [selectedNote, setSelectedNote] = useState<StudyNote | null>(null);
   const [noteFile, setNoteFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
@@ -576,40 +772,174 @@ function MemberNotes() {
       setUploading(false);
     }
   };
-  return <AuthenticatedLayout>
-    <PageHeading eyebrow={t('membersOnly', lang)} title={t('notes', lang)} detail="Approved reflections and study guides from the fellowship." action={<Button onClick={() => setShowForm(!showForm)} data-testid="button-new-note"><Plus size={17} />Submit a personal note</Button>} />
-    {showForm && <form className="mb-7 grid gap-4 rounded-2xl border border-primary/20 bg-secondary/35 p-5 md:grid-cols-2" onSubmit={submit}>
-      <div className="md:col-span-2 flex items-center justify-between">
-        <h2 className="font-serif text-xl font-bold">Submit Personal Study Note</h2>
-        <button type="button" onClick={() => setShowForm(false)} data-testid="button-close-member-note-form"><X size={18} /></button>
-      </div>
-      <Field label="Title" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} required data-testid="input-note-title" />
-      <div className="grid gap-2 text-sm font-semibold">
-        <span>Type</span>
-        <div className="flex h-11 items-center rounded-lg border border-input bg-card px-3 text-sm font-medium text-foreground">
-          Personal Study Note
+
+  const notes = Array.isArray(query.data) ? query.data : [];
+  const summerNotes = notes.filter(n => n.type === 'summer');
+  const personalNotes = notes.filter(n => n.type === 'personal');
+
+  return (
+    <AuthenticatedLayout>
+      <PageHeading
+        eyebrow={t('membersOnly', lang)}
+        title={t('notes', lang)}
+        detail="Approved reflections and study guides from the fellowship."
+        action={<Button onClick={() => setShowForm(!showForm)} data-testid="button-new-note"><Plus size={17} />Submit a personal note</Button>}
+      />
+
+      {showForm && (
+        <form className="mb-7 grid gap-4 rounded-2xl border border-primary/20 bg-secondary/35 p-5 md:grid-cols-2" onSubmit={submit}>
+          <div className="md:col-span-2 flex items-center justify-between">
+            <h2 className="font-serif text-xl font-bold">Submit Personal Study Note</h2>
+            <button type="button" onClick={() => setShowForm(false)} data-testid="button-close-member-note-form"><X size={18} /></button>
+          </div>
+          <Field label="Title" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} required data-testid="input-note-title" />
+          <div className="grid gap-2 text-sm font-semibold">
+            <span>Type</span>
+            <div className="flex h-11 items-center rounded-lg border border-input bg-card px-3 text-sm font-medium text-foreground">
+              Personal Study Note
+            </div>
+            <span className="text-xs font-normal text-muted-foreground">Members can submit personal study notes. Summer study guides are managed and published by administrators.</span>
+          </div>
+          <div className="md:col-span-2"><TextAreaField label="Description" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} required data-testid="textarea-note-description" /></div>
+          <label className="grid gap-2 text-sm font-semibold md:col-span-2">
+            Attach a study note file (required) *
+            <input type="file" accept=".pdf,.epub,.doc,.docx,.txt,application/pdf,application/epub+zip,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain" onChange={e => setNoteFile(e.target.files?.[0] ?? null)} required className="block h-11 rounded-lg border border-input bg-card px-3 py-2 text-sm font-normal" data-testid="input-note-file-upload" />
+            <span className="text-xs font-normal text-muted-foreground">
+              {noteFile?.name ?? 'PDF, EPUB, Word document, or text file (no size limit)'}
+            </span>
+          </label>
+          {uploadError && <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive md:col-span-2" data-testid="status-note-upload-error">{uploadError}</div>}
+          {create.isError && <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive md:col-span-2" data-testid="status-note-submit-error">The note could not be submitted. Check your connection and try again.</div>}
+          <div className="flex gap-3 md:col-span-2">
+            <Button type="submit" disabled={uploading || create.isPending} data-testid="button-submit-note">{uploading ? 'Uploading…' : create.isPending ? 'Submitting…' : 'Submit for review'}</Button>
+            <Button type="button" variant="ghost" onClick={() => setShowForm(false)} data-testid="button-cancel-note">Cancel</Button>
+          </div>
+        </form>
+      )}
+
+      {query.isLoading ? (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
+          {[1,2,3,4,5,6].map(i => <Skeleton key={i} className="h-72 rounded-2xl" />)}
         </div>
-        <span className="text-xs font-normal text-muted-foreground">Members can submit personal study notes. Summer study guides are managed and published by administrators.</span>
-      </div>
-      <div className="md:col-span-2"><TextAreaField label="Description" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} required data-testid="textarea-note-description" /></div>
-      <label className="grid gap-2 text-sm font-semibold md:col-span-2">
-        Attach a study note file (required) *
-        <input type="file" accept=".pdf,.epub,.doc,.docx,.txt,application/pdf,application/epub+zip,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain" onChange={e => setNoteFile(e.target.files?.[0] ?? null)} required className="block h-11 rounded-lg border border-input bg-card px-3 py-2 text-sm font-normal" data-testid="input-note-file-upload" />
-        <span className="text-xs font-normal text-muted-foreground">
-          {noteFile?.name ?? 'PDF, EPUB, Word document, or text file (no size limit)'}
-        </span>
-      </label>
-      {uploadError && <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive md:col-span-2" data-testid="status-note-upload-error">{uploadError}</div>}
-      {create.isError && <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive md:col-span-2" data-testid="status-note-submit-error">The note could not be submitted. Check your connection and try again.</div>}
-      <div className="flex gap-3 md:col-span-2">
-        <Button type="submit" disabled={uploading || create.isPending} data-testid="button-submit-note">{uploading ? 'Uploading…' : create.isPending ? 'Submitting…' : 'Submit for review'}</Button>
-        <Button type="button" variant="ghost" onClick={() => setShowForm(false)} data-testid="button-cancel-note">Cancel</Button>
-      </div>
-    </form>}
-    {query.isLoading ? <div className="grid gap-4 md:grid-cols-2">{[1,2,3,4].map(i => <Skeleton key={i} className="h-40" />)}</div> : query.data?.length ? <div className="grid gap-4 md:grid-cols-2">{query.data.map(note => <NoteCard key={note.id} note={note} />)}</div> : <EmptyState icon={FileText} title="No approved notes yet" detail="Your submitted reflections can become part of this shared shelf." action={<Button variant="soft" onClick={() => setShowForm(true)} data-testid="button-empty-note">Submit a study note</Button>} />}
-  </AuthenticatedLayout>;
+      ) : notes.length ? (
+        <div className="space-y-12">
+          {/* Summer Bible Studies section */}
+          <div>
+            <div className="mb-4 flex items-center justify-between">
+              <div>
+                <div className="text-[10px] font-bold uppercase tracking-[.2em] text-[#008080] mb-0.5">Fellowship Curated</div>
+                <h3 className="font-serif text-xl sm:text-2xl font-bold text-foreground">Summer Bible Studies</h3>
+              </div>
+              <span className="text-xs sm:text-sm font-semibold text-[#00b4b4]">
+                View all ({summerNotes.length})
+              </span>
+            </div>
+            {summerNotes.length ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3.5 sm:gap-4">
+                {summerNotes.map(note => (
+                  <StudyNoteStoreCard key={note.id} note={note} onSelect={setSelectedNote} />
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-dashed border-border/70 p-8 text-center text-sm text-muted-foreground bg-card/40">
+                No summer Bible studies have been published yet.
+              </div>
+            )}
+          </div>
+
+          {/* Personal Study Notes section */}
+          <div>
+            <div className="mb-4 flex items-center justify-between">
+              <div>
+                <div className="text-[10px] font-bold uppercase tracking-[.2em] text-amber-500 mb-0.5">Member Contributions</div>
+                <h3 className="font-serif text-xl sm:text-2xl font-bold text-foreground">Personal Study Notes</h3>
+              </div>
+              <span className="text-xs sm:text-sm font-semibold text-[#00b4b4]">
+                View all ({personalNotes.length})
+              </span>
+            </div>
+            {personalNotes.length ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3.5 sm:gap-4">
+                {personalNotes.map(note => (
+                  <StudyNoteStoreCard key={note.id} note={note} onSelect={setSelectedNote} />
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-dashed border-border/70 p-8 text-center text-sm text-muted-foreground bg-card/40">
+                No personal study notes shared yet. Share your reflections using the button above.
+              </div>
+            )}
+          </div>
+        </div>
+      ) : (
+        <EmptyState
+          icon={FileText}
+          title="No approved notes yet"
+          detail="Your submitted reflections can become part of this shared shelf."
+          action={<Button variant="soft" onClick={() => setShowForm(true)} data-testid="button-empty-note">Submit a study note</Button>}
+        />
+      )}
+
+      {/* Note Detail Dialog / Modal */}
+      <Dialog open={!!selectedNote} onOpenChange={(open) => !open && setSelectedNote(null)}>
+        <DialogContent className="max-w-md bg-[#141517] border border-neutral-800 text-white p-6 rounded-2xl">
+          {selectedNote && (
+            <div>
+              <div className="flex items-center justify-between gap-2 mb-4">
+                <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+                  selectedNote.type === 'summer'
+                    ? 'bg-[#008080]/30 text-teal-300 ring-1 ring-teal-500/30'
+                    : 'bg-amber-500/20 text-amber-300 ring-1 ring-amber-500/30'
+                }`}>
+                  {selectedNote.type === 'summer' ? 'Summer Bible Study' : 'Personal Study Note'}
+                </span>
+                <Status tone={selectedNote.status === 'approved' ? 'good' : selectedNote.status === 'pending' ? 'warn' : 'bad'}>
+                  {selectedNote.status}
+                </Status>
+              </div>
+
+              <DialogTitle className="font-serif text-2xl font-bold text-white mb-2 leading-tight">
+                {selectedNote.title}
+              </DialogTitle>
+              <p className="text-xs text-neutral-400 mb-4">
+                By <span className="text-white font-medium">{selectedNote.author}</span>
+              </p>
+
+              <div className="rounded-xl bg-neutral-900/80 border border-neutral-800 p-4 mb-6 text-sm text-neutral-300 leading-relaxed max-h-48 overflow-y-auto whitespace-pre-wrap">
+                {selectedNote.description}
+              </div>
+
+              {selectedNote.fileUrl ? (
+                <div className="flex flex-col gap-2.5">
+                  <a
+                    href={selectedNote.fileUrl.replace(/^\/api\/storage\/api\/storage\//, '/api/storage/')}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#008080] hover:bg-[#006e6e] text-white py-3 text-sm font-bold shadow-md transition"
+                  >
+                    <Eye size={16} /> Open online (PDF/Doc)
+                  </a>
+                  <a
+                    href={`${selectedNote.fileUrl.replace(/^\/api\/storage\/api\/storage\//, '/api/storage/')}?download=1`}
+                    target="_blank"
+                    rel="noreferrer"
+                    download
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-neutral-700 bg-neutral-800/80 hover:bg-neutral-800 text-neutral-200 py-3 text-sm font-bold transition"
+                  >
+                    <Download size={16} /> Download document
+                  </a>
+                </div>
+              ) : (
+                <p className="text-xs text-center text-neutral-500">No document attached.</p>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </AuthenticatedLayout>
+  );
 }
-function NoteCard({ note }: { note: StudyNote }) { return <article className="rounded-xl border border-border bg-card p-5 transition hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/5"><div className="flex items-center justify-between gap-3"><Status tone={note.status === 'approved' ? 'good' : note.status === 'pending' ? 'warn' : 'bad'}>{note.status}</Status><span className="font-mono text-[10px] uppercase text-muted-foreground">{note.type === 'summer' ? 'Summer Bible Study' : 'Personal Study'}</span></div><h3 className="mt-4 font-serif text-xl font-bold">{note.title}</h3><p className="mt-2 line-clamp-3 text-sm leading-6 text-muted-foreground">{note.description}</p><div className="mt-5 flex items-center justify-between border-t border-border pt-4 text-xs text-muted-foreground"><span>by {note.author}</span>{note.fileUrl && <div className="flex items-center gap-2.5"><a href={note.fileUrl.replace(/^\/api\/storage\/api\/storage\//, '/api/storage/')} target="_blank" rel="noreferrer" data-testid={`link-note-open-${note.id}`} className="inline-flex items-center gap-1 font-bold text-primary hover:underline"><Eye size={13} /> Open online</a><span className="text-border">·</span><a href={`${note.fileUrl.replace(/^\/api\/storage\/api\/storage\//, '/api/storage/')}?download=1`} target="_blank" rel="noreferrer" download data-testid={`link-note-file-${note.id}`} className="inline-flex items-center gap-1 font-bold text-muted-foreground hover:text-primary hover:underline"><Download size={13} /> Download</a></div>}</div></article>; }
+function NoteCard({ note }: { note: StudyNote }) { return <StudyNoteStoreCard note={note} onSelect={() => {}} />; }
 
 function MemberBorrowings() {
   const { lang } = useLang(); const borrowings = useListBorrowings(); const requests = useListBorrowingRequests();
