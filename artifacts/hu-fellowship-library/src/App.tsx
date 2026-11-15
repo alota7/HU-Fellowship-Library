@@ -266,22 +266,17 @@ function MemberNotes() {
   const [uploadError, setUploadError] = useState('');
   const create = useCreateStudyNote();
   const [form, setForm] = useState({ title: '', description: '', type: 'personal', fileUrl: '' });
-  const isSummer = form.type === 'summer';
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!noteFile) {
-      setUploadError(
-        isSummer
-          ? 'Summer study notes require a file attachment. Please upload your study document before submitting.'
-          : 'Please attach a study note file before submitting.'
-      );
+      setUploadError('Please attach a study note file before submitting.');
       return;
     }
     setUploadError('');
     setUploading(true);
     try {
       const fileUrl = await uploadLibraryFile(noteFile, 'study-note');
-      create.mutate({ data: { ...form, fileUrl } as any }, {
+      create.mutate({ data: { ...form, type: 'personal', fileUrl } as any }, {
         onSuccess: () => {
           setShowForm(false);
           setNoteFile(null);
@@ -296,18 +291,26 @@ function MemberNotes() {
     }
   };
   return <AuthenticatedLayout>
-    <PageHeading eyebrow={t('membersOnly', lang)} title={t('notes', lang)} detail="Approved reflections and study guides from the fellowship." action={<Button onClick={() => setShowForm(!showForm)} data-testid="button-new-note"><Plus size={17} />Submit a note</Button>} />
+    <PageHeading eyebrow={t('membersOnly', lang)} title={t('notes', lang)} detail="Approved reflections and study guides from the fellowship." action={<Button onClick={() => setShowForm(!showForm)} data-testid="button-new-note"><Plus size={17} />Submit a personal note</Button>} />
     {showForm && <form className="mb-7 grid gap-4 rounded-2xl border border-primary/20 bg-secondary/35 p-5 md:grid-cols-2" onSubmit={submit}>
+      <div className="md:col-span-2 flex items-center justify-between">
+        <h2 className="font-serif text-xl font-bold">Submit Personal Study Note</h2>
+        <button type="button" onClick={() => setShowForm(false)} data-testid="button-close-member-note-form"><X size={18} /></button>
+      </div>
       <Field label="Title" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} required data-testid="input-note-title" />
-      <label className="grid gap-2 text-sm font-semibold">Type
-        <select value={form.type} onChange={e => { setForm({ ...form, type: e.target.value }); setNoteFile(null); setUploadError(''); }} className="h-11 rounded-lg border border-input bg-card px-3" data-testid="select-note-type"><option value="personal">Personal study</option><option value="summer">Summer study</option></select>
-      </label>
+      <div className="grid gap-2 text-sm font-semibold">
+        <span>Type</span>
+        <div className="flex h-11 items-center rounded-lg border border-input bg-card px-3 text-sm font-medium text-foreground">
+          Personal Study Note
+        </div>
+        <span className="text-xs font-normal text-muted-foreground">Members can submit personal study notes. Summer study guides are managed and published by administrators.</span>
+      </div>
       <div className="md:col-span-2"><TextAreaField label="Description" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} required data-testid="textarea-note-description" /></div>
       <label className="grid gap-2 text-sm font-semibold md:col-span-2">
-        {isSummer ? 'Attach study document (required for Summer studies) *' : 'Attach a study note file (required) *'}
+        Attach a study note file (required) *
         <input type="file" accept=".pdf,.epub,.doc,.docx,.txt,application/pdf,application/epub+zip,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain" onChange={e => setNoteFile(e.target.files?.[0] ?? null)} required className="block h-11 rounded-lg border border-input bg-card px-3 py-2 text-sm font-normal" data-testid="input-note-file-upload" />
         <span className="text-xs font-normal text-muted-foreground">
-          {noteFile?.name ?? (isSummer ? 'Summer study notes must include a file — PDF, EPUB, Word document, or text file' : 'PDF, EPUB, Word document, or text file')}
+          {noteFile?.name ?? 'PDF, EPUB, Word document, or text file (no size limit)'}
         </span>
       </label>
       {uploadError && <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive md:col-span-2" data-testid="status-note-upload-error">{uploadError}</div>}
@@ -517,9 +520,80 @@ function AdminRequests() {
 }
 
 function AdminNotes() {
-  const query = useListStudyNotes(); const approve = useApproveStudyNote(); const reject = useRejectStudyNote(); const remove = useDeleteStudyNote();
-  const refresh = () => query.refetch();
-  return <AuthenticatedLayout admin><PageHeading eyebrow="Steward desk" title="Study-note moderation" detail="Help thoughtful contributions find their way to the shared shelf." />{query.isLoading ? <div className="grid gap-4 md:grid-cols-2">{[1,2,3,4].map(i => <Skeleton key={i} className="h-40" />)}</div> : query.data?.length ? <div className="grid gap-4 md:grid-cols-2">{query.data.map(note => <div key={note.id} className="rounded-xl border border-border bg-card p-5"><div className="flex items-center justify-between"><Status tone={note.status === 'approved' ? 'good' : note.status === 'pending' ? 'warn' : 'bad'}>{note.status}</Status><span className="text-xs text-muted-foreground">{new Date(note.submittedAt).toLocaleDateString()}</span></div><h3 className="mt-4 font-serif text-xl font-bold">{note.title}</h3><p className="mt-1 text-xs text-muted-foreground">submitted by {note.author} · <span className="uppercase font-mono">{note.type}</span></p><p className="mt-3 line-clamp-2 text-sm leading-6 text-muted-foreground">{note.description}</p>{note.fileUrl && <div className="mt-3"><a href={note.fileUrl.replace(/^\/api\/storage\/api\/storage\//, '/api/storage/')} target="_blank" rel="noreferrer" download className="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:underline" data-testid={`link-admin-note-file-${note.id}`}><FileText size={14} /> Review attached PDF / document <ArrowUpRight size={12} /></a></div>}<div className="mt-5 flex gap-2">{note.status === 'pending' && <><Button variant="soft" disabled={approve.isPending} onClick={() => approve.mutate({ id: note.id }, { onSuccess: refresh })} data-testid={`button-approve-note-${note.id}`}><Check size={15} />Approve</Button><Button variant="danger" disabled={reject.isPending} onClick={() => reject.mutate({ id: note.id, data: { reason: 'Needs another review before sharing.' } }, { onSuccess: refresh })} data-testid={`button-reject-note-${note.id}`}><X size={15} />Reject</Button></>}{note.status !== 'pending' && <Button variant="danger" disabled={remove.isPending} onClick={() => remove.mutate({ id: note.id }, { onSuccess: refresh })} data-testid={`button-delete-note-${note.id}`}>Delete</Button>}</div></div>)}</div> : <EmptyState icon={FileText} title="No notes to review" detail="New member submissions will appear here." />}</AuthenticatedLayout>;
+  const query = useListStudyNotes();
+  const approve = useApproveStudyNote();
+  const reject = useRejectStudyNote();
+  const remove = useDeleteStudyNote();
+  const create = useCreateStudyNote();
+  const [showForm, setShowForm] = useState(false);
+  const [noteFile, setNoteFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState('');
+  const [form, setForm] = useState({ title: '', description: '', type: 'summer', fileUrl: '' });
+
+  const refresh = () => {
+    query.refetch();
+    setShowForm(false);
+    setNoteFile(null);
+    setUploadError('');
+    setForm({ title: '', description: '', type: 'summer', fileUrl: '' });
+  };
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!noteFile) {
+      setUploadError('Please attach a study note document (PDF, EPUB, Word, or text).');
+      return;
+    }
+    setUploadError('');
+    setUploading(true);
+    try {
+      const fileUrl = await uploadLibraryFile(noteFile, 'study-note');
+      create.mutate({ data: { ...form, fileUrl } as any }, {
+        onSuccess: refresh,
+        onError: (err) => setUploadError(err instanceof Error ? err.message : 'Could not publish study note.'),
+      });
+    } catch (error) {
+      setUploadError(error instanceof Error ? error.message : 'The file could not be uploaded.');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return <AuthenticatedLayout admin>
+    <PageHeading
+      eyebrow="Steward desk"
+      title="Study-note moderation & Summer studies"
+      detail="Publish official summer studies and moderate member submissions."
+      action={<Button onClick={() => setShowForm(!showForm)} data-testid="button-admin-add-note"><Plus size={17} />{showForm ? 'Close form' : 'Add summer study note'}</Button>}
+    />
+    {showForm && <form className="mb-7 grid gap-4 rounded-2xl border border-primary/20 bg-secondary/35 p-5 md:grid-cols-2" onSubmit={submit}>
+      <div className="md:col-span-2 flex items-center justify-between">
+        <h2 className="font-serif text-xl font-bold">Publish Summer Study Note</h2>
+        <button type="button" onClick={() => setShowForm(false)} data-testid="button-close-admin-note-form"><X size={18} /></button>
+      </div>
+      <Field label="Title" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="e.g. 2026 Fellowship Summer Bible Study" required data-testid="input-admin-note-title" />
+      <label className="grid gap-2 text-sm font-semibold">Type
+        <select value={form.type} onChange={e => setForm({ ...form, type: e.target.value })} className="h-11 rounded-lg border border-input bg-card px-3" data-testid="select-admin-note-type">
+          <option value="summer">Summer Bible Study (Admin only)</option>
+          <option value="personal">Personal Study</option>
+        </select>
+        <span className="text-xs font-normal text-muted-foreground">Summer study notes are published directly for member download.</span>
+      </label>
+      <div className="md:col-span-2"><TextAreaField label="Description" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="Describe the study objectives, scripture references, or summer guide..." required data-testid="textarea-admin-note-description" /></div>
+      <label className="grid gap-2 text-sm font-semibold md:col-span-2">
+        Attach study document (PDF, EPUB, Word, or text file) *
+        <input type="file" accept=".pdf,.epub,.doc,.docx,.txt,application/pdf,application/epub+zip,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain" onChange={e => setNoteFile(e.target.files?.[0] ?? null)} required className="block h-11 rounded-lg border border-input bg-card px-3 py-2 text-sm font-normal" data-testid="input-admin-note-file" />
+        <span className="text-xs font-normal text-muted-foreground">{noteFile?.name ?? 'PDF, EPUB, Word document, or text file (no size limit)'}</span>
+      </label>
+      {uploadError && <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive md:col-span-2" data-testid="status-admin-note-error">{uploadError}</div>}
+      <div className="flex gap-3 md:col-span-2">
+        <Button type="submit" variant="primary" className="!text-white" disabled={uploading || create.isPending} data-testid="button-publish-admin-note"><span className="text-white">{uploading ? 'Uploading…' : create.isPending ? 'Publishing…' : 'Publish study note'}</span></Button>
+        <Button type="button" variant="ghost" onClick={() => setShowForm(false)} data-testid="button-cancel-admin-note">Cancel</Button>
+      </div>
+    </form>}
+    {query.isLoading ? <div className="grid gap-4 md:grid-cols-2">{[1,2,3,4].map(i => <Skeleton key={i} className="h-40" />)}</div> : query.data?.length ? <div className="grid gap-4 md:grid-cols-2">{query.data.map(note => <div key={note.id} className="rounded-xl border border-border bg-card p-5"><div className="flex items-center justify-between"><Status tone={note.status === 'approved' ? 'good' : note.status === 'pending' ? 'warn' : 'bad'}>{note.status}</Status><span className="text-xs text-muted-foreground">{new Date(note.submittedAt).toLocaleDateString()}</span></div><h3 className="mt-4 font-serif text-xl font-bold">{note.title}</h3><p className="mt-1 text-xs text-muted-foreground">submitted by {note.author} · <span className="uppercase font-mono">{note.type}</span></p><p className="mt-3 line-clamp-2 text-sm leading-6 text-muted-foreground">{note.description}</p>{note.fileUrl && <div className="mt-3"><a href={note.fileUrl.replace(/^\/api\/storage\/api\/storage\//, '/api/storage/')} target="_blank" rel="noreferrer" download className="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:underline" data-testid={`link-admin-note-file-${note.id}`}><FileText size={14} /> Review attached PDF / document <ArrowUpRight size={12} /></a></div>}<div className="mt-5 flex gap-2">{note.status === 'pending' && <><Button variant="soft" disabled={approve.isPending} onClick={() => approve.mutate({ id: note.id }, { onSuccess: refresh })} data-testid={`button-approve-note-${note.id}`}><Check size={15} />Approve</Button><Button variant="danger" disabled={reject.isPending} onClick={() => reject.mutate({ id: note.id, data: { reason: 'Needs another review before sharing.' } }, { onSuccess: refresh })} data-testid={`button-reject-note-${note.id}`}><X size={15} />Reject</Button></>}{note.status !== 'pending' && <Button variant="danger" disabled={remove.isPending} onClick={() => remove.mutate({ id: note.id }, { onSuccess: refresh })} data-testid={`button-delete-note-${note.id}`}>Delete</Button>}</div></div>)}</div> : <EmptyState icon={FileText} title="No notes to review" detail="New member submissions and summer study materials will appear here." />}
+  </AuthenticatedLayout>;
 }
 
 function AdminSettings() {

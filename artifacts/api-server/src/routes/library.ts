@@ -505,12 +505,20 @@ router.post("/study-notes", async (req, res) => {
   if (!user) return;
   const parsed = CreateStudyNoteBody.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "Complete the note title and description." });
+
+  // Only administrators can add summer study notes; members can only submit personal study notes
+  if (user.role !== "admin" && parsed.data.type === "summer") {
+    return res.status(403).json({ error: "Only administrators can publish summer study notes. Members can upload personal study notes." });
+  }
+
+  const noteType = user.role === "admin" ? parsed.data.type : "personal";
+
   const [note] = await db
     .insert(libraryStudyNotes)
     .values({
       title: parsed.data.title,
       description: parsed.data.description,
-      type: parsed.data.type,
+      type: noteType,
       author: user.name,
       authorUserId: user.id,
       status: user.role === "admin" ? "approved" : "pending",
