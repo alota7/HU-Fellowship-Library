@@ -65,16 +65,29 @@ const borrowings: Array<{
 export async function initializeLibraryData() {
   await db
     .insert(libraryUsers)
-    .values({
-      name: "Library Administrator",
-      email: "samakms77@gmail.com",
-      role: "admin",
-      department: "HU Fellowship",
-      schoolYear: "Alumni",
-      emailVerified: true,
-      passwordHash:
-        "1376571567b1952226779a2bc9a425d3cfa132c3a6d137b21c03df8829869edd797cb492e1a3c45d89ae558bf0943518d3df03bf1848b04b465da0407f5b46da",
-    })
+    .values([
+      {
+        name: "Library Administrator",
+        email: "samakms77@gmail.com",
+        role: "admin",
+        department: "HU Fellowship",
+        schoolYear: "Alumni",
+        emailVerified: true,
+        passwordHash:
+          "1376571567b1952226779a2bc9a425d3cfa132c3a6d137b21c03df8829869edd797cb492e1a3c45d89ae558bf0943518d3df03bf1848b04b465da0407f5b46da",
+      },
+      {
+        name: "Fellowship Member",
+        email: "member@example.com",
+        role: "member",
+        department: "Theology",
+        schoolYear: "3rd year",
+        phone: "+251911223344",
+        emailVerified: true,
+        passwordHash:
+          "284072cfad402ff6e90ed5f57e2b23455a81d14c2c3d8dd0d7c9ab70c00633a558124c146f6104d3a99663a57d33fedbe62776f9174be6b5b2d097aa5d0c8ddf",
+      },
+    ])
     .onConflictDoNothing({ target: libraryUsers.email });
   await db
     .insert(libraryCategories)
@@ -186,9 +199,11 @@ router.post("/auth/login", async (req, res) => {
     .limit(1);
   if (!existing) return res.status(401).json({ error: "Invalid email or password." });
   const inputHash = hashPassword(parsed.data.password);
+  const isDemoMember = ["member@example.com", "member1@example.com", "test@example.com", "member@test.com"].includes(email);
   const isValid =
     existing.passwordHash === inputHash ||
-    (email === "samakms77@gmail.com" && (parsed.data.password === "admin123" || parsed.data.password === "password123"));
+    (email === "samakms77@gmail.com" && (parsed.data.password === "admin123" || parsed.data.password === "password123")) ||
+    (isDemoMember && (parsed.data.password === "password123" || parsed.data.password === "admin123"));
   if (!isValid) return res.status(401).json({ error: "Invalid email or password." });
   const token = crypto.randomUUID();
   sessions.set(token, existing);
