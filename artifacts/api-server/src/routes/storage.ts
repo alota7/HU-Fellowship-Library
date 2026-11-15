@@ -140,6 +140,14 @@ router.get('/storage/uploads/file/:fileId/:filename', (req: Request, res: Respon
     return;
   }
 
+  const isDownload = req.query.download === '1' || req.query.download === 'true';
+  if (isDownload) {
+    res.download(targetPath, decoded);
+    return;
+  }
+
+  // Set Content-Disposition inline with proper filename so PDFs open in browser tab and download cleanly
+  res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(decoded)}"`);
   res.sendFile(targetPath);
 });
 

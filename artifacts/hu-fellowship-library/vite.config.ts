@@ -74,7 +74,7 @@ export default defineConfig({
     },
     proxy: {
       '/api': {
-        target: 'http://localhost:5000',
+        target: 'http://localhost:8080',
         changeOrigin: true,
       },
     },
@@ -85,7 +85,7 @@ export default defineConfig({
     allowedHosts: true,
     proxy: {
       '/api': {
-        target: 'http://localhost:5000',
+        target: 'http://localhost:8080',
         changeOrigin: true,
       },
     },
