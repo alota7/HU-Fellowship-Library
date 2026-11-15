@@ -63,13 +63,15 @@ router.post(
       : purpose === 'book'
         ? ['pdf', 'epub', 'doc', 'docx']
         : ['pdf', 'epub', 'doc', 'docx', 'txt'];
-    const maxSize = purpose === 'cover' ? 10 * 1024 * 1024 : 50 * 1024 * 1024;
-    if (!allowedExtensions.includes(extension) || !mimeByExtension[extension]?.includes(contentType)) {
+    const maxCoverSize = 50 * 1024 * 1024; // 50 MB for cover images
+    const maxBookSize = 2 * 1024 * 1024 * 1024; // 2 GB for book and study note files (no restrictive MB cap)
+    const maxSize = purpose === 'cover' ? maxCoverSize : maxBookSize;
+    if (!allowedExtensions.includes(extension)) {
       res.status(400).json({ error: purpose === 'cover' ? 'Cover images must be PNG, JPG, or WebP.' : 'Unsupported file type. Choose a PDF, EPUB, Word document, or text file where allowed.' });
       return;
     }
     if (size > maxSize) {
-      res.status(413).json({ error: purpose === 'cover' ? 'Cover images must be 10 MB or smaller.' : 'Files must be 50 MB or smaller.' });
+      res.status(413).json({ error: purpose === 'cover' ? 'Cover images must be 50 MB or smaller.' : 'File exceeds maximum supported size (2 GB).' });
       return;
     }
 
@@ -85,7 +87,7 @@ router.post(
         const host = req.get('host') || 'localhost:5173';
         const protocol = req.protocol || 'http';
         uploadURL = `${protocol}://${host}/api/storage/uploads/file/${fileId}/${safeName}`;
-        objectPath = `/api/storage/uploads/file/${fileId}/${safeName}`;
+        objectPath = `/uploads/file/${fileId}/${safeName}`;
       }
 
       res.json(RequestUploadUrlResponse.parse({
@@ -100,12 +102,7 @@ router.post(
   },
 );
 
-/**
- * PUT /storage/uploads/file/:fileId/:filename
- *
- * Direct local file upload endpoint for development and standalone environments.
- */
-router.put('/storage/uploads/file/:fileId/:filename', (req: Request, res: Response): void => {
+const handleFileUpload = (req: Request, res: Response): void => {
   const { fileId, filename } = req.params;
   const decoded = decodeURIComponent(filename);
   const targetDir = path.join(LOCAL_UPLOADS_DIR, fileId);
@@ -123,14 +120,16 @@ router.put('/storage/uploads/file/:fileId/:filename', (req: Request, res: Respon
     req.log.error({ err }, 'Error writing uploaded file');
     res.status(500).json({ error: 'Failed to save uploaded file' });
   });
-});
+};
 
 /**
- * GET /storage/uploads/file/:fileId/:filename
- *
- * Serve locally uploaded files directly with correct content type and caching.
+ * PUT /storage/uploads/file/:fileId/:filename
+ * Also handles legacy / duplicate path prefix /storage/api/storage/uploads/file/:fileId/:filename
  */
-router.get('/storage/uploads/file/:fileId/:filename', (req: Request, res: Response): void => {
+router.put('/storage/uploads/file/:fileId/:filename', handleFileUpload);
+router.put('/storage/api/storage/uploads/file/:fileId/:filename', handleFileUpload);
+
+const handleFileServing = (req: Request, res: Response): void => {
   const { fileId, filename } = req.params;
   const decoded = decodeURIComponent(filename);
   const targetPath = path.join(LOCAL_UPLOADS_DIR, fileId, decoded);
@@ -149,7 +148,14 @@ router.get('/storage/uploads/file/:fileId/:filename', (req: Request, res: Respon
   // Set Content-Disposition inline with proper filename so PDFs open in browser tab and download cleanly
   res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(decoded)}"`);
   res.sendFile(targetPath);
-});
+};
+
+/**
+ * GET /storage/uploads/file/:fileId/:filename
+ * Also handles legacy / duplicate path prefix /storage/api/storage/uploads/file/:fileId/:filename
+ */
+router.get('/storage/uploads/file/:fileId/:filename', handleFileServing);
+router.get('/storage/api/storage/uploads/file/:fileId/:filename', handleFileServing);
 
 /**
  * GET /storage/public-objects/*
