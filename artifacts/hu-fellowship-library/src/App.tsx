@@ -5,8 +5,8 @@ import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import {
   BookOpen, BookMarked, Bookmark, Check, ChevronRight, CircleUserRound, Clock3, Download, Eye,
-  FileText, FolderOpen, Home as HomeIcon, Languages, Library, LogOut, Menu, Pencil, Plus, Search, Settings, ShieldCheck, Sparkles,
-  UserRound, Users, X, ArrowLeft, ArrowUpRight, AlertCircle, LoaderCircle
+  FileText, FolderOpen, Home as HomeIcon, Languages, LayoutGrid, Library, LogOut, Menu, Pencil, Plus, Search, Settings, ShieldCheck, Sparkles,
+  UserRound, Users, X, ArrowLeft, ArrowRight, ArrowUpRight, AlertCircle, LoaderCircle
 } from 'lucide-react';
 import {
   getGetCurrentUserQueryKey, getGetDashboardSummaryQueryKey, getListBooksQueryKey,
@@ -139,7 +139,26 @@ function Home() {
         </div>
          <div className="paper-grid relative mx-auto w-full max-w-lg animate-rise stagger-1"><div className="absolute -right-8 -top-8 h-40 w-40 rounded-full bg-accent/10 blur-3xl" /><div className="relative rounded-[2rem] border border-primary/15 bg-secondary/45 p-5 shadow-2xl shadow-primary/10"><div className="rounded-[1.5rem] bg-sidebar p-8 text-sidebar-foreground"><div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-[.2em] text-sidebar-primary"><span>HU / 01</span><span>Est. 2004</span></div><div className="mt-16 max-w-xs font-serif text-3xl font-bold leading-tight">“Study to show yourself approved.”</div><div className="mt-3 font-mono text-[10px] uppercase tracking-widest text-sidebar-primary">2 Timothy 2:15</div><div className="mt-12 flex items-end justify-between"><div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-full border border-sidebar-primary/40 p-1"><img src={logo} alt="" className="block h-full w-full origin-center scale-[1.25] object-contain object-center" /></div><div className="text-right text-xs text-sidebar-foreground/50">Fellowship<br />Library</div></div></div></div></div>
       </section>
-      <section id="featured" className="border-y border-border bg-card/50 px-5 py-20 lg:px-10"><div className="mx-auto max-w-7xl"><div className="flex flex-wrap items-end justify-between gap-5"><div><div className="text-xs font-bold uppercase tracking-[.2em] text-accent">From the shelves</div><h2 className="mt-2 font-serif text-3xl font-bold">Resources worth returning to.</h2></div><Link href="/login" data-testid="link-browse-all" className="text-sm font-bold text-primary">Browse the whole library <ArrowUpRight size={15} className="ml-1 inline" /></Link></div>{booksQuery.isLoading ? <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">{[1,2,3,4].map(i => <Skeleton key={i} className="h-72" />)}</div> : featured.length ? <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">{featured.map(book => <BookCard key={book.id} book={book} publicCard />)}</div> : <div className="mt-10"><EmptyState icon={BookOpen} title="The shelves are being prepared" detail="Featured resources will appear here as the collection grows." /></div>}</div></section>
+      <section id="featured" className="border-y border-border bg-card/50 px-5 py-20 lg:px-10">
+        <div className="mx-auto max-w-7xl">
+          <div className="mb-8 flex flex-wrap items-end justify-between gap-5">
+            <div>
+              <div className="text-xs font-bold uppercase tracking-[.2em] text-accent">From the shelves</div>
+              <h2 className="mt-2 font-serif text-3xl font-bold">Resources worth returning to.</h2>
+            </div>
+            <Link href="/login" data-testid="link-browse-all" className="text-sm font-bold text-primary">Browse the whole library <ArrowUpRight size={15} className="ml-1 inline" /></Link>
+          </div>
+          {booksQuery.isLoading ? (
+            <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">{[1,2,3,4].map(i => <Skeleton key={i} className="h-72" />)}</div>
+          ) : featured.length ? (
+            <div className="mt-6">
+              <BookshelfRow books={featured} publicShelf />
+            </div>
+          ) : (
+            <div className="mt-10"><EmptyState icon={BookOpen} title="The shelves are being prepared" detail="Featured resources will appear here as the collection grows." /></div>
+          )}
+        </div>
+      </section>
       <section id="about" className="mx-auto grid max-w-7xl gap-10 px-5 py-20 lg:grid-cols-[.7fr_1fr] lg:px-10"><div><div className="text-xs font-bold uppercase tracking-[.2em] text-accent">A shared table</div><h2 className="mt-3 font-serif text-3xl font-bold leading-tight">Learning becomes richer when it is shared.</h2></div><div className="grid gap-8 text-sm leading-7 text-muted-foreground sm:grid-cols-2"><div><Sparkles size={20} className="mb-4 text-primary" /><p>Find the next book for your quiet hour, keep track of what you borrow, and return with a thought worth bringing to fellowship.</p></div><div><Users size={20} className="mb-4 text-primary" /><p>Members and stewards care for the same collection. Every shelf is kept useful, current, and open to thoughtful questions.</p></div></div></section>
     </main>
     <footer className="border-t border-border px-5 py-7 text-center text-xs text-muted-foreground lg:px-10">HU Fellowship Library · A home for study and community</footer>
@@ -179,26 +198,186 @@ function BookCover({ book, large = false, className = '' }: { book: Book; large?
     : null;
   const appliedClass = className || (large ? 'h-80' : 'h-48');
 
-  if (normalizedCoverUrl && !imgError) {
-    return (
-      <img
-        src={normalizedCoverUrl}
-        alt={book.title}
-        onError={() => setImgError(true)}
-        className={`book-spine w-full rounded-lg object-cover ${appliedClass}`}
-      />
-    );
-  }
   return (
-    <div className={`book-spine flex w-full flex-col justify-between rounded-lg bg-secondary p-4 text-secondary-foreground ${appliedClass}`}>
-      <span className="font-mono text-[10px] uppercase tracking-[.2em] text-primary truncate">{book.category}</span>
-      <BookOpen className="self-center text-primary/50 shrink-0" size={large ? 45 : 30} />
-      <span className="font-serif text-lg font-bold leading-tight line-clamp-2">{book.title}</span>
+    <div className={`relative overflow-hidden rounded-lg ${className?.includes('h-') ? className : ''}`}>
+      {normalizedCoverUrl && !imgError ? (
+        <img
+          src={normalizedCoverUrl}
+          alt={book.title}
+          onError={() => setImgError(true)}
+          className={`book-spine w-full rounded-lg object-cover ${appliedClass}`}
+        />
+      ) : (
+        <div className={`book-spine flex w-full flex-col justify-between rounded-lg bg-secondary p-4 text-secondary-foreground ${appliedClass}`}>
+          <span className="font-mono text-[10px] uppercase tracking-[.2em] text-primary truncate">{book.category}</span>
+          <BookOpen className="self-center text-primary/50 shrink-0" size={large ? 45 : 30} />
+          <span className="font-serif text-lg font-bold leading-tight line-clamp-2">{book.title}</span>
+        </div>
+      )}
+      <div className="book-crease-overlay" />
+      <div className="book-pages-side" />
     </div>
   );
 }
+
+function ShelfBookCard({ book, publicCard = false }: { book: Book; publicCard?: boolean }) {
+  const detailLink = publicCard ? '/login' : `/member/books/${book.id}`;
+  const cleanFileUrl = book.fileUrl?.replace(/^\/api\/storage\/api\/storage\//, '/api/storage/');
+
+  return (
+    <div className="standing-book group flex flex-col justify-end w-44 sm:w-52 shrink-0 select-none pb-1" data-testid={`shelf-book-${book.id}`}>
+      <Link href={detailLink} className="relative block">
+        <div className="relative overflow-hidden rounded-lg shadow-lg transition duration-300 group-hover:shadow-2xl">
+          <div className="absolute top-2.5 right-2.5 z-20">
+            <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider shadow-md ${
+              book.type === 'softcopy' ? 'bg-indigo-600/95 text-white ring-1 ring-white/20' : 'bg-amber-600/95 text-white ring-1 ring-white/20'
+            }`}>
+              {book.type === 'softcopy' ? 'Softcopy' : 'Hardcopy'}
+            </span>
+          </div>
+
+          <BookCover book={book} className="h-64 sm:h-72 w-full object-cover" />
+
+          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col justify-end p-3.5 z-30">
+            <div className="text-white text-xs font-serif font-bold line-clamp-2 mb-1">{book.title}</div>
+            <div className="text-white/75 text-[11px] truncate mb-2.5">by {book.author}</div>
+            <div className="flex gap-1.5 flex-wrap items-center">
+              {book.type === 'softcopy' && cleanFileUrl && !publicCard ? (
+                <>
+                  <a
+                    href={cleanFileUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="inline-flex items-center gap-1 rounded bg-primary px-2.5 py-1 text-[11px] font-bold text-white hover:bg-primary/90 shadow-sm"
+                    title="Open online"
+                    data-testid={`shelf-open-${book.id}`}
+                  >
+                    <Eye size={12} /> Open
+                  </a>
+                  <a
+                    href={`${cleanFileUrl}?download=1`}
+                    target="_blank"
+                    rel="noreferrer"
+                    download
+                    onClick={(e) => e.stopPropagation()}
+                    className="inline-flex items-center gap-1 rounded bg-white/20 backdrop-blur px-2.5 py-1 text-[11px] font-bold text-white hover:bg-white/30 shadow-sm"
+                    title="Download"
+                    data-testid={`shelf-download-${book.id}`}
+                  >
+                    <Download size={12} /> Download
+                  </a>
+                </>
+              ) : (
+                <span className="inline-flex items-center gap-1 rounded bg-primary/90 px-2.5 py-1 text-[11px] font-bold text-white shadow-sm">
+                  View book <ArrowRight size={12} />
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="book-plank-shadow" />
+      </Link>
+
+      <div className="mt-3.5 px-1 text-center">
+        <Link href={detailLink} className="block group-hover:text-primary transition-colors">
+          <h4 className="font-serif text-sm font-bold leading-snug line-clamp-1">{book.title}</h4>
+        </Link>
+        <p className="text-[11px] text-muted-foreground truncate">{book.author}</p>
+        <div className="mt-1 flex items-center justify-center gap-1.5">
+          <Status tone={book.available > 0 ? 'good' : 'bad'}>
+            {book.available > 0 ? `${book.available} available` : 'On loan'}
+          </Status>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function BookshelfRow({ title, eyebrow, books, publicShelf = false }: { title?: string; eyebrow?: string; books: Book[]; publicShelf?: boolean }) {
+  if (!books.length) return null;
+  return (
+    <div className="bookshelf-shelf">
+      {(title || eyebrow) && (
+        <div className="mb-4 flex items-center justify-between border-b border-border/60 pb-2 px-2">
+          <div className="flex items-center gap-3">
+            <span className="flex h-7 w-7 items-center justify-center rounded-md bg-primary/10 text-primary">
+              <Library size={16} />
+            </span>
+            <div>
+              {eyebrow && <div className="text-[10px] font-bold uppercase tracking-[.2em] text-accent">{eyebrow}</div>}
+              {title && <h3 className="font-serif text-xl font-bold">{title}</h3>}
+            </div>
+          </div>
+          <span className="text-xs font-mono text-muted-foreground bg-secondary/60 rounded-full px-2.5 py-0.5">
+            {books.length} {books.length === 1 ? 'book' : 'books'}
+          </span>
+        </div>
+      )}
+      
+      <div className="flex items-end gap-6 overflow-x-auto pb-1 px-4 sm:px-6 pt-6 scrollbar-thin">
+        {books.map(book => (
+          <ShelfBookCard key={book.id} book={book} publicCard={publicShelf} />
+        ))}
+      </div>
+
+      <div className="wood-shelf-plank">
+        <div className="wood-shelf-edge" />
+        <div className="wood-shelf-shadow" />
+      </div>
+    </div>
+  );
+}
+
 function BookCard({ book, publicCard = false }: { book: Book; publicCard?: boolean }) {
-  return <Link href={publicCard ? '/login' : `/member/books/${book.id}`} data-testid={`card-book-${book.id}`} className="group block"><div className="overflow-hidden rounded-xl border border-border bg-card p-2 shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-primary/10"><BookCover book={book} /><div className="p-3"><div className="mb-1 flex items-center justify-between gap-2"><Status tone={book.available > 0 ? 'good' : 'bad'}>{book.available > 0 ? 'Available' : 'On loan'}</Status><span className="font-mono text-[10px] text-muted-foreground">{book.type}</span></div><h3 className="line-clamp-2 min-h-11 font-serif text-base font-bold group-hover:text-primary">{book.title}</h3><p className="mt-1 truncate text-xs text-muted-foreground">{book.author}</p></div></div></Link>;
+  const detailLink = publicCard ? '/login' : `/member/books/${book.id}`;
+  const cleanFileUrl = book.fileUrl?.replace(/^\/api\/storage\/api\/storage\//, '/api/storage/');
+
+  return (
+    <div className="group flex flex-col justify-between overflow-hidden rounded-2xl border border-border bg-card p-3 shadow-sm transition duration-300 hover:-translate-y-1.5 hover:shadow-xl hover:shadow-primary/10">
+      <Link href={detailLink} data-testid={`card-book-${book.id}`} className="block">
+        <div className="overflow-hidden rounded-xl">
+          <BookCover book={book} className="h-60 w-full" />
+        </div>
+        <div className="pt-3.5 pb-2">
+          <div className="mb-1.5 flex items-center justify-between gap-2">
+            <Status tone={book.available > 0 ? 'good' : 'bad'}>
+              {book.available > 0 ? `${book.available} available` : 'On loan'}
+            </Status>
+            <span className={`font-mono text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ${
+              book.type === 'softcopy' ? 'bg-indigo-100 text-indigo-700' : 'bg-amber-100 text-amber-700'
+            }`}>
+              {book.type}
+            </span>
+          </div>
+          <h3 className="line-clamp-2 min-h-11 font-serif text-base font-bold group-hover:text-primary transition-colors">
+            {book.title}
+          </h3>
+          <p className="truncate text-xs text-muted-foreground">{book.author} · <span className="italic">{book.category}</span></p>
+        </div>
+      </Link>
+
+      <div className="mt-2 pt-2.5 border-t border-border flex items-center justify-between text-xs">
+        {book.type === 'softcopy' && cleanFileUrl && !publicCard ? (
+          <div className="flex items-center gap-2">
+            <a href={cleanFileUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 font-bold text-primary hover:underline">
+              <Eye size={13} /> Open
+            </a>
+            <span className="text-border">·</span>
+            <a href={`${cleanFileUrl}?download=1`} target="_blank" rel="noreferrer" download className="inline-flex items-center gap-1 font-bold text-muted-foreground hover:text-primary hover:underline">
+              <Download size={13} /> Download
+            </a>
+          </div>
+        ) : (
+          <span className="text-muted-foreground font-mono text-[11px]">{book.year ? `Est. ${book.year}` : 'Fellowship'}</span>
+        )}
+        <Link href={detailLink} className="inline-flex items-center gap-1 font-bold text-primary hover:underline ml-auto">
+          Details <ArrowRight size={13} />
+        </Link>
+      </div>
+    </div>
+  );
 }
 
 const memberLinks = [{ href: '/member/dashboard', key: 'dashboard', icon: HomeIcon }, { href: '/member/books', key: 'books', icon: BookOpen }, { href: '/member/notes', key: 'notes', icon: FileText }, { href: '/member/borrowings', key: 'borrowings', icon: Bookmark }, { href: '/member/profile', key: 'profile', icon: UserRound }];
@@ -244,9 +423,116 @@ function MemberDashboard({ preview = false }: { preview?: boolean }) {
 }
 
 function MemberBooks() {
-  const { lang } = useLang(); const [search, setSearch] = useState(''); const [category, setCategory] = useState(''); const [type, setType] = useState('');
-  const query = useListBooks({ search: search || undefined, category: category || undefined, type: (type || undefined) as any }); const cats = useListCategories();
-  return <AuthenticatedLayout><PageHeading eyebrow={t('library', lang)} title={t('books', lang)} detail={lang === 'am' ? 'ለጥናትዎ ትክክለኛውን መጽሐፍ ያግኙ።' : 'Find the right book for your next hour of study.'} /><div className="mb-7 grid gap-3 rounded-2xl border border-border bg-card p-4 md:grid-cols-[1fr_180px_150px]"><label className="relative block"><Search size={17} className="absolute left-3 top-3.5 text-muted-foreground" /><input value={search} onChange={e => setSearch(e.target.value)} placeholder={`${t('search', lang)} books, authors…`} data-testid="input-book-search" className="h-11 w-full rounded-lg border border-input bg-background pl-10 pr-3 text-sm outline-none focus:ring-4 focus:ring-primary/15" /></label><select value={category} onChange={e => setCategory(e.target.value)} data-testid="select-book-category" className="h-11 rounded-lg border border-input bg-background px-3 text-sm outline-none"><option value="">{lang === 'am' ? 'ሁሉም ምድቦች' : 'All categories'}</option>{(Array.isArray(cats.data) ? cats.data : []).map(c => <option key={c.id} value={c.name}>{c.name}</option>)}</select><select value={type} onChange={e => setType(e.target.value)} data-testid="select-book-type" className="h-11 rounded-lg border border-input bg-background px-3 text-sm outline-none"><option value="">All formats</option><option value="hardcopy">Hardcopy</option><option value="softcopy">Softcopy</option></select></div>{query.isError ? <ErrorState retry={() => query.refetch()} /> : query.isLoading ? <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">{[1,2,3,4,5,6].map(i => <Skeleton key={i} className="h-80" />)}</div> : query.data?.length ? <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">{query.data.map(book => <BookCard key={book.id} book={book} />)}</div> : <EmptyState icon={Search} title="No books found" detail="Try a different title, author, or category." action={<Button variant="soft" onClick={() => { setSearch(''); setCategory(''); setType(''); }} data-testid="button-clear-search">Clear filters</Button>} />}</AuthenticatedLayout>;
+  const { lang } = useLang();
+  const [search, setSearch] = useState('');
+  const [category, setCategory] = useState('');
+  const [type, setType] = useState('');
+  const [viewMode, setViewMode] = useState<'shelf' | 'grid'>('shelf');
+  const query = useListBooks({ search: search || undefined, category: category || undefined, type: (type || undefined) as any });
+  const cats = useListCategories();
+  const books = Array.isArray(query.data) ? query.data : [];
+  const categoriesList = Array.isArray(cats.data) ? cats.data : [];
+
+  const booksByCategory: Record<string, Book[]> = {};
+  if (category) {
+    booksByCategory[category] = books;
+  } else {
+    for (const b of books) {
+      const cat = b.category || 'General Collection';
+      if (!booksByCategory[cat]) booksByCategory[cat] = [];
+      booksByCategory[cat].push(b);
+    }
+  }
+
+  return (
+    <AuthenticatedLayout>
+      <PageHeading
+        eyebrow={t('library', lang)}
+        title={t('books', lang)}
+        detail={lang === 'am' ? 'ለጥናትዎ ትክክለኛውን መጽሐፍ ያግኙ።' : 'Find the right book for your next hour of study.'}
+        action={
+          <div className="flex items-center gap-1 rounded-xl border border-border bg-card p-1 shadow-sm">
+            <button
+              onClick={() => setViewMode('shelf')}
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition ${
+                viewMode === 'shelf' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+              }`}
+              data-testid="button-view-shelf"
+            >
+              <Library size={15} /> Bookshelf
+            </button>
+            <button
+              onClick={() => setViewMode('grid')}
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition ${
+                viewMode === 'grid' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+              }`}
+              data-testid="button-view-grid"
+            >
+              <LayoutGrid size={15} /> Grid
+            </button>
+          </div>
+        }
+      />
+
+      <div className="mb-8 grid gap-3 rounded-2xl border border-border bg-card p-4 md:grid-cols-[1fr_180px_150px]">
+        <label className="relative block">
+          <Search size={17} className="absolute left-3 top-3.5 text-muted-foreground" />
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder={`${t('search', lang)} books, authors…`}
+            data-testid="input-book-search"
+            className="h-11 w-full rounded-lg border border-input bg-background pl-10 pr-3 text-sm outline-none focus:ring-4 focus:ring-primary/15"
+          />
+        </label>
+        <select value={category} onChange={e => setCategory(e.target.value)} data-testid="select-book-category" className="h-11 rounded-lg border border-input bg-background px-3 text-sm outline-none">
+          <option value="">{lang === 'am' ? 'ሁሉም ምድቦች' : 'All categories'}</option>
+          {categoriesList.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+        </select>
+        <select value={type} onChange={e => setType(e.target.value)} data-testid="select-book-type" className="h-11 rounded-lg border border-input bg-background px-3 text-sm outline-none">
+          <option value="">All formats</option>
+          <option value="hardcopy">Hardcopy</option>
+          <option value="softcopy">Softcopy</option>
+        </select>
+      </div>
+
+      {query.isError ? (
+        <ErrorState retry={() => query.refetch()} />
+      ) : query.isLoading ? (
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {[1,2,3,4,5,6].map(i => <Skeleton key={i} className="h-80" />)}
+        </div>
+      ) : books.length ? (
+        viewMode === 'shelf' ? (
+          <div className="bookshelf-stage space-y-6">
+            {Object.keys(booksByCategory).length > 0 ? (
+              Object.entries(booksByCategory).map(([catName, catBooks]) => (
+                <BookshelfRow
+                  key={catName}
+                  title={catName}
+                  eyebrow="Category Shelf"
+                  books={catBooks}
+                />
+              ))
+            ) : (
+              <BookshelfRow books={books} />
+            )}
+          </div>
+        ) : (
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {books.map(book => <BookCard key={book.id} book={book} />)}
+          </div>
+        )
+      ) : (
+        <EmptyState
+          icon={Search}
+          title="No books found"
+          detail="Try a different title, author, or category."
+          action={<Button variant="soft" onClick={() => { setSearch(''); setCategory(''); setType(''); }} data-testid="button-clear-search">Clear filters</Button>}
+        />
+      )}
+    </AuthenticatedLayout>
+  );
 }
 
 function BookDetail() {
