@@ -1,12 +1,12 @@
 import { type ReactNode, createContext, useContext, useEffect, useState } from 'react';
-import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider, useQueryClient, useQuery, useMutation } from '@tanstack/react-query';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import {
   BookOpen, BookMarked, Bookmark, Check, ChevronRight, CircleUserRound, Clock3, Download, Eye,
-  FileText, FolderOpen, Home as HomeIcon, Languages, LayoutGrid, Library, LogOut, Menu, Pencil, Plus, Search, Settings, ShieldCheck, Sparkles,
+  FileText, FolderOpen, HelpCircle, Home as HomeIcon, LayoutGrid, Library, LogOut, Menu, MessageSquare, Moon, Pencil, Plus, Search, Send, Settings, ShieldCheck, Sparkles, Sun,
   UserRound, Users, X, ArrowLeft, ArrowRight, ArrowUpRight, AlertCircle, LoaderCircle
 } from 'lucide-react';
 import {
@@ -26,21 +26,44 @@ import logoAsset from '@/assets/hu-logo.png';
 const queryClient = new QueryClient();
 const logo = logoAsset;
 
-type Lang = 'en' | 'am';
-const LangContext = createContext<{ lang: Lang; setLang: (lang: Lang) => void }>({ lang: 'en', setLang: () => undefined });
-const useLang = () => useContext(LangContext);
-const words: Record<string, [string, string]> = {
-  dashboard: ['Dashboard', 'ዳሽቦርድ'], books: ['Books', 'መጻሕፍት'], notes: ['Study notes', 'የጥናት ማስታወሻዎች'],
-  borrowings: ['My borrowings', 'የተዋሱት'], profile: ['My profile', 'መገለጫዬ'], categories: ['Categories', 'ምድቦች'],
-  members: ['Members', 'አባላት'], requests: ['Requests', 'ጥያቄዎች'], settings: ['Settings', 'ቅንብሮች'],
-  signOut: ['Sign out', 'ውጣ'], search: ['Search', 'ፈልግ'], featured: ['Featured resources', 'ተለይተው የቀረቡ ምንጮች'],
-  browse: ['Browse library', 'ቤተ መጻሕፍቱን ይዳስሱ'], welcome: ['Welcome back', 'እንኳን ደህና መጡ'],
-  overview: ['Overview', 'አጠቃላይ እይታ'], newBook: ['Add a book', 'መጽሐፍ ጨምር'], newCategory: ['Add category', 'ምድብ ጨምር'],
-  pending: ['Pending', 'በመጠባበቅ ላይ'], available: ['Available', 'ይገኛል'], request: ['Request to borrow', 'ለመዋስ ጠይቅ'],
-  read: ['Read online', 'በመስመር ላይ አንብብ'], save: ['Save changes', 'ለውጦችን አስቀምጥ'],
-  membersOnly: ['Members only', 'ለአባላት ብቻ'], library: ['Library', 'ቤተ መጻሕፍት'],
+type Theme = 'light' | 'dark';
+const ThemeContext = createContext<{ theme: Theme; toggleTheme: () => void; setTheme: (theme: Theme) => void }>({
+  theme: 'dark',
+  toggleTheme: () => undefined,
+  setTheme: () => undefined,
+});
+const useTheme = () => useContext(ThemeContext);
+
+function ThemeToggle({ className = '' }: { className?: string }) {
+  const { theme, toggleTheme } = useTheme();
+  return (
+    <button
+      type="button"
+      onClick={toggleTheme}
+      aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+      className={`inline-flex items-center justify-center rounded-xl border border-border/80 bg-card p-2 text-foreground/80 hover:bg-secondary hover:text-foreground transition shadow-sm touch-target ${className}`}
+      title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+      data-testid="button-theme-toggle"
+    >
+      {theme === 'dark' ? <Sun size={18} className="text-amber-400" /> : <Moon size={18} className="text-primary" />}
+    </button>
+  );
+}
+
+const words: Record<string, string> = {
+  dashboard: 'Dashboard', books: 'Books', notes: 'Study notes',
+  borrowings: 'My borrowings', profile: 'My profile', categories: 'Categories',
+  members: 'Members', requests: 'Requests', settings: 'Settings',
+  questions: 'Bible Q&A', adminQuestions: 'Member Questions',
+  signOut: 'Sign out', search: 'Search', featured: 'Featured resources',
+  browse: 'Browse library', welcome: 'Welcome back',
+  overview: 'Overview', newBook: 'Add a book', newCategory: 'Add category',
+  pending: 'Pending', available: 'Available', request: 'Request to borrow',
+  read: 'Read online', save: 'Save changes',
+  membersOnly: 'Members only', library: 'Library',
 };
-const t = (key: string, lang: Lang) => words[key]?.[lang === 'am' ? 1 : 0] ?? key;
+const t = (key: string, _lang?: any) => words[key] ?? key;
+const useLang = () => ({ lang: 'en', setLang: () => undefined });
 
 const previewAdmin: User = {
   id: -1,
@@ -119,69 +142,273 @@ const EmptyState = ({ icon: Icon = Library, title, detail, action }: { icon?: ty
 const ErrorState = ({ retry }: { retry?: () => void }) => <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-5 text-sm text-destructive"><div className="flex items-center gap-2 font-semibold"><AlertCircle size={17} />We couldn't load this page.</div>{retry && <Button variant="danger" className="mt-3" onClick={retry} data-testid="button-retry">Try again</Button>}</div>;
 
 function PublicNav() {
-  return <header className="mx-auto flex w-full max-w-7xl items-center justify-between px-5 py-5 lg:px-10"><Logo /><nav className="flex items-center gap-3 text-sm font-semibold text-muted-foreground"><a href="#featured" data-testid="link-featured" className="hidden lg:inline">Featured</a><a href="#about" data-testid="link-about" className="hidden lg:inline">About the library</a>{import.meta.env.DEV && <><Link href="/__preview/member" data-testid="link-member-preview" className="hidden md:inline">Member preview</Link><Link href="/__preview/admin" data-testid="link-admin-preview" className="hidden md:inline">Admin preview</Link></>}<Link href="/login" data-testid="link-sign-in" className="inline-flex items-center gap-1 rounded-lg bg-primary px-3.5 py-2 text-primary-foreground">Sign in <ArrowUpRight size={14} /></Link></nav></header>;
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  return (
+    <header className="relative mx-auto flex w-full max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-10">
+      <Logo />
+      
+      {/* Desktop Navigation */}
+      <nav className="hidden items-center gap-4 text-sm font-semibold text-muted-foreground md:flex">
+        <a href="#featured" data-testid="link-featured" className="hover:text-foreground transition">Featured</a>
+        <a href="#about" data-testid="link-about" className="hover:text-foreground transition">About the library</a>
+        {import.meta.env.DEV && (
+          <>
+            <Link href="/__preview/member" data-testid="link-member-preview" className="hover:text-foreground transition">Member preview</Link>
+            <Link href="/__preview/admin" data-testid="link-admin-preview" className="hover:text-foreground transition">Admin preview</Link>
+          </>
+        )}
+        <ThemeToggle />
+        <Link href="/login" data-testid="link-sign-in" className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground shadow hover:opacity-95 transition touch-target">
+          Sign in <ArrowUpRight size={14} />
+        </Link>
+      </nav>
+
+      {/* Mobile Controls */}
+      <div className="flex items-center gap-2 md:hidden">
+        <ThemeToggle />
+        <button
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          aria-label="Toggle navigation menu"
+          className="rounded-xl border border-border/70 p-2 text-foreground hover:bg-secondary touch-target flex items-center justify-center"
+          data-testid="button-mobile-nav"
+        >
+          {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+        </button>
+      </div>
+
+      {/* Mobile Menu Dropdown */}
+      {mobileMenuOpen && (
+        <div className="absolute left-4 right-4 top-16 z-50 rounded-2xl border border-border bg-card p-4 shadow-2xl md:hidden animate-rise">
+          <div className="flex flex-col gap-2 text-sm font-semibold">
+            <a href="#featured" onClick={() => setMobileMenuOpen(false)} className="rounded-xl px-3 py-2.5 hover:bg-secondary">Featured</a>
+            <a href="#about" onClick={() => setMobileMenuOpen(false)} className="rounded-xl px-3 py-2.5 hover:bg-secondary">About the library</a>
+            {import.meta.env.DEV && (
+              <>
+                <Link href="/__preview/member" onClick={() => setMobileMenuOpen(false)} className="rounded-xl px-3 py-2.5 hover:bg-secondary">Member preview</Link>
+                <Link href="/__preview/admin" onClick={() => setMobileMenuOpen(false)} className="rounded-xl px-3 py-2.5 hover:bg-secondary">Admin preview</Link>
+              </>
+            )}
+            <Link href="/login" onClick={() => setMobileMenuOpen(false)} className="mt-2 flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-center font-bold text-primary-foreground touch-target">
+              Sign in <ArrowUpRight size={15} />
+            </Link>
+          </div>
+        </div>
+      )}
+    </header>
+  );
 }
 
 function Home() {
   const booksQuery = useListBooks();
   const categoriesQuery = useListCategories();
   const books = Array.isArray(booksQuery.data) ? booksQuery.data : [];
-  const featured = books.filter((book) => book.featured).slice(0, 4);
-  return <div className="noise min-h-[100dvh] overflow-hidden">
-    <PublicNav />
-    <main>
-      <section className="relative mx-auto grid max-w-7xl gap-12 px-5 pb-20 pt-10 lg:grid-cols-[1.04fr_.96fr] lg:items-center lg:px-10 lg:pb-28 lg:pt-16">
-        <div className="animate-rise">
-          <div className="mb-7 flex items-center gap-2 text-xs font-bold uppercase tracking-[.22em] text-primary"><span className="h-px w-8 bg-primary" />Study. Serve. Share.</div>
-          <h1 className="max-w-2xl font-serif text-5xl font-bold leading-[1.05] tracking-tight sm:text-6xl lg:text-7xl">A quiet place for <span className="text-primary">deep roots.</span></h1>
-          <p className="mt-7 max-w-xl text-lg leading-8 text-muted-foreground">The HU Fellowship Library brings books, Bible-study resources, and a growing community of learners into one welcoming home.</p>
-          <div className="mt-9 flex flex-wrap gap-3"><Link href="/login" data-testid="link-start-exploring" className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-3 text-sm font-bold text-primary-foreground shadow-lg shadow-primary/15">Start exploring <ChevronRight size={17} /></Link><a href="#featured" data-testid="link-view-featured" className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-5 py-3 text-sm font-bold">View featured resources</a></div>
-          <div className="mt-12 flex items-center gap-8 border-t border-border pt-6"><div><div className="font-mono text-2xl font-bold text-primary">{booksQuery.isLoading ? '—' : books.length}</div><div className="text-xs text-muted-foreground">books in the collection</div></div><div className="h-9 w-px bg-border" /><div><div className="font-mono text-2xl font-bold text-primary">{categoriesQuery.isLoading ? '—' : (categoriesQuery.data?.length ?? 0)}</div><div className="text-xs text-muted-foreground">ways to find your next study</div></div></div>
-        </div>
-         <div className="paper-grid relative mx-auto w-full max-w-lg animate-rise stagger-1"><div className="absolute -right-8 -top-8 h-40 w-40 rounded-full bg-accent/10 blur-3xl" /><div className="relative rounded-[2rem] border border-primary/15 bg-secondary/45 p-5 shadow-2xl shadow-primary/10"><div className="rounded-[1.5rem] bg-sidebar p-8 text-sidebar-foreground"><div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-[.2em] text-sidebar-primary"><span>HU / 01</span><span>Est. 2004</span></div><div className="mt-16 max-w-xs font-serif text-3xl font-bold leading-tight">“Study to show yourself approved.”</div><div className="mt-3 font-mono text-[10px] uppercase tracking-widest text-sidebar-primary">2 Timothy 2:15</div><div className="mt-12 flex items-end justify-between"><div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-full border border-sidebar-primary/40 p-1"><img src={logo} alt="" className="block h-full w-full origin-center scale-[1.25] object-contain object-center" /></div><div className="text-right text-xs text-sidebar-foreground/50">Fellowship<br />Library</div></div></div></div></div>
-      </section>
-      <section id="featured" className="border-y border-border bg-[#0d0e11] px-5 py-20 lg:px-10">
-        <div className="mx-auto max-w-7xl">
-          <div className="mb-8 flex flex-wrap items-end justify-between gap-5">
-            <div>
-              <div className="text-xs font-bold uppercase tracking-[.2em] text-[#008080]">From the shelves</div>
-              <h2 className="mt-2 font-serif text-3xl font-bold text-white">Popular books</h2>
+  const featured = books.filter((book) => book.featured).slice(0, 6);
+  return (
+    <div className="noise min-h-[100dvh] overflow-x-hidden">
+      <PublicNav />
+      <main>
+        <section className="relative mx-auto grid max-w-7xl gap-8 sm:gap-12 px-4 py-8 sm:px-6 sm:py-16 lg:grid-cols-[1.04fr_.96fr] lg:items-center lg:px-10 lg:pb-28 lg:pt-16">
+          <div className="animate-rise">
+            <div className="mb-4 sm:mb-7 flex items-center gap-2 text-xs font-bold uppercase tracking-[.22em] text-primary">
+              <span className="h-px w-8 bg-primary" />Study. Serve. Share.
             </div>
-            <Link href="/login" data-testid="link-browse-all" className="text-sm font-semibold text-[#00b4b4] hover:text-[#008080] transition flex items-center gap-1">Browse the whole library <ArrowUpRight size={15} className="ml-1 inline" /></Link>
+            <h1 className="max-w-2xl font-serif text-3xl sm:text-5xl lg:text-7xl font-bold leading-[1.08] tracking-tight">
+              A quiet place for <span className="text-primary">deep roots.</span>
+            </h1>
+            <p className="mt-4 sm:mt-7 max-w-xl text-base sm:text-lg leading-7 sm:leading-8 text-muted-foreground">
+              The HU Fellowship Library brings books, Bible-study resources, and a growing community of learners into one welcoming home.
+            </p>
+            <div className="mt-6 sm:mt-9 flex flex-col sm:flex-row flex-wrap gap-3">
+              <Link href="/login" data-testid="link-start-exploring" className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-bold text-primary-foreground shadow-lg shadow-primary/15 touch-target">
+                Start exploring <ChevronRight size={17} />
+              </Link>
+              <a href="#featured" data-testid="link-view-featured" className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl border border-border bg-card px-5 py-3 text-sm font-bold touch-target">
+                View featured resources
+              </a>
+            </div>
+            <div className="mt-8 sm:mt-12 flex flex-wrap items-center gap-4 sm:gap-8 border-t border-border pt-6">
+              <div>
+                <div className="font-mono text-xl sm:text-2xl font-bold text-primary">{booksQuery.isLoading ? '—' : books.length}</div>
+                <div className="text-xs text-muted-foreground">books in collection</div>
+              </div>
+              <div className="h-8 w-px bg-border" />
+              <div>
+                <div className="font-mono text-xl sm:text-2xl font-bold text-primary">{categoriesQuery.isLoading ? '—' : (categoriesQuery.data?.length ?? 0)}</div>
+                <div className="text-xs text-muted-foreground">categories to explore</div>
+              </div>
+            </div>
           </div>
-          {booksQuery.isLoading ? (
-            <div className="mt-10 grid gap-4 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">{[1,2,3,4,5,6].map(i => <Skeleton key={i} className="h-72 rounded-2xl bg-neutral-900" />)}</div>
-          ) : featured.length ? (
-            <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
-              {featured.map(book => <ModernBookCard key={book.id} book={book} publicCard />)}
+
+          <div className="paper-grid relative mx-auto w-full max-w-lg animate-rise stagger-1">
+            <div className="absolute -right-8 -top-8 h-40 w-40 rounded-full bg-accent/10 blur-3xl" />
+            <div className="relative rounded-2xl sm:rounded-[2rem] border border-primary/15 bg-secondary/45 p-3.5 sm:p-5 shadow-2xl shadow-primary/10">
+              <div className="rounded-xl sm:rounded-[1.5rem] bg-sidebar p-5 sm:p-8 text-sidebar-foreground">
+                <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-[.2em] text-sidebar-primary">
+                  <span>HU / 01</span>
+                  <span>Est. 2004</span>
+                </div>
+                <div className="mt-8 sm:mt-16 max-w-xs font-serif text-2xl sm:text-3xl font-bold leading-tight">
+                  “Study to show yourself approved.”
+                </div>
+                <div className="mt-2.5 sm:mt-3 font-mono text-[10px] uppercase tracking-widest text-sidebar-primary">
+                  2 Timothy 2:15
+                </div>
+                <div className="mt-8 sm:mt-12 flex items-end justify-between">
+                  <div className="flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center overflow-hidden rounded-full border border-sidebar-primary/40 p-1">
+                    <img src={logo} alt="" className="block h-full w-full origin-center scale-[1.25] object-contain object-center" />
+                  </div>
+                  <div className="text-right text-xs text-sidebar-foreground/50">Fellowship<br />Library</div>
+                </div>
+              </div>
             </div>
-          ) : (
-            <div className="mt-10"><EmptyState icon={BookOpen} title="The shelves are being prepared" detail="Featured resources will appear here as the collection grows." /></div>
-          )}
-        </div>
-      </section>
-      <section id="about" className="mx-auto grid max-w-7xl gap-10 px-5 py-20 lg:grid-cols-[.7fr_1fr] lg:px-10"><div><div className="text-xs font-bold uppercase tracking-[.2em] text-accent">A shared table</div><h2 className="mt-3 font-serif text-3xl font-bold leading-tight">Learning becomes richer when it is shared.</h2></div><div className="grid gap-8 text-sm leading-7 text-muted-foreground sm:grid-cols-2"><div><Sparkles size={20} className="mb-4 text-primary" /><p>Find the next book for your quiet hour, keep track of what you borrow, and return with a thought worth bringing to fellowship.</p></div><div><Users size={20} className="mb-4 text-primary" /><p>Members and stewards care for the same collection. Every shelf is kept useful, current, and open to thoughtful questions.</p></div></div></section>
-    </main>
-    <footer className="border-t border-border px-5 py-7 text-center text-xs text-muted-foreground lg:px-10">HU Fellowship Library · A home for study and community</footer>
-  </div>;
+          </div>
+        </section>
+
+        <section id="featured" className="border-y border-border bg-card/40 dark:bg-[#0d0e11] px-4 py-12 sm:px-6 sm:py-20 lg:px-10">
+          <div className="mx-auto max-w-7xl">
+            <div className="mb-6 sm:mb-8 flex flex-wrap items-end justify-between gap-4">
+              <div>
+                <div className="text-xs font-bold uppercase tracking-[.2em] text-[#008080]">From the shelves</div>
+                <h2 className="mt-1.5 font-serif text-2xl sm:text-3xl font-bold text-foreground dark:text-white">Popular books</h2>
+              </div>
+              <Link href="/login" data-testid="link-browse-all" className="text-xs sm:text-sm font-semibold text-[#00b4b4] hover:text-[#008080] transition flex items-center gap-1">
+                Browse the whole library <ArrowUpRight size={15} className="ml-1 inline" />
+              </Link>
+            </div>
+            {booksQuery.isLoading ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2.5 sm:gap-4">
+                {[1, 2, 3, 4, 5, 6].map(i => <Skeleton key={i} className="h-64 sm:h-72 rounded-2xl bg-neutral-900/10 dark:bg-neutral-900" />)}
+              </div>
+            ) : featured.length ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2.5 sm:gap-4">
+                {featured.map(book => <ModernBookCard key={book.id} book={book} publicCard />)}
+              </div>
+            ) : (
+              <div className="mt-10"><EmptyState icon={BookOpen} title="The shelves are being prepared" detail="Featured resources will appear here as the collection grows." /></div>
+            )}
+          </div>
+        </section>
+
+        <section id="about" className="mx-auto grid max-w-7xl gap-8 px-4 py-12 sm:px-6 sm:py-20 lg:grid-cols-[.7fr_1fr] lg:px-10">
+          <div>
+            <div className="text-xs font-bold uppercase tracking-[.2em] text-accent">A shared table</div>
+            <h2 className="mt-2 font-serif text-2xl sm:text-3xl font-bold leading-tight">Learning becomes richer when it is shared.</h2>
+          </div>
+          <div className="grid gap-6 sm:gap-8 text-sm leading-7 text-muted-foreground grid-cols-1 sm:grid-cols-2">
+            <div>
+              <Sparkles size={20} className="mb-3 text-primary" />
+              <p>Find the next book for your quiet hour, keep track of what you borrow, and return with a thought worth bringing to fellowship.</p>
+            </div>
+            <div>
+              <Users size={20} className="mb-3 text-primary" />
+              <p>Members and stewards care for the same collection. Every shelf is kept useful, current, and open to thoughtful questions.</p>
+            </div>
+          </div>
+        </section>
+      </main>
+      <footer className="border-t border-border px-4 py-6 text-center text-xs text-muted-foreground lg:px-10 safe-bottom">
+        HU Fellowship Library · A home for study and community
+      </footer>
+    </div>
+  );
 }
 
 function AuthShell({ children, eyebrow, title, detail }: { children: ReactNode; eyebrow: string; title: string; detail: string }) {
-  return <div className="noise grid min-h-[100dvh] lg:grid-cols-[.9fr_1.1fr]"><div className="hidden bg-sidebar p-10 text-sidebar-foreground lg:flex lg:flex-col lg:justify-between"><Logo dark /><div className="max-w-md pb-12"><div className="mb-5 text-xs font-bold uppercase tracking-[.22em] text-sidebar-primary">HU Fellowship Library</div><h2 className="font-serif text-5xl font-bold leading-tight">Make room for the word.</h2><p className="mt-6 leading-7 text-sidebar-foreground/65">A trusted collection for the people who keep asking better questions.</p><div className="mt-12 border-l-2 border-sidebar-primary/60 pl-5 font-serif text-lg italic text-sidebar-foreground/85">“Let the word of Christ dwell in you richly.”<span className="mt-2 block font-sans text-xs not-italic text-sidebar-primary">Colossians 3:16</span></div></div><div className="font-mono text-[10px] uppercase tracking-[.2em] text-sidebar-foreground/40">Study / Serve / Share</div></div><div className="flex items-center justify-center px-5 py-10"><div className="w-full max-w-md"><div className="mb-10 flex items-center justify-between lg:hidden"><Logo /><Link href="/" data-testid="link-auth-home" className="text-sm font-semibold text-muted-foreground">Back home</Link></div><div className="mb-8"><div className="text-xs font-bold uppercase tracking-[.2em] text-accent">{eyebrow}</div><h1 className="mt-3 font-serif text-4xl font-bold">{title}</h1><p className="mt-3 text-sm leading-6 text-muted-foreground">{detail}</p></div>{children}</div></div></div>;
+  return (
+    <div className="noise grid min-h-[100dvh] lg:grid-cols-[.9fr_1.1fr]">
+      <div className="hidden bg-sidebar p-8 lg:p-12 text-sidebar-foreground lg:flex lg:flex-col lg:justify-between">
+        <Logo dark />
+        <div className="max-w-md pb-12">
+          <div className="mb-5 text-xs font-bold uppercase tracking-[.22em] text-sidebar-primary">HU Fellowship Library</div>
+          <h2 className="font-serif text-4xl lg:text-5xl font-bold leading-tight">Make room for the word.</h2>
+          <p className="mt-6 leading-7 text-sidebar-foreground/65">A trusted collection for the people who keep asking better questions.</p>
+          <div className="mt-12 border-l-2 border-sidebar-primary/60 pl-5 font-serif text-lg italic text-sidebar-foreground/85">
+            “Let the word of Christ dwell in you richly.”
+            <span className="mt-2 block font-sans text-xs not-italic text-sidebar-primary">Colossians 3:16</span>
+          </div>
+        </div>
+        <div className="flex items-center justify-between text-sidebar-foreground/45 border-t border-sidebar-border pt-4">
+          <div className="font-mono text-[10px] uppercase tracking-[.2em]">Study / Serve / Share</div>
+          <ThemeToggle className="text-sidebar-foreground/70 hover:text-sidebar-foreground border-sidebar-border/40 bg-sidebar-accent/50" />
+        </div>
+      </div>
+      
+      <div className="flex items-center justify-center px-4 py-8 sm:px-6 sm:py-12 safe-bottom">
+        <div className="w-full max-w-md">
+          <div className="mb-8 flex items-center justify-between lg:hidden">
+            <Logo />
+            <div className="flex items-center gap-2">
+              <ThemeToggle />
+              <Link href="/" data-testid="link-auth-home" className="text-sm font-semibold text-muted-foreground hover:text-primary">Back home</Link>
+            </div>
+          </div>
+          <div className="mb-6 sm:mb-8">
+            <div className="text-xs font-bold uppercase tracking-[.2em] text-accent">{eyebrow}</div>
+            <h1 className="mt-2 font-serif text-3xl sm:text-4xl font-bold">{title}</h1>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">{detail}</p>
+          </div>
+          {children}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function Login() {
   const [, setLocation] = useLocation();
   const login = useLogin();
   const [email, setEmail] = useState(''); const [password, setPassword] = useState('');
-  return <AuthShell eyebrow="Welcome back" title="Sign in to the library." detail="Your next meaningful read is waiting. Sign in to continue."><form className="grid gap-5" onSubmit={(e) => { e.preventDefault(); login.mutate({ data: { email, password } }, { onSuccess: (data) => setLocation(data.user.role === 'admin' ? '/admin/dashboard' : '/member/dashboard') }); }}><Field label="Email address" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} type="email" placeholder="you@university.edu" required data-testid="input-email" /><Field label="Password" autoComplete="current-password" value={password} onChange={e => setPassword(e.target.value)} type="password" placeholder="Enter your password" required data-testid="input-password" /><div className="flex justify-end"><Link href="/forgot-password" data-testid="link-forgot-password" className="text-sm font-semibold text-primary">Forgot password?</Link></div>{login.isError && <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive" data-testid="status-login-error">The email or password did not match our records.</div>}<Button type="submit" disabled={login.isPending} className="h-12 w-full" data-testid="button-login">{login.isPending ? <LoaderCircle size={17} className="animate-spin" /> : null}{login.isPending ? 'Signing in…' : 'Sign in'}</Button><div className="rounded-xl border border-border/80 bg-secondary/40 p-3 text-xs"><div className="font-semibold text-muted-foreground mb-2">Quick sign-in credentials:</div><div className="flex flex-wrap gap-2"><button type="button" onClick={() => { setEmail('member@example.com'); setPassword('password123'); }} className="rounded-md border border-border bg-card px-2.5 py-1 font-medium hover:bg-primary hover:text-primary-foreground">👤 Member: member@example.com</button><button type="button" onClick={() => { setEmail('samakms77@gmail.com'); setPassword('admin123'); }} className="rounded-md border border-border bg-card px-2.5 py-1 font-medium hover:bg-primary hover:text-primary-foreground">👑 Admin: samakms77@gmail.com</button></div></div><p className="pt-2 text-center text-sm text-muted-foreground">New to the fellowship? <Link href="/register" data-testid="link-register" className="font-bold text-primary">Create a member account</Link></p></form></AuthShell>;
+  return (
+    <AuthShell eyebrow="Welcome back" title="Sign in to the library." detail="Your next meaningful read is waiting. Sign in to continue.">
+      <form className="grid gap-4 sm:gap-5" onSubmit={(e) => { e.preventDefault(); login.mutate({ data: { email, password } }, { onSuccess: (data) => setLocation(data.user.role === 'admin' ? '/admin/dashboard' : '/member/dashboard') }); }}>
+        <Field label="Email address" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} type="email" placeholder="you@university.edu" required data-testid="input-email" />
+        <Field label="Password" autoComplete="current-password" value={password} onChange={e => setPassword(e.target.value)} type="password" placeholder="Enter your password" required data-testid="input-password" />
+        <div className="flex justify-end">
+          <Link href="/forgot-password" data-testid="link-forgot-password" className="text-sm font-semibold text-primary hover:underline">Forgot password?</Link>
+        </div>
+        {login.isError && <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive" data-testid="status-login-error">The email or password did not match our records.</div>}
+        <Button type="submit" disabled={login.isPending} className="h-12 w-full touch-target text-base" data-testid="button-login">
+          {login.isPending ? <LoaderCircle size={18} className="animate-spin" /> : null}
+          {login.isPending ? 'Signing in…' : 'Sign in'}
+        </Button>
+        <div className="rounded-xl border border-border/80 bg-secondary/40 p-3 text-xs">
+          <div className="font-semibold text-muted-foreground mb-2">Quick sign-in credentials:</div>
+          <div className="flex flex-col sm:flex-row flex-wrap gap-2">
+            <button type="button" onClick={() => { setEmail('member@example.com'); setPassword('password123'); }} className="rounded-lg border border-border bg-card px-2.5 py-1.5 font-medium hover:bg-primary hover:text-primary-foreground text-left sm:text-center text-[11px] sm:text-xs transition touch-target sm:touch-auto">👤 Member: member@example.com</button>
+            <button type="button" onClick={() => { setEmail('samakms77@gmail.com'); setPassword('admin123'); }} className="rounded-lg border border-border bg-card px-2.5 py-1.5 font-medium hover:bg-primary hover:text-primary-foreground text-left sm:text-center text-[11px] sm:text-xs transition touch-target sm:touch-auto">👑 Admin: samakms77@gmail.com</button>
+          </div>
+        </div>
+        <p className="pt-2 text-center text-sm text-muted-foreground">New to the fellowship? <Link href="/register" data-testid="link-register" className="font-bold text-primary hover:underline">Create a member account</Link></p>
+      </form>
+    </AuthShell>
+  );
 }
 
 function Register() {
   const [, setLocation] = useLocation(); const register = useRegister();
   const [form, setForm] = useState({ name: '', email: '', password: '', phone: '', department: '', schoolYear: '' });
   const update = (key: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) => setForm(current => ({ ...current, [key]: e.target.value }));
-  return <AuthShell eyebrow="Join the fellowship" title="Create your member account." detail="A few details, then a whole collection of places to begin."><form className="grid gap-4" onSubmit={e => { e.preventDefault(); register.mutate({ data: form }, { onSuccess: () => setLocation('/login') }); }}><div className="grid gap-4 sm:grid-cols-2"><Field label="Full name" name="name" autoComplete="name" value={form.name} onChange={update('name')} required data-testid="input-register-name" /><Field label="Email address" name="email" type="email" autoComplete="email" autoCapitalize="none" spellCheck={false} value={form.email} onChange={update('email')} required data-testid="input-register-email" /></div><div className="grid gap-4 sm:grid-cols-2"><Field label="Phone number" name="phone" type="tel" autoComplete="tel" inputMode="tel" value={form.phone} onChange={update('phone')} required data-testid="input-register-phone" /><Field label="School year" name="schoolYear" autoComplete="off" value={form.schoolYear} onChange={update('schoolYear')} placeholder="e.g. 3rd year" required data-testid="input-register-year" /></div><Field label="Department" name="department" autoComplete="organization-title" value={form.department} onChange={update('department')} required data-testid="input-register-department" /><Field label="Password" name="password" type="password" autoComplete="new-password" value={form.password} onChange={update('password')} minLength={8} required data-testid="input-register-password" />{register.isError && <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">We couldn't create that account. Check your details and try again.</div>}<Button type="submit" disabled={register.isPending} className="mt-2 h-12 w-full" data-testid="button-register">{register.isPending ? 'Creating account…' : 'Create account'}</Button><p className="pt-2 text-center text-sm text-muted-foreground">Already a member? <Link href="/login" data-testid="link-existing-login" className="font-bold text-primary">Sign in</Link></p></form></AuthShell>;
+  return (
+    <AuthShell eyebrow="Join the fellowship" title="Create your member account." detail="A few details, then a whole collection of places to begin.">
+      <form className="grid gap-4" onSubmit={e => { e.preventDefault(); register.mutate({ data: form }, { onSuccess: () => setLocation('/login') }); }}>
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
+          <Field label="Full name" name="name" autoComplete="name" value={form.name} onChange={update('name')} required data-testid="input-register-name" />
+          <Field label="Email address" name="email" type="email" autoComplete="email" autoCapitalize="none" spellCheck={false} value={form.email} onChange={update('email')} required data-testid="input-register-email" />
+        </div>
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
+          <Field label="Phone number" name="phone" type="tel" autoComplete="tel" inputMode="tel" value={form.phone} onChange={update('phone')} required data-testid="input-register-phone" />
+          <Field label="School year" name="schoolYear" autoComplete="off" value={form.schoolYear} onChange={update('schoolYear')} placeholder="e.g. 3rd year" required data-testid="input-register-year" />
+        </div>
+        <Field label="Department" name="department" autoComplete="organization-title" value={form.department} onChange={update('department')} required data-testid="input-register-department" />
+        <Field label="Password" name="password" type="password" autoComplete="new-password" value={form.password} onChange={update('password')} minLength={8} required data-testid="input-register-password" />
+        {register.isError && <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">We couldn't create that account. Check your details and try again.</div>}
+        <Button type="submit" disabled={register.isPending} className="mt-2 h-12 w-full touch-target text-base" data-testid="button-register">
+          {register.isPending ? 'Creating account…' : 'Create account'}
+        </Button>
+        <p className="pt-2 text-center text-sm text-muted-foreground">Already a member? <Link href="/login" data-testid="link-existing-login" className="font-bold text-primary hover:underline">Sign in</Link></p>
+      </form>
+    </AuthShell>
+  );
 }
 
 function ForgotPassword() {
@@ -189,7 +416,38 @@ function ForgotPassword() {
   const requestReset = useRequestPasswordReset(); const resetPassword = useResetPassword();
   const requestError = requestReset.error instanceof Error ? requestReset.error.message : 'We could not send the recovery code. Please try again.';
   const resetError = resetPassword.error instanceof Error ? resetPassword.error.message : 'That code could not be verified. Please try again.';
-  return <AuthShell eyebrow="Account recovery" title="Find your way back in." detail={stage === 'email' ? 'Enter your email and we’ll send a six-digit recovery code.' : stage === 'code' ? 'Check your inbox and enter the code within 10 minutes.' : 'Your password has been updated.'}><form className="grid gap-5" onSubmit={e => { e.preventDefault(); if (stage === 'email') requestReset.mutate({ data: { email } }, { onSuccess: () => setStage('code') }); else if (stage === 'code') resetPassword.mutate({ data: { email, code, password } }, { onSuccess: () => setStage('done') }); }}>{stage === 'email' && <><Field label="Email address" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@university.edu" autoComplete="email" required data-testid="input-recovery-email" />{requestReset.isError && <div className="rounded-lg bg-destructive/10 p-3 text-sm leading-6 text-destructive" data-testid="status-recovery-error">{requestError}</div>}<Button type="submit" disabled={requestReset.isPending} className="h-12 w-full" data-testid="button-send-recovery">{requestReset.isPending ? 'Sending code…' : 'Send recovery code'}</Button></>}{stage === 'code' && <><div className="rounded-lg bg-emerald-100 p-4 text-sm leading-6 text-emerald-800" data-testid="status-recovery-sent">A six-digit recovery code was sent to {email}.</div><Field label="Recovery code" inputMode="numeric" pattern="[0-9]{6}" maxLength={6} value={code} onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))} placeholder="123456" required data-testid="input-recovery-code" /><Field label="New password" type="password" minLength={8} value={password} onChange={e => setPassword(e.target.value)} placeholder="At least 8 characters" autoComplete="new-password" required data-testid="input-new-password" />{resetPassword.isError && <div className="rounded-lg bg-destructive/10 p-3 text-sm leading-6 text-destructive" data-testid="status-reset-error">{resetError}</div>}<Button type="submit" disabled={resetPassword.isPending || code.length !== 6} className="h-12 w-full" data-testid="button-reset-password">{resetPassword.isPending ? 'Updating password…' : 'Reset password'}</Button></>}{stage === 'done' && <div className="rounded-lg bg-emerald-100 p-4 text-sm leading-6 text-emerald-800" data-testid="status-reset-success">Your password has been reset successfully. Sign in with your new password.</div>}<p className="pt-2 text-center text-sm text-muted-foreground"><Link href="/login" data-testid="link-back-login" className="font-bold text-primary">Return to sign in</Link></p></form></AuthShell>;
+  return (
+    <AuthShell eyebrow="Account recovery" title="Find your way back in." detail={stage === 'email' ? 'Enter your email and we’ll send a six-digit recovery code.' : stage === 'code' ? 'Check your inbox and enter the code within 10 minutes.' : 'Your password has been updated.'}>
+      <form className="grid gap-5" onSubmit={e => { e.preventDefault(); if (stage === 'email') requestReset.mutate({ data: { email } }, { onSuccess: () => setStage('code') }); else if (stage === 'code') resetPassword.mutate({ data: { email, code, password } }, { onSuccess: () => setStage('done') }); }}>
+        {stage === 'email' && (
+          <>
+            <Field label="Email address" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@university.edu" autoComplete="email" required data-testid="input-recovery-email" />
+            {requestReset.isError && <div className="rounded-lg bg-destructive/10 p-3 text-sm leading-6 text-destructive" data-testid="status-recovery-error">{requestError}</div>}
+            <Button type="submit" disabled={requestReset.isPending} className="h-12 w-full touch-target" data-testid="button-send-recovery">
+              {requestReset.isPending ? 'Sending code…' : 'Send recovery code'}
+            </Button>
+          </>
+        )}
+        {stage === 'code' && (
+          <>
+            <div className="rounded-lg bg-emerald-100 dark:bg-emerald-950/60 p-4 text-sm leading-6 text-emerald-800 dark:text-emerald-200" data-testid="status-recovery-sent">A six-digit recovery code was sent to {email}.</div>
+            <Field label="Recovery code" inputMode="numeric" pattern="[0-9]{6}" maxLength={6} value={code} onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))} placeholder="123456" required data-testid="input-recovery-code" />
+            <Field label="New password" type="password" minLength={8} value={password} onChange={e => setPassword(e.target.value)} placeholder="At least 8 characters" autoComplete="new-password" required data-testid="input-new-password" />
+            {resetPassword.isError && <div className="rounded-lg bg-destructive/10 p-3 text-sm leading-6 text-destructive" data-testid="status-reset-error">{resetError}</div>}
+            <Button type="submit" disabled={resetPassword.isPending || code.length !== 6} className="h-12 w-full touch-target" data-testid="button-reset-password">
+              {resetPassword.isPending ? 'Updating password…' : 'Reset password'}
+            </Button>
+          </>
+        )}
+        {stage === 'done' && (
+          <div className="rounded-lg bg-emerald-100 dark:bg-emerald-950/60 p-4 text-sm leading-6 text-emerald-800 dark:text-emerald-200" data-testid="status-reset-success">
+            Your password has been reset successfully. Sign in with your new password.
+          </div>
+        )}
+        <p className="pt-2 text-center text-sm text-muted-foreground"><Link href="/login" data-testid="link-back-login" className="font-bold text-primary hover:underline">Return to sign in</Link></p>
+      </form>
+    </AuthShell>
+  );
 }
 
 function BookCover({ book, large = false, className = '' }: { book: Book; large?: boolean; className?: string }) {
@@ -231,7 +489,7 @@ function ModernBookCard({ book, publicCard = false }: { book: Book; publicCard?:
 
   return (
     <div
-      className="group relative flex flex-col justify-between rounded-2xl bg-[#141517] border border-neutral-800/80 p-2.5 sm:p-3 shadow-lg hover:border-neutral-700 hover:shadow-2xl transition duration-200"
+      className="group relative flex flex-col justify-between rounded-2xl bg-card border border-border p-2 sm:p-2.5 md:p-3 shadow-sm hover:shadow-xl dark:bg-[#141517] dark:border-neutral-800/80 dark:hover:border-neutral-700 transition duration-200"
       data-testid={`card-book-${book.id}`}
     >
       <Link href={detailLink} className="relative block aspect-[2/3] w-full overflow-hidden rounded-xl bg-neutral-900 shadow">
@@ -243,9 +501,9 @@ function ModernBookCard({ book, publicCard = false }: { book: Book; publicCard?:
             className="h-full w-full object-cover rounded-xl transition duration-300 group-hover:scale-[1.03]"
           />
         ) : (
-          <div className="flex h-full w-full flex-col justify-between p-3.5 bg-gradient-to-br from-neutral-800 via-neutral-900 to-neutral-950 text-white rounded-xl">
+          <div className="flex h-full w-full flex-col justify-between p-3 sm:p-3.5 bg-gradient-to-br from-neutral-800 via-neutral-900 to-neutral-950 text-white rounded-xl">
             <div className="text-[10px] font-mono uppercase tracking-wider text-teal-400 truncate">{book.category}</div>
-            <BookOpen className="self-center text-teal-400/30" size={36} />
+            <BookOpen className="self-center text-teal-400/30" size={32} />
             <div>
               <div className="font-serif font-bold text-xs sm:text-sm leading-tight line-clamp-2 text-white">{book.title}</div>
               <div className="text-[10px] sm:text-[11px] text-neutral-400 truncate mt-1">{book.author}</div>
@@ -262,36 +520,36 @@ function ModernBookCard({ book, publicCard = false }: { book: Book; publicCard?:
         </div>
       </Link>
 
-      <div className="mt-2.5 mb-2 text-center text-xs font-semibold text-emerald-400 tracking-wide">
+      <div className="mt-2 sm:mt-2.5 mb-1.5 sm:mb-2 text-center text-xs font-semibold text-emerald-500 dark:text-emerald-400 tracking-wide">
         {book.type === 'softcopy' ? 'Free' : (book.available > 0 ? 'Free' : 'On loan')}
       </div>
 
       <div className="w-full">
         <Link
           href={detailLink}
-          className="w-full rounded-xl bg-[#008080] hover:bg-[#006e6e] active:bg-[#005a5a] text-white py-2 sm:py-2.5 px-3 text-xs sm:text-sm font-bold text-center block transition shadow-sm"
+          className="w-full rounded-xl bg-[#008080] hover:bg-[#006e6e] active:bg-[#005a5a] text-white py-2 sm:py-2.5 px-2.5 text-xs sm:text-sm font-bold text-center block transition shadow-sm touch-target flex items-center justify-center"
         >
           View details
         </Link>
         {book.type === 'softcopy' && cleanFileUrl && !publicCard && (
-          <div className="mt-1.5 flex items-center justify-center gap-2 text-[11px] text-neutral-400">
+          <div className="mt-1.5 flex items-center justify-center gap-2 text-[11px] text-muted-foreground dark:text-neutral-400">
             <a
               href={cleanFileUrl}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-1 hover:text-teal-400 transition"
+              className="inline-flex items-center gap-1 hover:text-teal-500 dark:hover:text-teal-400 transition"
               data-testid={`shelf-open-${book.id}`}
               title="Open online"
             >
               <Eye size={12} /> Open
             </a>
-            <span className="text-neutral-600">·</span>
+            <span className="text-border">·</span>
             <a
               href={`${cleanFileUrl}?download=1`}
               target="_blank"
               rel="noreferrer"
               download
-              className="inline-flex items-center gap-1 hover:text-teal-400 transition"
+              className="inline-flex items-center gap-1 hover:text-teal-500 dark:hover:text-teal-400 transition"
               data-testid={`shelf-download-${book.id}`}
               title="Download file"
             >
@@ -316,7 +574,7 @@ function StudyNoteStoreCard({
 
   return (
     <div
-      className="group relative flex flex-col justify-between rounded-2xl bg-[#141517] border border-neutral-800/80 p-2.5 sm:p-3 shadow-lg hover:border-neutral-700 hover:shadow-2xl transition duration-200"
+      className="group relative flex flex-col justify-between rounded-2xl bg-card border border-border p-2 sm:p-2.5 md:p-3 shadow-sm hover:shadow-xl dark:bg-[#141517] dark:border-neutral-800/80 dark:hover:border-neutral-700 transition duration-200"
       data-testid={`card-note-${note.id}`}
     >
       <div
@@ -514,22 +772,123 @@ function BookCard({ book, publicCard = false }: { book: Book; publicCard?: boole
   return <ModernBookCard book={book} publicCard={publicCard} />;
 }
 
-const memberLinks = [{ href: '/member/dashboard', key: 'dashboard', icon: HomeIcon }, { href: '/member/books', key: 'books', icon: BookOpen }, { href: '/member/notes', key: 'notes', icon: FileText }, { href: '/member/borrowings', key: 'borrowings', icon: Bookmark }, { href: '/member/profile', key: 'profile', icon: UserRound }];
-const adminLinks = [{ href: '/admin/dashboard', key: 'dashboard', icon: HomeIcon }, { href: '/admin/books', key: 'books', icon: BookOpen }, { href: '/admin/categories', key: 'categories', icon: FolderOpen }, { href: '/admin/members', key: 'members', icon: Users }, { href: '/admin/requests', key: 'requests', icon: Clock3 }, { href: '/admin/notes', key: 'notes', icon: FileText }, { href: '/admin/settings', key: 'settings', icon: Settings }];
+const memberLinks = [
+  { href: '/member/dashboard', key: 'dashboard', icon: HomeIcon },
+  { href: '/member/books', key: 'books', icon: BookOpen },
+  { href: '/member/notes', key: 'notes', icon: FileText },
+  { href: '/member/questions', key: 'questions', icon: HelpCircle },
+  { href: '/member/borrowings', key: 'borrowings', icon: Bookmark },
+  { href: '/member/profile', key: 'profile', icon: UserRound }
+];
+const adminLinks = [
+  { href: '/admin/dashboard', key: 'dashboard', icon: HomeIcon },
+  { href: '/admin/books', key: 'books', icon: BookOpen },
+  { href: '/admin/categories', key: 'categories', icon: FolderOpen },
+  { href: '/admin/members', key: 'members', icon: Users },
+  { href: '/admin/requests', key: 'requests', icon: Clock3 },
+  { href: '/admin/notes', key: 'notes', icon: FileText },
+  { href: '/admin/questions', key: 'adminQuestions', icon: HelpCircle },
+  { href: '/admin/settings', key: 'settings', icon: Settings }
+];
 
 function Sidebar({ admin, user, close, preview = false }: { admin: boolean; user?: User; close?: () => void; preview?: boolean }) {
-  const { lang, setLang } = useLang(); const [, setLocation] = useLocation(); const logout = useLogout();
+  const [, setLocation] = useLocation(); const logout = useLogout();
   const links = preview
     ? [{ href: admin ? '/__preview/admin' : '/__preview/member', key: 'dashboard', icon: HomeIcon }]
     : admin ? adminLinks : memberLinks;
-  return <aside className="flex h-full w-72 flex-col bg-sidebar px-4 py-6 text-sidebar-foreground"><div className="mb-9 px-3"><Logo dark /></div><div className="mb-3 px-3 text-[10px] font-bold uppercase tracking-[.2em] text-sidebar-foreground/40">{admin ? 'Steward desk' : 'Your library'}</div><nav className="grid gap-1">{links.map(({ href, key, icon: Icon }) => <Link key={href} href={href} onClick={close} data-testid={`link-${key}`} className={`flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-semibold text-sidebar-foreground/65 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground ${location.pathname === href ? 'bg-sidebar-primary text-sidebar-primary-foreground shadow-md shadow-black/10' : ''}`}><Icon size={18} />{t(key, lang)}</Link>)}{preview && <Link href={admin ? '/__preview/member' : '/__preview/admin'} onClick={close} className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-semibold text-sidebar-foreground/65 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">{admin ? 'Member preview' : 'Admin preview'}</Link>}</nav><div className="mt-auto grid gap-2"><button onClick={() => setLang(lang === 'en' ? 'am' : 'en')} data-testid="button-language" className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-semibold text-sidebar-foreground/65 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"><Languages size={18} />{lang === 'en' ? 'አማርኛ' : 'English'}</button><div className="flex items-center gap-3 border-t border-sidebar-border px-3 pb-2 pt-5"><span className="flex h-9 w-9 items-center justify-center rounded-full bg-sidebar-primary font-bold text-sidebar-primary-foreground">{user?.name?.slice(0, 1) ?? 'H'}</span><div className="min-w-0 flex-1"><div className="truncate text-sm font-bold">{user?.name ?? 'Fellowship member'}</div><div className="truncate text-xs text-sidebar-foreground/45">{user?.email ?? 'Signed in'}</div></div>{!preview && <button onClick={() => logout.mutate(undefined, { onSuccess: () => setLocation('/login') })} title={t('signOut', lang)} data-testid="button-sign-out" className="text-sidebar-foreground/45 hover:text-sidebar-foreground"><LogOut size={17} /></button>}</div></div></aside>;
+  return (
+    <aside className="flex h-full w-72 flex-col bg-sidebar px-4 py-6 text-sidebar-foreground">
+      <div className="mb-9 px-3"><Logo dark /></div>
+      <div className="mb-3 px-3 text-[10px] font-bold uppercase tracking-[.2em] text-sidebar-foreground/40">{admin ? 'Steward desk' : 'Your library'}</div>
+      <nav className="grid gap-1">
+        {links.map(({ href, key, icon: Icon }) => (
+          <Link
+            key={href}
+            href={href}
+            onClick={close}
+            data-testid={`link-${key}`}
+            className={`flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-semibold text-sidebar-foreground/65 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition ${location.pathname === href ? 'bg-sidebar-primary text-sidebar-primary-foreground shadow-md shadow-black/10' : ''}`}
+          >
+            <Icon size={18} />{t(key)}
+          </Link>
+        ))}
+        {preview && (
+          <Link
+            href={admin ? '/__preview/member' : '/__preview/admin'}
+            onClick={close}
+            className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-semibold text-sidebar-foreground/65 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+          >
+            {admin ? 'Member preview' : 'Admin preview'}
+          </Link>
+        )}
+      </nav>
+      <div className="mt-auto grid gap-3">
+        <div className="flex items-center justify-between rounded-xl bg-sidebar-accent/50 px-3 py-2 text-sm text-sidebar-foreground/80 border border-sidebar-border/40">
+          <span className="text-xs font-semibold uppercase tracking-wider text-sidebar-foreground/60">Theme</span>
+          <ThemeToggle />
+        </div>
+        <div className="flex items-center gap-3 border-t border-sidebar-border px-3 pb-2 pt-4">
+          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-sidebar-primary font-bold text-sidebar-primary-foreground">{user?.name?.slice(0, 1) ?? 'H'}</span>
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-sm font-bold">{user?.name ?? 'Fellowship member'}</div>
+            <div className="truncate text-xs text-sidebar-foreground/45">{user?.email ?? 'Signed in'}</div>
+          </div>
+          {!preview && (
+            <button
+              onClick={() => logout.mutate(undefined, { onSuccess: () => setLocation('/login') })}
+              title={t('signOut')}
+              data-testid="button-sign-out"
+              className="text-sidebar-foreground/45 hover:text-sidebar-foreground p-1 rounded-md transition"
+            >
+              <LogOut size={17} />
+            </button>
+          )}
+        </div>
+      </div>
+    </aside>
+  );
 }
 
 function AuthenticatedLayout({ children, admin = false, preview = false }: { children: ReactNode; admin?: boolean; preview?: boolean }) {
   const [open, setOpen] = useState(false); const path = window.location.pathname;
   const current = useGetCurrentUser({ query: { enabled: !preview && (path.startsWith('/member') || path.startsWith('/admin')), queryKey: getGetCurrentUserQueryKey() } });
   const user = preview ? (admin ? previewAdmin : previewMember) : current.data;
-  return <div className="min-h-[100dvh] bg-background"><div className={`fixed inset-y-0 left-0 z-40 hidden lg:block ${admin ? 'shadow-2xl shadow-primary/10' : ''}`}><Sidebar admin={admin} user={user} preview={preview} /></div>{open && <><button aria-label="Close menu" onClick={() => setOpen(false)} className="fixed inset-0 z-40 bg-sidebar/35 lg:hidden" data-testid="button-close-menu" /><div className="fixed inset-y-0 left-0 z-50 lg:hidden"><Sidebar admin={admin} user={user} preview={preview} close={() => setOpen(false)} /></div></>}<div className="lg:pl-72"><header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-background/90 px-5 backdrop-blur lg:px-9"><button onClick={() => setOpen(true)} className="rounded-lg p-2 hover:bg-secondary lg:hidden" data-testid="button-open-menu"><Menu size={20} /></button><div className="hidden items-center gap-2 text-sm text-muted-foreground sm:flex"><span className="font-mono text-[10px] uppercase tracking-[.18em] text-accent">{admin ? 'Steward desk' : 'Member space'}</span><ChevronRight size={14} />{t('library', useLang().lang)}</div><div className="ml-auto flex items-center gap-3">{preview && <span data-testid="badge-sample-preview" className="rounded-full border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-800">Sample preview · no real data</span>}<div className="hidden items-center gap-2 rounded-full bg-secondary px-3 py-1.5 text-xs font-semibold text-secondary-foreground sm:flex"><CircleUserRound size={14} />{user?.name ?? 'Signed in'}</div>{!preview && <span className="h-2 w-2 rounded-full bg-emerald-500" title="Connected" />}</div></header>{preview && <div className="border-b border-amber-200 bg-amber-50 px-5 py-2 text-center text-xs font-medium text-amber-900 lg:px-9">Development sample data only. Preview controls are disabled and nothing is saved.</div>}<main className="mx-auto max-w-[1500px] px-5 py-7 lg:px-9 lg:py-10">{children}</main></div></div>;
+  return (
+    <div className="min-h-[100dvh] bg-background">
+      <div className={`fixed inset-y-0 left-0 z-40 hidden lg:block ${admin ? 'shadow-2xl shadow-primary/10' : ''}`}>
+        <Sidebar admin={admin} user={user} preview={preview} />
+      </div>
+      {open && (
+        <>
+          <button aria-label="Close menu" onClick={() => setOpen(false)} className="fixed inset-0 z-40 bg-sidebar/35 backdrop-blur-sm lg:hidden" data-testid="button-close-menu" />
+          <div className="fixed inset-y-0 left-0 z-50 lg:hidden">
+            <Sidebar admin={admin} user={user} preview={preview} close={() => setOpen(false)} />
+          </div>
+        </>
+      )}
+      <div className="lg:pl-72">
+        <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-background/90 px-4 sm:px-6 lg:px-9 backdrop-blur">
+          <button onClick={() => setOpen(true)} className="rounded-lg p-2 hover:bg-secondary lg:hidden touch-target" data-testid="button-open-menu" aria-label="Open sidebar menu">
+            <Menu size={20} />
+          </button>
+          <div className="hidden items-center gap-2 text-sm text-muted-foreground sm:flex">
+            <span className="font-mono text-[10px] uppercase tracking-[.18em] text-accent">{admin ? 'Steward desk' : 'Member space'}</span>
+            <ChevronRight size={14} />{t('library')}
+          </div>
+          <div className="ml-auto flex items-center gap-2 sm:gap-3">
+            {preview && <span data-testid="badge-sample-preview" className="rounded-full border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-800">Sample preview</span>}
+            <ThemeToggle />
+            <div className="hidden items-center gap-2 rounded-full bg-secondary px-3 py-1.5 text-xs font-semibold text-secondary-foreground sm:flex">
+              <CircleUserRound size={14} />{user?.name ?? 'Signed in'}
+            </div>
+            {!preview && <span className="h-2 w-2 rounded-full bg-emerald-500" title="Connected" />}
+          </div>
+        </header>
+        {preview && <div className="border-b border-amber-200 bg-amber-50 px-5 py-2 text-center text-xs font-medium text-amber-900 lg:px-9">Development sample data only. Preview controls are disabled and nothing is saved.</div>}
+        <main className="mx-auto max-w-[1500px] px-4 py-6 sm:px-6 sm:py-8 lg:px-9 lg:py-10">{children}</main>
+      </div>
+    </div>
+  );
 }
 
 function PageHeading({ eyebrow, title, detail, action }: { eyebrow?: string; title: string; detail?: string; action?: ReactNode }) {
@@ -1217,6 +1576,575 @@ function AdminSettings() {
   return <AuthenticatedLayout admin><PageHeading eyebrow={t('settings', lang)} title={t('settings', lang)} detail="The small details that keep the library trustworthy." /><form className="grid max-w-2xl gap-5 rounded-2xl border border-border bg-card p-6" onSubmit={e => { e.preventDefault(); setSaved(true); setTimeout(() => setSaved(false), 2400); }}><div className="flex items-center gap-3 border-b border-border pb-5"><Settings className="text-primary" /><div><div className="font-serif text-xl font-bold">Library identity</div><div className="text-sm text-muted-foreground">Shown across member communications.</div></div></div><Field label="Library name" value={name} onChange={e => setName(e.target.value)} data-testid="input-library-name" /><Field label="Contact email" type="email" value={email} onChange={e => setEmail(e.target.value)} data-testid="input-library-email" /><div className="flex items-center gap-3"><Button type="submit" data-testid="button-save-settings">{saved ? <><Check size={16} />Saved</> : t('save', lang)}</Button>{saved && <span className="text-sm text-emerald-700">Your settings are up to date.</span>}</div></form></AuthenticatedLayout>;
 }
 
+interface QuestionItem {
+  id: number;
+  memberId: number;
+  memberName: string;
+  memberEmail: string;
+  category: string;
+  question: string;
+  details?: string | null;
+  answer?: string | null;
+  answeredBy?: string | null;
+  status: 'pending' | 'answered';
+  createdAt: string;
+  answeredAt?: string | null;
+}
+
+function useListQuestions() {
+  return useQuery<QuestionItem[]>({
+    queryKey: ['questions'],
+    queryFn: async () => {
+      const res = await fetch('/api/questions', { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to load questions');
+      return res.json();
+    },
+  });
+}
+
+function useCreateQuestion() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: { category?: string; question: string; details?: string }) => {
+      const res = await fetch('/api/questions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'Failed to submit question');
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['questions'] });
+    },
+  });
+}
+
+function useReplyQuestion() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, answer }: { id: number; answer: string }) => {
+      const res = await fetch(`/api/questions/${id}/reply`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ answer }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'Failed to submit answer');
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['questions'] });
+    },
+  });
+}
+
+function useDeleteQuestion() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: number) => {
+      const res = await fetch(`/api/questions/${id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      if (!res.ok) throw new Error('Failed to delete question');
+      return res.json();
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['questions'] });
+    },
+  });
+}
+
+function MemberQuestions() {
+  const currentUser = useGetCurrentUser({ query: { queryKey: getGetCurrentUserQueryKey() } });
+  const questionsQuery = useListQuestions();
+  const createQuestion = useCreateQuestion();
+  const deleteQuestion = useDeleteQuestion();
+
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<'my' | 'all'>('my');
+  const [form, setForm] = useState({
+    category: 'Bible Interpretation',
+    question: '',
+    details: '',
+  });
+  const [errorMsg, setErrorMsg] = useState('');
+
+  const questions = Array.isArray(questionsQuery.data) ? questionsQuery.data : [];
+  const myQuestions = questions.filter(q => q.memberId === currentUser.data?.id);
+  const answeredQuestions = questions.filter(q => q.status === 'answered');
+
+  const categories = [
+    'Bible Interpretation',
+    'Christian Living & Faith',
+    'Fellowship & Ministry',
+    'Prayer & Guidance',
+    'Theology & Doctrine',
+    'General Question',
+  ];
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.question.trim()) {
+      setErrorMsg('Please write your question.');
+      return;
+    }
+    setErrorMsg('');
+    createQuestion.mutate(form, {
+      onSuccess: () => {
+        setDialogOpen(false);
+        setForm({ category: 'Bible Interpretation', question: '', details: '' });
+      },
+      onError: (err) => {
+        setErrorMsg(err instanceof Error ? err.message : 'Could not submit your question.');
+      },
+    });
+  };
+
+  const displayedList = activeTab === 'my' ? myQuestions : answeredQuestions;
+
+  return (
+    <AuthenticatedLayout>
+      <PageHeading
+        eyebrow="Fellowship Guidance & Bible Study"
+        title="Bible & Spiritual Q&A"
+        detail="Have a question about a scripture passage, faith, or fellowship life? Ask our stewards and mentors."
+        action={
+          <Button onClick={() => setDialogOpen(true)} data-testid="button-ask-question">
+            <Plus size={17} /> Ask a question
+          </Button>
+        }
+      />
+
+      <div className="mb-6 flex flex-wrap gap-2 border-b border-border pb-3">
+        <button
+          onClick={() => setActiveTab('my')}
+          className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold transition touch-target ${
+            activeTab === 'my'
+              ? 'bg-primary text-primary-foreground shadow-sm'
+              : 'bg-card text-muted-foreground hover:bg-secondary hover:text-foreground border border-border'
+          }`}
+          data-testid="tab-my-questions"
+        >
+          <HelpCircle size={16} /> My Questions
+          <span className="rounded-full bg-primary-foreground/20 px-2 py-0.5 text-xs text-inherit">
+            {myQuestions.length}
+          </span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('all')}
+          className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold transition touch-target ${
+            activeTab === 'all'
+              ? 'bg-primary text-primary-foreground shadow-sm'
+              : 'bg-card text-muted-foreground hover:bg-secondary hover:text-foreground border border-border'
+          }`}
+          data-testid="tab-all-questions"
+        >
+          <MessageSquare size={16} /> Answered Fellowship Q&A
+          <span className="rounded-full bg-primary-foreground/20 px-2 py-0.5 text-xs text-inherit">
+            {answeredQuestions.length}
+          </span>
+        </button>
+      </div>
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="sm:max-w-lg bg-card border border-border p-6 rounded-2xl shadow-2xl">
+          <DialogTitle className="font-serif text-2xl font-bold">Ask a Question</DialogTitle>
+          <DialogDescription className="text-sm text-muted-foreground">
+            Your question will be sent directly to the fellowship stewards. Once answered, you'll find the response here.
+          </DialogDescription>
+          <form onSubmit={handleSubmit} className="mt-4 space-y-4">
+            <label className="grid gap-1.5 text-sm font-semibold">
+              Category
+              <select
+                value={form.category}
+                onChange={e => setForm({ ...form, category: e.target.value })}
+                className="h-11 rounded-lg border border-input bg-card px-3 text-sm"
+                data-testid="select-question-category"
+              >
+                {categories.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </label>
+
+            <Field
+              label="Question"
+              placeholder="e.g. What is the context and meaning of Romans 8:28?"
+              value={form.question}
+              onChange={e => setForm({ ...form, question: e.target.value })}
+              required
+              data-testid="input-question-text"
+            />
+
+            <TextAreaField
+              label="Additional context or details (optional)"
+              placeholder="Include any verses, specific situations, or background details..."
+              value={form.details}
+              onChange={e => setForm({ ...form, details: e.target.value })}
+              data-testid="textarea-question-details"
+            />
+
+            {errorMsg && (
+              <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive" data-testid="status-question-error">
+                {errorMsg}
+              </div>
+            )}
+
+            <div className="flex justify-end gap-3 pt-2">
+              <Button type="button" variant="ghost" onClick={() => setDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                variant="primary"
+                disabled={createQuestion.isPending}
+                data-testid="button-submit-question"
+              >
+                {createQuestion.isPending ? 'Sending…' : (
+                  <>
+                    <Send size={15} /> Send to Stewards
+                  </>
+                )}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {questionsQuery.isLoading ? (
+        <div className="space-y-4">
+          {[1, 2, 3].map(i => <Skeleton key={i} className="h-32 rounded-2xl" />)}
+        </div>
+      ) : displayedList.length > 0 ? (
+        <div className="space-y-4">
+          {displayedList.map(q => (
+            <div
+              key={q.id}
+              className="rounded-2xl border border-border bg-card p-4 sm:p-6 shadow-sm transition hover:shadow-md"
+              data-testid={`card-question-${q.id}`}
+            >
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/70 pb-3">
+                <div className="flex items-center gap-2">
+                  <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+                    {q.category}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    Asked {new Date(q.createdAt).toLocaleDateString()}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Status tone={q.status === 'answered' ? 'good' : 'warn'}>
+                    {q.status === 'answered' ? 'Answered' : 'Waiting for Steward Reply'}
+                  </Status>
+                  {q.memberId === currentUser.data?.id && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (confirm('Delete this question?')) deleteQuestion.mutate(q.id);
+                      }}
+                      className="p-1.5 text-muted-foreground hover:text-destructive rounded-lg hover:bg-destructive/10 transition"
+                      title="Delete question"
+                      data-testid={`button-delete-question-${q.id}`}
+                    >
+                      <X size={15} />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div className="mt-4">
+                <h3 className="font-serif text-lg sm:text-xl font-bold text-foreground">
+                  {q.question}
+                </h3>
+                {q.details && (
+                  <p className="mt-2 text-sm text-muted-foreground whitespace-pre-line leading-relaxed">
+                    {q.details}
+                  </p>
+                )}
+              </div>
+
+              {q.status === 'answered' && q.answer && (
+                <div className="mt-5 rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4 sm:p-5 dark:border-emerald-500/30 dark:bg-emerald-950/20">
+                  <div className="flex items-center gap-2 text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                    <ShieldCheck size={16} /> Answer from Steward ({q.answeredBy ?? 'Fellowship Steward'})
+                    {q.answeredAt && (
+                      <span className="font-normal text-muted-foreground">
+                        · {new Date(q.answeredAt).toLocaleDateString()}
+                      </span>
+                    )}
+                  </div>
+                  <div className="mt-2 text-sm sm:text-base text-foreground/90 whitespace-pre-line leading-relaxed font-sans">
+                    {q.answer}
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      ) : (
+        <EmptyState
+          icon={HelpCircle}
+          title={activeTab === 'my' ? 'No questions submitted yet' : 'No answered Q&A yet'}
+          detail={
+            activeTab === 'my'
+              ? 'Have something on your mind? Submit a question and our stewards will provide a biblical answer.'
+              : 'Answered fellowship questions and scripture insights will appear here.'
+          }
+          action={
+            activeTab === 'my' ? (
+              <Button onClick={() => setDialogOpen(true)} data-testid="button-empty-ask-question">
+                <Plus size={17} /> Ask a question
+              </Button>
+            ) : undefined
+          }
+        />
+      )}
+    </AuthenticatedLayout>
+  );
+}
+
+function AdminQuestions() {
+  const questionsQuery = useListQuestions();
+  const replyQuestion = useReplyQuestion();
+  const deleteQuestion = useDeleteQuestion();
+
+  const [activeTab, setActiveTab] = useState<'pending' | 'answered'>('pending');
+  const [selectedQuestion, setSelectedQuestion] = useState<QuestionItem | null>(null);
+  const [replyText, setReplyText] = useState('');
+  const [replyError, setReplyError] = useState('');
+
+  const questions = Array.isArray(questionsQuery.data) ? questionsQuery.data : [];
+  const pending = questions.filter(q => q.status === 'pending');
+  const answered = questions.filter(q => q.status === 'answered');
+
+  const openReply = (q: QuestionItem) => {
+    setSelectedQuestion(q);
+    setReplyText(q.answer || '');
+    setReplyError('');
+  };
+
+  const handleSendReply = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedQuestion) return;
+    if (!replyText.trim()) {
+      setReplyError('Please write your biblical or spiritual response.');
+      return;
+    }
+    setReplyError('');
+    replyQuestion.mutate(
+      { id: selectedQuestion.id, answer: replyText },
+      {
+        onSuccess: () => {
+          setSelectedQuestion(null);
+          setReplyText('');
+          questionsQuery.refetch();
+        },
+        onError: (err) => {
+          setReplyError(err instanceof Error ? err.message : 'Could not submit answer.');
+        },
+      }
+    );
+  };
+
+  const displayedList = activeTab === 'pending' ? pending : answered;
+
+  return (
+    <AuthenticatedLayout admin>
+      <PageHeading
+        eyebrow="Steward Desk"
+        title="Member Questions & Bible Q&A"
+        detail="Guide fellowship members by answering their spiritual and Biblical inquiries."
+      />
+
+      <div className="mb-6 flex flex-wrap gap-2 border-b border-border pb-3">
+        <button
+          onClick={() => setActiveTab('pending')}
+          className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold transition touch-target ${
+            activeTab === 'pending'
+              ? 'bg-primary text-primary-foreground shadow-sm'
+              : 'bg-card text-muted-foreground hover:bg-secondary hover:text-foreground border border-border'
+          }`}
+          data-testid="tab-admin-pending-questions"
+        >
+          <Clock3 size={16} /> Needs Reply
+          <span className="rounded-full bg-amber-500/20 text-amber-600 dark:text-amber-400 px-2 py-0.5 text-xs font-bold">
+            {pending.length}
+          </span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('answered')}
+          className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold transition touch-target ${
+            activeTab === 'answered'
+              ? 'bg-primary text-primary-foreground shadow-sm'
+              : 'bg-card text-muted-foreground hover:bg-secondary hover:text-foreground border border-border'
+          }`}
+          data-testid="tab-admin-answered-questions"
+        >
+          <Check size={16} /> Answered Questions
+          <span className="rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 text-xs font-bold">
+            {answered.length}
+          </span>
+        </button>
+      </div>
+
+      <Dialog open={!!selectedQuestion} onOpenChange={open => { if (!open) setSelectedQuestion(null); }}>
+        <DialogContent className="sm:max-w-xl bg-card border border-border p-6 rounded-2xl shadow-2xl">
+          <DialogTitle className="font-serif text-2xl font-bold">
+            {selectedQuestion?.answer ? 'Edit Response' : 'Reply to Member Question'}
+          </DialogTitle>
+          <DialogDescription className="text-sm text-muted-foreground">
+            Provide a pastoral, biblically sound answer for {selectedQuestion?.memberName}.
+          </DialogDescription>
+
+          {selectedQuestion && (
+            <div className="mt-3 rounded-xl bg-secondary/50 p-4 text-sm border border-border/60">
+              <div className="text-xs font-semibold text-primary">{selectedQuestion.category} · {selectedQuestion.memberName} ({selectedQuestion.memberEmail})</div>
+              <div className="mt-1 font-serif font-bold text-foreground text-base">{selectedQuestion.question}</div>
+              {selectedQuestion.details && <div className="mt-1 text-xs text-muted-foreground">{selectedQuestion.details}</div>}
+            </div>
+          )}
+
+          <form onSubmit={handleSendReply} className="mt-4 space-y-4">
+            <TextAreaField
+              label="Your Answer / Spiritual Guidance"
+              placeholder="Provide scripture references, practical explanation, or words of encouragement..."
+              value={replyText}
+              onChange={e => setReplyText(e.target.value)}
+              required
+              rows={6}
+              data-testid="textarea-reply-answer"
+            />
+
+            {replyError && (
+              <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive" data-testid="status-reply-error">
+                {replyError}
+              </div>
+            )}
+
+            <div className="flex justify-end gap-3 pt-2">
+              <Button type="button" variant="ghost" onClick={() => setSelectedQuestion(null)}>
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                variant="primary"
+                disabled={replyQuestion.isPending}
+                data-testid="button-submit-reply"
+              >
+                {replyQuestion.isPending ? 'Saving…' : (
+                  <>
+                    <Send size={15} /> Publish Answer
+                  </>
+                )}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {questionsQuery.isLoading ? (
+        <div className="space-y-4">
+          {[1, 2, 3].map(i => <Skeleton key={i} className="h-32 rounded-2xl" />)}
+        </div>
+      ) : displayedList.length > 0 ? (
+        <div className="space-y-4">
+          {displayedList.map(q => (
+            <div
+              key={q.id}
+              className="rounded-2xl border border-border bg-card p-4 sm:p-6 shadow-sm transition hover:shadow-md"
+              data-testid={`card-admin-question-${q.id}`}
+            >
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/70 pb-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+                    {q.category}
+                  </span>
+                  <span className="text-xs font-semibold text-foreground">
+                    {q.memberName}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    ({q.memberEmail}) · {new Date(q.createdAt).toLocaleDateString()}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Status tone={q.status === 'answered' ? 'good' : 'warn'}>
+                    {q.status === 'answered' ? 'Answered' : 'Needs Reply'}
+                  </Status>
+                  <Button
+                    size="sm"
+                    variant={q.status === 'answered' ? 'outline' : 'primary'}
+                    onClick={() => openReply(q)}
+                    data-testid={`button-reply-question-${q.id}`}
+                  >
+                    <MessageSquare size={14} /> {q.status === 'answered' ? 'Edit Answer' : 'Reply'}
+                  </Button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (confirm('Delete this question?')) deleteQuestion.mutate(q.id);
+                    }}
+                    className="p-2 text-muted-foreground hover:text-destructive rounded-lg hover:bg-destructive/10 transition"
+                    title="Delete question"
+                    data-testid={`button-admin-delete-question-${q.id}`}
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+              </div>
+
+              <div className="mt-4">
+                <h3 className="font-serif text-lg sm:text-xl font-bold text-foreground">
+                  {q.question}
+                </h3>
+                {q.details && (
+                  <p className="mt-2 text-sm text-muted-foreground whitespace-pre-line leading-relaxed">
+                    {q.details}
+                  </p>
+                )}
+              </div>
+
+              {q.status === 'answered' && q.answer && (
+                <div className="mt-5 rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4 sm:p-5 dark:border-emerald-500/30 dark:bg-emerald-950/20">
+                  <div className="flex items-center gap-2 text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                    <ShieldCheck size={16} /> Steward Answer ({q.answeredBy ?? 'Steward'})
+                    {q.answeredAt && (
+                      <span className="font-normal text-muted-foreground">
+                        · {new Date(q.answeredAt).toLocaleDateString()}
+                      </span>
+                    )}
+                  </div>
+                  <div className="mt-2 text-sm sm:text-base text-foreground/90 whitespace-pre-line leading-relaxed font-sans">
+                    {q.answer}
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      ) : (
+        <EmptyState
+          icon={Check}
+          title={activeTab === 'pending' ? 'All caught up' : 'No answered questions'}
+          detail={
+            activeTab === 'pending'
+              ? 'There are currently no unanswered questions in the queue.'
+              : 'Answered questions will show up here.'
+          }
+        />
+      )}
+    </AuthenticatedLayout>
+  );
+}
+
 function ProtectedArea({ role, children }: { role: User['role']; children: ReactNode }) {
   const current = useGetCurrentUser({ query: { queryKey: getGetCurrentUserQueryKey(), retry: false } });
   const [, setLocation] = useLocation();
@@ -1244,6 +2172,7 @@ function Router() { return <RoutedErrorBoundary><Switch><Route path="/" componen
   <Route path="/member/books" component={() => <ProtectedArea role="member"><MemberBooks /></ProtectedArea>} />
   <Route path="/member/books/:id" component={() => <ProtectedArea role="member"><BookDetail /></ProtectedArea>} />
   <Route path="/member/notes" component={() => <ProtectedArea role="member"><MemberNotes /></ProtectedArea>} />
+  <Route path="/member/questions" component={() => <ProtectedArea role="member"><MemberQuestions /></ProtectedArea>} />
   <Route path="/member/borrowings" component={() => <ProtectedArea role="member"><MemberBorrowings /></ProtectedArea>} />
   <Route path="/member/profile" component={() => <ProtectedArea role="member"><Profile /></ProtectedArea>} />
   <Route path="/admin/dashboard" component={() => <ProtectedArea role="admin"><AdminDashboard /></ProtectedArea>} />
@@ -1252,8 +2181,44 @@ function Router() { return <RoutedErrorBoundary><Switch><Route path="/" componen
   <Route path="/admin/members" component={() => <ProtectedArea role="admin"><AdminMembers /></ProtectedArea>} />
   <Route path="/admin/requests" component={() => <ProtectedArea role="admin"><AdminRequests /></ProtectedArea>} />
   <Route path="/admin/notes" component={() => <ProtectedArea role="admin"><AdminNotes /></ProtectedArea>} />
+  <Route path="/admin/questions" component={() => <ProtectedArea role="admin"><AdminQuestions /></ProtectedArea>} />
   <Route path="/admin/settings" component={() => <ProtectedArea role="admin"><AdminSettings /></ProtectedArea>} />
   <Route component={NotFoundPage} />
 </Switch></RoutedErrorBoundary>; }
-function App() { const [lang, setLang] = useState<Lang>('en'); return <QueryClientProvider client={queryClient}><TooltipProvider><LangContext.Provider value={{ lang, setLang }}><Router /></LangContext.Provider><Toaster /></TooltipProvider></QueryClientProvider>; }
+
+function App() {
+  const [theme, setTheme] = useState<Theme>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('hu_theme') as Theme | null;
+      if (stored === 'light' || stored === 'dark') return stored;
+      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+    return 'dark';
+  });
+
+  useEffect(() => {
+    const root = document.documentElement;
+    if (theme === 'dark') {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+    localStorage.setItem('hu_theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
+  };
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <ThemeContext.Provider value={{ theme, toggleTheme, setTheme }}>
+        <TooltipProvider>
+          <Router />
+          <Toaster />
+        </TooltipProvider>
+      </ThemeContext.Provider>
+    </QueryClientProvider>
+  );
+}
 export default App;

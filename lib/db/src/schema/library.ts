@@ -62,3 +62,31 @@ export const libraryStudyNotes = pgTable("library_study_notes", {
     .notNull()
     .defaultNow(),
 });
+
+export const libraryQuestions = pgTable("library_questions", {
+  id: serial("id").primaryKey(),
+  memberId: integer("member_id").references(() => libraryUsers.id, {
+    onDelete: "cascade",
+  }),
+  memberName: text("member_name").notNull(),
+  memberEmail: text("member_email").notNull(),
+  category: text("category").notNull().default("Bible Study"),
+  question: text("question").notNull(),
+  details: text("details"),
+  answer: text("answer"),
+  answeredBy: text("answered_by"),
+  status: text("status")
+    .$type<"pending" | "answered">()
+    .notNull()
+    .default("pending"),
+  createdAt: timestamp("created_at", {
+    withTimezone: true,
+    mode: "date",
+  })
+    .notNull()
+    .defaultNow(),
+  answeredAt: timestamp("answered_at", {
+    withTimezone: true,
+    mode: "date",
+  }),
+});

@@ -4,10 +4,12 @@ import { ReplitConnectors } from "@replit/connectors-sdk";
 import { eq } from "drizzle-orm";
 import {
   db,
+  pool,
   libraryBooks,
   libraryCategories,
   libraryStudyNotes,
   libraryUsers,
+  libraryQuestions,
 } from "@workspace/db";
 import {
   CreateBookBody,
@@ -98,6 +100,23 @@ export async function initializeLibraryData() {
       { name: "Other" },
     ])
     .onConflictDoNothing({ target: libraryCategories.name });
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS library_questions (
+      id SERIAL PRIMARY KEY,
+      member_id INTEGER REFERENCES library_users(id) ON DELETE CASCADE,
+      member_name TEXT NOT NULL,
+      member_email TEXT NOT NULL,
+      category TEXT NOT NULL DEFAULT 'Bible Study',
+      question TEXT NOT NULL,
+      details TEXT,
+      answer TEXT,
+      answered_by TEXT,
+      status TEXT NOT NULL DEFAULT 'pending',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      answered_at TIMESTAMPTZ
+    );
+  `);
 }
 
 function publicUser(user: User) {
@@ -568,6 +587,133 @@ router.delete("/study-notes/:id", async (req, res) => {
     .where(eq(libraryStudyNotes.id, Number(req.params.id)))
     .returning({ id: libraryStudyNotes.id });
   if (!deleted) return res.status(404).json({ error: "Study note not found." });
+  return res.status(204).send();
+});
+
+// Questions & Answers (Fellowship Bible & Spiritual Q&A)
+router.get("/questions", async (req, res) => {
+  const user = currentUser(req);
+  try {
+    const rows = await db
+      .select()
+      .from(libraryQuestions)
+      .orderBy(libraryQuestions.createdAt);
+
+    const filtered = rows.filter((q) => {
+      if (user?.role === "admin") return true;
+      if (q.status === "answered") return true;
+      if (user && q.memberId === user.id) return true;
+      return false;
+    });
+
+    return res.json(
+      filtered.map((q) => ({
+        id: q.id,
+        memberId: q.memberId,
+        memberName: q.memberName,
+        category: q.category,
+        question: q.question,
+        details: q.details,
+        answer: q.answer,
+        answeredBy: q.answeredBy,
+        status: q.status,
+        createdAt: q.createdAt.toISOString(),
+        answeredAt: q.answeredAt ? q.answeredAt.toISOString() : null,
+      }))
+    );
+  } catch (error) {
+    return res.json([]);
+  }
+});
+
+router.post("/questions", async (req, res) => {
+  const user = requireUser(req, res);
+  if (!user) return;
+
+  const { question, details, category } = req.body ?? {};
+  if (!question || typeof question !== "string" || question.trim().length < 5) {
+    return res.status(400).json({ error: "Please enter a question with at least 5 characters." });
+  }
+
+  const [created] = await db
+    .insert(libraryQuestions)
+    .values({
+      memberId: user.id,
+      memberName: user.name,
+      memberEmail: user.email,
+      category: typeof category === "string" && category.trim() ? category.trim() : "Bible Study",
+      question: question.trim(),
+      details: typeof details === "string" && details.trim() ? details.trim() : null,
+      status: "pending",
+    })
+    .returning();
+
+  return res.status(201).json({
+    id: created.id,
+    memberId: created.memberId,
+    memberName: created.memberName,
+    category: created.category,
+    question: created.question,
+    details: created.details,
+    answer: created.answer,
+    answeredBy: created.answeredBy,
+    status: created.status,
+    createdAt: created.createdAt.toISOString(),
+    answeredAt: null,
+  });
+});
+
+router.put("/questions/:id/reply", async (req, res) => {
+  const user = requireAdmin(req, res);
+  if (!user) return;
+
+  const id = Number(req.params.id);
+  const { answer } = req.body ?? {};
+  if (!answer || typeof answer !== "string" || answer.trim().length < 2) {
+    return res.status(400).json({ error: "Please write a helpful answer before submitting." });
+  }
+
+  const [updated] = await db
+    .update(libraryQuestions)
+    .set({
+      answer: answer.trim(),
+      answeredBy: user.name,
+      status: "answered",
+      answeredAt: new Date(),
+    })
+    .where(eq(libraryQuestions.id, id))
+    .returning();
+
+  if (!updated) return res.status(404).json({ error: "Question not found." });
+
+  return res.json({
+    id: updated.id,
+    memberId: updated.memberId,
+    memberName: updated.memberName,
+    category: updated.category,
+    question: updated.question,
+    details: updated.details,
+    answer: updated.answer,
+    answeredBy: updated.answeredBy,
+    status: updated.status,
+    createdAt: updated.createdAt.toISOString(),
+    answeredAt: updated.answeredAt ? updated.answeredAt.toISOString() : null,
+  });
+});
+
+router.delete("/questions/:id", async (req, res) => {
+  const user = requireUser(req, res);
+  if (!user) return;
+
+  const id = Number(req.params.id);
+  const [existing] = await db.select().from(libraryQuestions).where(eq(libraryQuestions.id, id)).limit(1);
+  if (!existing) return res.status(404).json({ error: "Question not found." });
+
+  if (user.role !== "admin" && existing.memberId !== user.id) {
+    return res.status(403).json({ error: "You can only delete your own questions." });
+  }
+
+  await db.delete(libraryQuestions).where(eq(libraryQuestions.id, id));
   return res.status(204).send();
 });
 
