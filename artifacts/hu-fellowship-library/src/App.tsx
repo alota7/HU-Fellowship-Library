@@ -6,7 +6,7 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import {
   BookOpen, BookMarked, Bookmark, Check, ChevronRight, CircleUserRound, Clock3, Download, Eye,
-  FileText, FolderOpen, HelpCircle, Home as HomeIcon, LayoutGrid, Library, LogOut, Menu, MessageSquare, Moon, Pencil, Plus, Search, Send, Settings, ShieldCheck, Sparkles, Sun,
+  FileText, FolderOpen, HelpCircle, Home as HomeIcon, LayoutGrid, Library, LogOut, Mail, Menu, MessageSquare, Moon, Pencil, Plus, Search, Send, Settings, ShieldCheck, Sparkles, Sun,
   UserRound, Users, X, ArrowLeft, ArrowRight, ArrowUpRight, AlertCircle, LoaderCircle
 } from 'lucide-react';
 import {
@@ -328,8 +328,34 @@ function Home() {
           </div>
         </section>
       </main>
-      <footer className="border-t border-border px-4 py-6 text-center text-xs text-muted-foreground lg:px-10 safe-bottom">
-        HU Fellowship Library · A home for study and community
+      <footer className="border-t border-border/80 bg-card/60 px-4 py-8 text-xs text-muted-foreground lg:px-10 safe-bottom">
+        <div className="mx-auto flex max-w-7xl flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <span className="font-serif font-bold text-foreground">HU Fellowship Library</span>
+            <span>·</span>
+            <span>A home for study and community</span>
+          </div>
+          <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4">
+            <span className="text-muted-foreground/80">Contact builder:</span>
+            <a
+              href="mailto:samakms77@gmail.com"
+              className="inline-flex items-center gap-1.5 font-medium text-foreground hover:underline transition"
+              title="Send email to builder"
+            >
+              <Mail size={13} /> samakms77@gmail.com
+            </a>
+            <span className="text-border">·</span>
+            <a
+              href="https://t.me/alota_7"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1.5 font-medium text-foreground hover:underline transition"
+              title="Telegram builder"
+            >
+              <Send size={13} /> Telegram: @alota_7
+            </a>
+          </div>
+        </div>
       </footer>
     </div>
   );
@@ -876,7 +902,7 @@ function AuthenticatedLayout({ children, admin = false, preview = false }: { chi
           </div>
         </>
       )}
-      <div className="lg:pl-72">
+      <div className="lg:pl-72 flex min-h-[100dvh] flex-col">
         <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-background/90 px-4 sm:px-6 lg:px-9 backdrop-blur">
           <button onClick={() => setOpen(true)} className="rounded-lg p-2 hover:bg-secondary lg:hidden touch-target" data-testid="button-open-menu" aria-label="Open sidebar menu">
             <Menu size={20} />
@@ -895,7 +921,36 @@ function AuthenticatedLayout({ children, admin = false, preview = false }: { chi
           </div>
         </header>
         {preview && <div className="border-b border-amber-200 bg-amber-50 px-5 py-2 text-center text-xs font-medium text-amber-900 lg:px-9">Development sample data only. Preview controls are disabled and nothing is saved.</div>}
-        <main className="mx-auto max-w-[1500px] px-4 py-6 sm:px-6 sm:py-8 lg:px-9 lg:py-10">{children}</main>
+        <main className="mx-auto w-full max-w-[1500px] flex-1 px-4 py-6 sm:px-6 sm:py-8 lg:px-9 lg:py-10">{children}</main>
+        <footer className="mt-auto border-t border-border/80 bg-card/60 px-4 py-5 sm:px-6 lg:px-9 safe-bottom">
+          <div className="mx-auto flex max-w-[1500px] flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground">
+            <div className="flex items-center gap-2">
+              <span className="font-serif font-bold text-foreground">HU Fellowship Library</span>
+              <span>·</span>
+              <span>A home for study & community</span>
+            </div>
+            <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4">
+              <span className="text-muted-foreground/80">Contact builder:</span>
+              <a
+                href="mailto:samakms77@gmail.com"
+                className="inline-flex items-center gap-1.5 font-medium text-foreground hover:underline transition"
+                title="Send email to builder"
+              >
+                <Mail size={13} /> samakms77@gmail.com
+              </a>
+              <span className="text-border">·</span>
+              <a
+                href="https://t.me/alota_7"
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 font-medium text-foreground hover:underline transition"
+                title="Open Telegram"
+              >
+                <Send size={13} /> Telegram: @alota_7
+              </a>
+            </div>
+          </div>
+        </footer>
       </div>
     </div>
   );
