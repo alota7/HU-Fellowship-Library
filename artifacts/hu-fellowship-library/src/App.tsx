@@ -45,7 +45,7 @@ function ThemeToggle({ className = '' }: { className?: string }) {
       title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
       data-testid="button-theme-toggle"
     >
-      {theme === 'dark' ? <Sun size={18} className="text-amber-400" /> : <Moon size={18} className="text-primary" />}
+      {theme === 'dark' ? <Sun size={18} className="text-foreground" /> : <Moon size={18} className="text-foreground" />}
     </button>
   );
 }
@@ -135,8 +135,30 @@ async function uploadLibraryFile(file: File, purpose: UploadPurpose) {
   if (!uploaded.ok) throw new Error('The file could not be uploaded. Please try again.');
   return objectPath.startsWith('/api/storage') ? objectPath : `/api/storage${objectPath.startsWith('/') ? '' : '/'}${objectPath}`;
 }
-const Logo = ({ dark = false }: { dark?: boolean }) => <Link href="/" data-testid="link-brand" className="flex items-center gap-3"><span className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border-2 border-black/70 bg-white"><img src={logo} alt="HU Fellowship Library" className="block h-full w-full origin-center scale-125 object-contain object-center" /></span><span className={`font-serif text-sm font-bold leading-tight ${dark ? 'text-sidebar-foreground' : 'text-foreground'}`}>HU Fellowship<br /><span className="font-sans text-[10px] font-medium uppercase tracking-[.2em] opacity-70">Library</span></span></Link>;
-const Status = ({ children, tone = 'neutral' }: { children: ReactNode; tone?: 'neutral' | 'good' | 'warn' | 'bad' }) => <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider ${tone === 'good' ? 'bg-emerald-100 text-emerald-700' : tone === 'warn' ? 'bg-amber-100 text-amber-700' : tone === 'bad' ? 'bg-red-100 text-red-700' : 'bg-secondary text-secondary-foreground'}`}>{children}</span>;
+const Logo = ({ dark = false }: { dark?: boolean }) => (
+  <Link href="/" data-testid="link-brand" className="flex items-center gap-3">
+    <span className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border border-border bg-white shadow-xs">
+      <img src={logo} alt="HU Fellowship Library" className="block h-full w-full origin-center scale-125 object-contain object-center grayscale contrast-200" />
+    </span>
+    <span className={`font-serif text-sm font-bold leading-tight ${dark ? 'text-sidebar-foreground' : 'text-foreground'}`}>
+      HU Fellowship<br />
+      <span className="font-sans text-[10px] font-medium uppercase tracking-[.2em] opacity-70">Library</span>
+    </span>
+  </Link>
+);
+const Status = ({ children, tone = 'neutral' }: { children: ReactNode; tone?: 'neutral' | 'good' | 'warn' | 'bad' }) => (
+  <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider ${
+    tone === 'good'
+      ? 'bg-neutral-100 text-neutral-900 border border-neutral-300 dark:bg-neutral-900 dark:text-neutral-100 dark:border-neutral-700'
+      : tone === 'warn'
+        ? 'bg-neutral-200 text-neutral-800 dark:bg-neutral-800 dark:text-neutral-200 border border-neutral-300 dark:border-neutral-700'
+        : tone === 'bad'
+          ? 'bg-neutral-950 text-white dark:bg-white dark:text-black border border-neutral-800 dark:border-neutral-200'
+          : 'bg-secondary text-secondary-foreground border border-border'
+  }`}>
+    {children}
+  </span>
+);
 const Skeleton = ({ className = '' }: { className?: string }) => <div className={`skeleton rounded-lg ${className}`} />;
 const EmptyState = ({ icon: Icon = Library, title, detail, action }: { icon?: typeof Library; title: string; detail: string; action?: ReactNode }) => <div className="flex min-h-64 flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-card/60 px-6 text-center"><span className="mb-4 rounded-full bg-secondary p-4 text-primary"><Icon size={24} /></span><h3 className="font-serif text-lg font-bold">{title}</h3><p className="mt-1 max-w-sm text-sm text-muted-foreground">{detail}</p>{action && <div className="mt-5">{action}</div>}</div>;
 const ErrorState = ({ retry }: { retry?: () => void }) => <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-5 text-sm text-destructive"><div className="flex items-center gap-2 font-semibold"><AlertCircle size={17} />We couldn't load this page.</div>{retry && <Button variant="danger" className="mt-3" onClick={retry} data-testid="button-retry">Try again</Button>}</div>;
@@ -254,8 +276,8 @@ function Home() {
                   2 Timothy 2:15
                 </div>
                 <div className="mt-8 sm:mt-12 flex items-end justify-between">
-                  <div className="flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center overflow-hidden rounded-full border border-sidebar-primary/40 p-1">
-                    <img src={logo} alt="" className="block h-full w-full origin-center scale-[1.25] object-contain object-center" />
+                  <div className="flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center overflow-hidden rounded-full border border-sidebar-border bg-white p-1">
+                    <img src={logo} alt="" className="block h-full w-full origin-center scale-[1.25] object-contain object-center grayscale contrast-200" />
                   </div>
                   <div className="text-right text-xs text-sidebar-foreground/50">Fellowship<br />Library</div>
                 </div>
@@ -268,10 +290,10 @@ function Home() {
           <div className="mx-auto max-w-7xl">
             <div className="mb-6 sm:mb-8 flex flex-wrap items-end justify-between gap-4">
               <div>
-                <div className="text-xs font-bold uppercase tracking-[.2em] text-[#008080]">From the shelves</div>
-                <h2 className="mt-1.5 font-serif text-2xl sm:text-3xl font-bold text-foreground dark:text-white">Popular books</h2>
+                <div className="text-xs font-bold uppercase tracking-[.2em] text-muted-foreground">From the shelves</div>
+                <h2 className="mt-1.5 font-serif text-2xl sm:text-3xl font-bold text-foreground">Popular books</h2>
               </div>
-              <Link href="/login" data-testid="link-browse-all" className="text-xs sm:text-sm font-semibold text-[#00b4b4] hover:text-[#008080] transition flex items-center gap-1">
+              <Link href="/login" data-testid="link-browse-all" className="text-xs sm:text-sm font-semibold text-foreground hover:underline transition flex items-center gap-1">
                 Browse the whole library <ArrowUpRight size={15} className="ml-1 inline" />
               </Link>
             </div>
@@ -489,7 +511,7 @@ function ModernBookCard({ book, publicCard = false }: { book: Book; publicCard?:
 
   return (
     <div
-      className="group relative flex flex-col justify-between rounded-2xl bg-card border border-border p-2 sm:p-2.5 md:p-3 shadow-sm hover:shadow-xl dark:bg-[#141517] dark:border-neutral-800/80 dark:hover:border-neutral-700 transition duration-200"
+      className="group relative flex flex-col justify-between rounded-2xl bg-card border border-border p-2 sm:p-2.5 md:p-3 shadow-sm hover:shadow-xl transition duration-200"
       data-testid={`card-book-${book.id}`}
     >
       <Link href={detailLink} className="relative block aspect-[2/3] w-full overflow-hidden rounded-xl bg-neutral-900 shadow">
@@ -502,8 +524,8 @@ function ModernBookCard({ book, publicCard = false }: { book: Book; publicCard?:
           />
         ) : (
           <div className="flex h-full w-full flex-col justify-between p-3 sm:p-3.5 bg-gradient-to-br from-neutral-800 via-neutral-900 to-neutral-950 text-white rounded-xl">
-            <div className="text-[10px] font-mono uppercase tracking-wider text-teal-400 truncate">{book.category}</div>
-            <BookOpen className="self-center text-teal-400/30" size={32} />
+            <div className="text-[10px] font-mono uppercase tracking-wider text-neutral-300 truncate">{book.category}</div>
+            <BookOpen className="self-center text-white/30" size={32} />
             <div>
               <div className="font-serif font-bold text-xs sm:text-sm leading-tight line-clamp-2 text-white">{book.title}</div>
               <div className="text-[10px] sm:text-[11px] text-neutral-400 truncate mt-1">{book.author}</div>
@@ -512,32 +534,30 @@ function ModernBookCard({ book, publicCard = false }: { book: Book; publicCard?:
         )}
 
         <div className="absolute top-2 right-2 z-10">
-          <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider shadow ${
-            book.type === 'softcopy' ? 'bg-[#008080]/90 text-white ring-1 ring-white/10' : 'bg-amber-600/90 text-white ring-1 ring-white/10'
-          }`}>
+          <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider shadow bg-black/85 text-white ring-1 ring-white/20 backdrop-blur-sm">
             {book.type === 'softcopy' ? 'Softcopy' : 'Hardcopy'}
           </span>
         </div>
       </Link>
 
-      <div className="mt-2 sm:mt-2.5 mb-1.5 sm:mb-2 text-center text-xs font-semibold text-emerald-500 dark:text-emerald-400 tracking-wide">
+      <div className="mt-2 sm:mt-2.5 mb-1.5 sm:mb-2 text-center text-xs font-semibold text-foreground/80 tracking-wide">
         {book.type === 'softcopy' ? 'Free' : (book.available > 0 ? 'Free' : 'On loan')}
       </div>
 
       <div className="w-full">
         <Link
           href={detailLink}
-          className="w-full rounded-xl bg-[#008080] hover:bg-[#006e6e] active:bg-[#005a5a] text-white py-2 sm:py-2.5 px-2.5 text-xs sm:text-sm font-bold text-center block transition shadow-sm touch-target flex items-center justify-center"
+          className="w-full rounded-xl bg-foreground text-background hover:opacity-90 active:opacity-80 py-2 sm:py-2.5 px-2.5 text-xs sm:text-sm font-bold text-center block transition shadow-sm touch-target flex items-center justify-center"
         >
           View details
         </Link>
         {book.type === 'softcopy' && cleanFileUrl && !publicCard && (
-          <div className="mt-1.5 flex items-center justify-center gap-2 text-[11px] text-muted-foreground dark:text-neutral-400">
+          <div className="mt-1.5 flex items-center justify-center gap-2 text-[11px] text-muted-foreground">
             <a
               href={cleanFileUrl}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-1 hover:text-teal-500 dark:hover:text-teal-400 transition"
+              className="inline-flex items-center gap-1 hover:text-foreground transition underline-offset-2 hover:underline"
               data-testid={`shelf-open-${book.id}`}
               title="Open online"
             >
@@ -549,7 +569,7 @@ function ModernBookCard({ book, publicCard = false }: { book: Book; publicCard?:
               target="_blank"
               rel="noreferrer"
               download
-              className="inline-flex items-center gap-1 hover:text-teal-500 dark:hover:text-teal-400 transition"
+              className="inline-flex items-center gap-1 hover:text-foreground transition underline-offset-2 hover:underline"
               data-testid={`shelf-download-${book.id}`}
               title="Download file"
             >
@@ -574,33 +594,25 @@ function StudyNoteStoreCard({
 
   return (
     <div
-      className="group relative flex flex-col justify-between rounded-2xl bg-card border border-border p-2 sm:p-2.5 md:p-3 shadow-sm hover:shadow-xl dark:bg-[#141517] dark:border-neutral-800/80 dark:hover:border-neutral-700 transition duration-200"
+      className="group relative flex flex-col justify-between rounded-2xl bg-card border border-border p-2 sm:p-2.5 md:p-3 shadow-sm hover:shadow-xl transition duration-200"
       data-testid={`card-note-${note.id}`}
     >
       <div
         onClick={() => onSelect(note)}
         className="relative block aspect-[2/3] w-full overflow-hidden rounded-xl cursor-pointer bg-neutral-900 shadow transition duration-300 group-hover:scale-[1.03]"
       >
-        <div className={`relative h-full w-full flex flex-col justify-between p-3.5 text-white ${
-          isSummer
-            ? 'bg-gradient-to-br from-[#12232a] via-[#0d1a20] to-[#070e12]'
-            : 'bg-gradient-to-br from-[#261c16] via-[#1a130f] to-[#0d0907]'
-        }`}>
+        <div className="relative h-full w-full flex flex-col justify-between p-3.5 text-white bg-gradient-to-br from-neutral-800 via-neutral-900 to-black">
           <div className="book-crease-overlay" />
 
           <div className="flex items-center justify-between z-10">
-            <span className={`text-[9px] font-mono uppercase font-bold tracking-wider px-1.5 py-0.5 rounded ${
-              isSummer ? 'bg-[#008080]/30 text-teal-300 ring-1 ring-teal-500/20' : 'bg-amber-500/20 text-amber-300 ring-1 ring-amber-500/20'
-            }`}>
+            <span className="text-[9px] font-mono uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-white/10 text-white ring-1 ring-white/20">
               {isSummer ? 'Summer Study' : 'Personal Note'}
             </span>
             <span className="text-[9px] font-mono text-white/50">HU</span>
           </div>
 
           <div className="my-auto py-2 text-center z-10">
-            <div className={`mx-auto mb-2 flex h-9 w-9 items-center justify-center rounded-full border ${
-              isSummer ? 'border-teal-400/40 bg-teal-400/10 text-teal-300' : 'border-amber-400/40 bg-amber-400/10 text-amber-300'
-            }`}>
+            <div className="mx-auto mb-2 flex h-9 w-9 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white">
               {isSummer ? <BookOpen size={16} /> : <FileText size={16} />}
             </div>
             <h4 className="font-serif text-xs sm:text-sm font-bold leading-snug line-clamp-3 text-white">
@@ -614,7 +626,7 @@ function StudyNoteStoreCard({
         </div>
       </div>
 
-      <div className="mt-2.5 mb-2 text-center text-xs font-semibold text-emerald-400 tracking-wide">
+      <div className="mt-2.5 mb-2 text-center text-xs font-semibold text-foreground/80 tracking-wide">
         Free
       </div>
 
@@ -623,29 +635,29 @@ function StudyNoteStoreCard({
           type="button"
           onClick={() => onSelect(note)}
           data-testid={`btn-view-note-${note.id}`}
-          className="w-full rounded-xl bg-[#008080] hover:bg-[#006e6e] active:bg-[#005a5a] text-white py-2 sm:py-2.5 px-3 text-xs sm:text-sm font-bold text-center block transition shadow-sm"
+          className="w-full rounded-xl bg-foreground text-background hover:opacity-90 active:opacity-80 py-2 sm:py-2.5 px-3 text-xs sm:text-sm font-bold text-center block transition shadow-sm"
         >
           View details
         </button>
         {cleanFileUrl && (
-          <div className="mt-1.5 flex items-center justify-center gap-2 text-[11px] text-neutral-400">
+          <div className="mt-1.5 flex items-center justify-center gap-2 text-[11px] text-muted-foreground">
             <a
               href={cleanFileUrl}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-1 hover:text-teal-400 transition"
+              className="inline-flex items-center gap-1 hover:text-foreground transition underline-offset-2 hover:underline"
               data-testid={`link-note-open-${note.id}`}
               title="Open online"
             >
               <Eye size={12} /> Open
             </a>
-            <span className="text-neutral-600">·</span>
+            <span className="text-border">·</span>
             <a
               href={`${cleanFileUrl}?download=1`}
               target="_blank"
               rel="noreferrer"
               download
-              className="inline-flex items-center gap-1 hover:text-teal-400 transition"
+              className="inline-flex items-center gap-1 hover:text-foreground transition underline-offset-2 hover:underline"
               data-testid={`link-note-file-${note.id}`}
               title="Download file"
             >
@@ -667,9 +679,7 @@ function ShelfBookCard({ book, publicCard = false }: { book: Book; publicCard?: 
       <Link href={detailLink} className="relative block">
         <div className="relative overflow-hidden rounded-lg shadow-lg transition duration-300 group-hover:shadow-2xl">
           <div className="absolute top-2.5 right-2.5 z-20">
-            <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider shadow-md ${
-              book.type === 'softcopy' ? 'bg-indigo-600/95 text-white ring-1 ring-white/20' : 'bg-amber-600/95 text-white ring-1 ring-white/20'
-            }`}>
+            <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider shadow-md bg-black/85 text-white ring-1 ring-white/20 backdrop-blur-sm">
               {book.type === 'softcopy' ? 'Softcopy' : 'Hardcopy'}
             </span>
           </div>
@@ -912,16 +922,36 @@ function MemberDashboard({ preview = false }: { preview?: boolean }) {
     return preview
       ? <div key={book.id} data-testid={`row-preview-book-${Math.abs(book.id)}`} className="flex items-center gap-4 rounded-xl border border-border/70 p-3">{content}</div>
       : <Link key={book.id} href={`/member/books/${book.id}`} data-testid={`row-dashboard-book-${book.id}`} className="flex items-center gap-4 rounded-xl border border-border/70 p-3 hover:border-primary/40 hover:bg-secondary/40">{content}</Link>;
-  })}</div> : <div className="mt-6"><EmptyState icon={BookOpen} title="The shelves are quiet" detail="Newly added books will appear here." /></div>}</section><section className="relative overflow-hidden rounded-2xl bg-sidebar p-7 text-sidebar-foreground"><div className="absolute -right-14 -top-14 h-44 w-44 rounded-full border border-sidebar-primary/20" /><div className="absolute -right-4 -top-4 h-24 w-24 rounded-full border border-sidebar-primary/20" /><div className="relative"><div className="font-mono text-[10px] uppercase tracking-[.2em] text-sidebar-primary">A verse for the week</div><p className="mt-12 font-serif text-2xl font-bold leading-relaxed">“Trust in the Lord with all your heart and lean not on your own understanding.”</p><p className="mt-5 text-xs text-sidebar-foreground/55">Proverbs 3:5</p><div className="mt-14 flex justify-end"><span className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-full border-2 border-black/70 bg-white opacity-80"><img src={logo} alt="" className="block h-full w-full origin-center scale-125 object-contain object-center" /></span></div></div></section></div></AuthenticatedLayout>;
+  })}</div> : <div className="mt-6"><EmptyState icon={BookOpen} title="The shelves are quiet" detail="Newly added books will appear here." /></div>}</section><section className="relative overflow-hidden rounded-2xl bg-sidebar p-7 text-sidebar-foreground"><div className="absolute -right-14 -top-14 h-44 w-44 rounded-full border border-sidebar-primary/20" /><div className="absolute -right-4 -top-4 h-24 w-24 rounded-full border border-sidebar-primary/20" /><div className="relative"><div className="font-mono text-[10px] uppercase tracking-[.2em] text-sidebar-primary">A verse for the week</div><p className="mt-12 font-serif text-2xl font-bold leading-relaxed">“Trust in the Lord with all your heart and lean not on your own understanding.”</p><p className="mt-5 text-xs text-sidebar-foreground/55">Proverbs 3:5</p><div className="mt-14 flex justify-end"><span className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-full border border-sidebar-border bg-white"><img src={logo} alt="" className="block h-full w-full origin-center scale-125 object-contain object-center grayscale contrast-200" /></span></div></div></section></div></AuthenticatedLayout>;
 }
 
 function MemberBooks() {
   const { lang } = useLang();
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [category, setCategory] = useState('');
   const [type, setType] = useState('');
   const [viewMode, setViewMode] = useState<'store' | 'shelf' | 'grid'>('store');
-  const query = useListBooks({ search: search || undefined, category: category || undefined, type: (type || undefined) as any });
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 200);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  const query = useListBooks(
+    {
+      search: debouncedSearch.trim() || undefined,
+      category: category || undefined,
+      type: (type || undefined) as any,
+    },
+    {
+      query: {
+        placeholderData: (prev: any) => prev,
+      },
+    }
+  );
   const cats = useListCategories();
   const books = Array.isArray(query.data) ? query.data : [];
   const categoriesList = Array.isArray(cats.data) ? cats.data : [];
@@ -987,8 +1017,11 @@ function MemberBooks() {
             onChange={e => setSearch(e.target.value)}
             placeholder={`${t('search', lang)} books, authors…`}
             data-testid="input-book-search"
-            className="h-11 w-full rounded-lg border border-input bg-background pl-10 pr-3 text-sm outline-none focus:ring-4 focus:ring-primary/15"
+            className="h-11 w-full rounded-lg border border-input bg-background pl-10 pr-9 text-sm outline-none focus:ring-2 focus:ring-foreground/20"
           />
+          {query.isFetching && !query.isLoading && (
+            <LoaderCircle size={16} className="absolute right-3 top-3.5 animate-spin text-muted-foreground" />
+          )}
         </label>
         <select value={category} onChange={e => setCategory(e.target.value)} data-testid="select-book-category" className="h-11 rounded-lg border border-input bg-background px-3 text-sm outline-none">
           <option value="">{lang === 'am' ? 'ሁሉም ምድቦች' : 'All categories'}</option>
@@ -1003,7 +1036,7 @@ function MemberBooks() {
 
       {query.isError ? (
         <ErrorState retry={() => query.refetch()} />
-      ) : query.isLoading ? (
+      ) : (query.isLoading && !query.data) ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
           {[1,2,3,4,5,6].map(i => <Skeleton key={i} className="h-72 rounded-2xl" />)}
         </div>
@@ -1016,7 +1049,7 @@ function MemberBooks() {
                   <h3 className="font-serif text-xl sm:text-2xl font-bold text-foreground">
                     {category || 'Search Results'}
                   </h3>
-                  <span className="text-xs sm:text-sm font-semibold text-[#00b4b4]">
+                  <span className="text-xs sm:text-sm font-semibold text-muted-foreground">
                     {books.length} {books.length === 1 ? 'book' : 'books'}
                   </span>
                 </div>
@@ -1029,7 +1062,7 @@ function MemberBooks() {
                 <div>
                   <div className="mb-4 flex items-center justify-between">
                     <h3 className="font-serif text-xl sm:text-2xl font-bold text-foreground">Popular books</h3>
-                    <span className="text-xs sm:text-sm font-semibold text-[#00b4b4] hover:text-[#008080] cursor-pointer">
+                    <span className="text-xs sm:text-sm font-semibold text-foreground hover:underline cursor-pointer">
                       View all
                     </span>
                   </div>
@@ -1044,7 +1077,7 @@ function MemberBooks() {
                       <h3 className="font-serif text-xl sm:text-2xl font-bold text-foreground">{catName}</h3>
                       <button
                         onClick={() => setCategory(catName)}
-                        className="text-xs sm:text-sm font-semibold text-[#00b4b4] hover:text-[#008080] transition"
+                        className="text-xs sm:text-sm font-semibold text-foreground hover:underline transition"
                       >
                         View all ({catBooks.length})
                       </button>
@@ -1186,10 +1219,10 @@ function MemberNotes() {
           <div>
             <div className="mb-4 flex items-center justify-between">
               <div>
-                <div className="text-[10px] font-bold uppercase tracking-[.2em] text-[#008080] mb-0.5">Fellowship Curated</div>
+                <div className="text-[10px] font-bold uppercase tracking-[.2em] text-muted-foreground mb-0.5">Fellowship Curated</div>
                 <h3 className="font-serif text-xl sm:text-2xl font-bold text-foreground">Summer Bible Studies</h3>
               </div>
-              <span className="text-xs sm:text-sm font-semibold text-[#00b4b4]">
+              <span className="text-xs sm:text-sm font-semibold text-muted-foreground">
                 View all ({summerNotes.length})
               </span>
             </div>
@@ -1210,10 +1243,10 @@ function MemberNotes() {
           <div>
             <div className="mb-4 flex items-center justify-between">
               <div>
-                <div className="text-[10px] font-bold uppercase tracking-[.2em] text-amber-500 mb-0.5">Member Contributions</div>
+                <div className="text-[10px] font-bold uppercase tracking-[.2em] text-muted-foreground mb-0.5">Member Contributions</div>
                 <h3 className="font-serif text-xl sm:text-2xl font-bold text-foreground">Personal Study Notes</h3>
               </div>
-              <span className="text-xs sm:text-sm font-semibold text-[#00b4b4]">
+              <span className="text-xs sm:text-sm font-semibold text-muted-foreground">
                 View all ({personalNotes.length})
               </span>
             </div>
@@ -1241,15 +1274,11 @@ function MemberNotes() {
 
       {/* Note Detail Dialog / Modal */}
       <Dialog open={!!selectedNote} onOpenChange={(open) => !open && setSelectedNote(null)}>
-        <DialogContent className="max-w-md bg-[#141517] border border-neutral-800 text-white p-6 rounded-2xl">
+        <DialogContent className="max-w-md bg-card border border-border text-foreground p-6 rounded-2xl">
           {selectedNote && (
             <div>
               <div className="flex items-center justify-between gap-2 mb-4">
-                <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
-                  selectedNote.type === 'summer'
-                    ? 'bg-[#008080]/30 text-teal-300 ring-1 ring-teal-500/30'
-                    : 'bg-amber-500/20 text-amber-300 ring-1 ring-amber-500/30'
-                }`}>
+                <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-secondary text-secondary-foreground border border-border">
                   {selectedNote.type === 'summer' ? 'Summer Bible Study' : 'Personal Study Note'}
                 </span>
                 <Status tone={selectedNote.status === 'approved' ? 'good' : selectedNote.status === 'pending' ? 'warn' : 'bad'}>
@@ -1257,14 +1286,14 @@ function MemberNotes() {
                 </Status>
               </div>
 
-              <DialogTitle className="font-serif text-2xl font-bold text-white mb-2 leading-tight">
+              <DialogTitle className="font-serif text-2xl font-bold text-foreground mb-2 leading-tight">
                 {selectedNote.title}
               </DialogTitle>
-              <p className="text-xs text-neutral-400 mb-4">
-                By <span className="text-white font-medium">{selectedNote.author}</span>
+              <p className="text-xs text-muted-foreground mb-4">
+                By <span className="text-foreground font-medium">{selectedNote.author}</span>
               </p>
 
-              <div className="rounded-xl bg-neutral-900/80 border border-neutral-800 p-4 mb-6 text-sm text-neutral-300 leading-relaxed max-h-48 overflow-y-auto whitespace-pre-wrap">
+              <div className="rounded-xl bg-secondary/50 border border-border p-4 mb-6 text-sm text-foreground/90 leading-relaxed max-h-48 overflow-y-auto whitespace-pre-wrap">
                 {selectedNote.description}
               </div>
 
@@ -1274,7 +1303,7 @@ function MemberNotes() {
                     href={selectedNote.fileUrl.replace(/^\/api\/storage\/api\/storage\//, '/api/storage/')}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#008080] hover:bg-[#006e6e] text-white py-3 text-sm font-bold shadow-md transition"
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-foreground text-background hover:opacity-90 py-3 text-sm font-bold shadow-md transition"
                   >
                     <Eye size={16} /> Open online (PDF/Doc)
                   </a>
@@ -1283,13 +1312,13 @@ function MemberNotes() {
                     target="_blank"
                     rel="noreferrer"
                     download
-                    className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-neutral-700 bg-neutral-800/80 hover:bg-neutral-800 text-neutral-200 py-3 text-sm font-bold transition"
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-border bg-card hover:bg-secondary py-3 text-sm font-bold text-foreground shadow-sm transition"
                   >
                     <Download size={16} /> Download document
                   </a>
                 </div>
               ) : (
-                <p className="text-xs text-center text-neutral-500">No document attached.</p>
+                <p className="text-xs text-muted-foreground text-center">No document attached to this study note.</p>
               )}
             </div>
           )}
@@ -1430,7 +1459,7 @@ function AdminBooks() {
       </label>}
       {(uploadError || saveError) && <div className="md:col-span-2 rounded-lg bg-destructive/10 p-3 text-sm text-destructive" data-testid="status-book-upload-error">{uploadError || saveError}</div>}
       <div className="flex gap-3 md:col-span-2">
-        <Button type="submit" variant="primary" className="min-w-28 whitespace-nowrap !text-white" disabled={busy} data-testid="button-save-book"><span className="text-white">{busy ? 'Uploading & saving…' : 'Save book'}</span></Button>
+        <Button type="submit" className="min-w-28 whitespace-nowrap" disabled={busy} data-testid="button-save-book">{busy ? 'Uploading & saving…' : 'Save book'}</Button>
         <Button type="button" variant="ghost" onClick={() => setFormOpen(false)} data-testid="button-cancel-book">Cancel</Button>
       </div>
     </form>}
@@ -1563,7 +1592,7 @@ function AdminNotes() {
       </label>
       {uploadError && <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive md:col-span-2" data-testid="status-admin-note-error">{uploadError}</div>}
       <div className="flex gap-3 md:col-span-2">
-        <Button type="submit" variant="primary" className="!text-white" disabled={uploading || create.isPending} data-testid="button-publish-admin-note"><span className="text-white">{uploading ? 'Uploading…' : create.isPending ? 'Publishing…' : 'Publish study note'}</span></Button>
+        <Button type="submit" disabled={uploading || create.isPending} data-testid="button-publish-admin-note">{uploading ? 'Uploading…' : create.isPending ? 'Publishing…' : 'Publish study note'}</Button>
         <Button type="button" variant="ghost" onClick={() => setShowForm(false)} data-testid="button-cancel-admin-note">Cancel</Button>
       </div>
     </form>}
@@ -1872,8 +1901,8 @@ function MemberQuestions() {
               </div>
 
               {q.status === 'answered' && q.answer && (
-                <div className="mt-5 rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4 sm:p-5 dark:border-emerald-500/30 dark:bg-emerald-950/20">
-                  <div className="flex items-center gap-2 text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                <div className="mt-5 rounded-xl border border-border bg-secondary/40 p-4 sm:p-5">
+                  <div className="flex items-center gap-2 text-xs font-bold text-foreground">
                     <ShieldCheck size={16} /> Answer from Steward ({q.answeredBy ?? 'Fellowship Steward'})
                     {q.answeredAt && (
                       <span className="font-normal text-muted-foreground">
@@ -1975,7 +2004,7 @@ function AdminQuestions() {
           data-testid="tab-admin-pending-questions"
         >
           <Clock3 size={16} /> Needs Reply
-          <span className="rounded-full bg-amber-500/20 text-amber-600 dark:text-amber-400 px-2 py-0.5 text-xs font-bold">
+          <span className="rounded-full bg-secondary text-foreground border border-border px-2 py-0.5 text-xs font-bold">
             {pending.length}
           </span>
         </button>
@@ -1990,7 +2019,7 @@ function AdminQuestions() {
           data-testid="tab-admin-answered-questions"
         >
           <Check size={16} /> Answered Questions
-          <span className="rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 text-xs font-bold">
+          <span className="rounded-full bg-secondary text-foreground border border-border px-2 py-0.5 text-xs font-bold">
             {answered.length}
           </span>
         </button>
@@ -2113,8 +2142,8 @@ function AdminQuestions() {
               </div>
 
               {q.status === 'answered' && q.answer && (
-                <div className="mt-5 rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4 sm:p-5 dark:border-emerald-500/30 dark:bg-emerald-950/20">
-                  <div className="flex items-center gap-2 text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                <div className="mt-5 rounded-xl border border-border bg-secondary/40 p-4 sm:p-5">
+                  <div className="flex items-center gap-2 text-xs font-bold text-foreground">
                     <ShieldCheck size={16} /> Steward Answer ({q.answeredBy ?? 'Steward'})
                     {q.answeredAt && (
                       <span className="font-normal text-muted-foreground">
