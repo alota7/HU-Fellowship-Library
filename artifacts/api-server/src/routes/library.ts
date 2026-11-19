@@ -12,6 +12,8 @@ import {
   libraryStudyNotes,
   libraryUsers,
   libraryQuestions,
+  libraryBorrowings,
+  libraryBorrowingRequests,
 } from "@workspace/db";
 import {
   CreateBookBody,
@@ -372,7 +374,9 @@ router.put("/books/:id", async (req, res) => {
   if (!existing) return res.status(404).json({ error: "Book not found." });
   const parsed = CreateBookBody.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "Complete the required book fields." });
-  const available = Math.min(existing.available, parsed.data.total);
+  const available = typeof req.body?.available === "number"
+    ? Math.max(0, Math.min(parsed.data.total, req.body.available))
+    : Math.min(existing.available, parsed.data.total);
   const [row] = await db
     .update(libraryBooks)
     .set({
@@ -388,6 +392,25 @@ router.put("/books/:id", async (req, res) => {
     .where(eq(libraryBooks.id, id))
     .returning();
   runtimeAvailability.set(row.id, available);
+  return res.json(publicBook(row));
+});
+
+router.put("/books/:id/availability", async (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  const id = Number(req.params.id);
+  const existing = await getBookById(id);
+  if (!existing) return res.status(404).json({ error: "Book not found." });
+  const rawAvail = req.body?.available;
+  if (typeof rawAvail !== "number" || isNaN(rawAvail)) {
+    return res.status(400).json({ error: "Available copies must be a valid number." });
+  }
+  const newAvailable = Math.max(0, Math.min(existing.total, Math.floor(rawAvail)));
+  runtimeAvailability.set(existing.id, newAvailable);
+  const [row] = await db
+    .update(libraryBooks)
+    .set({ available: newAvailable })
+    .where(eq(libraryBooks.id, id))
+    .returning();
   return res.json(publicBook(row));
 });
 
@@ -470,10 +493,26 @@ router.post("/categories", async (req, res) => {
   return res.status(201).json({ ...category, bookCount: bookRows.length });
 });
 
-router.get("/borrowing-requests", (req, res) => {
+router.get("/borrowing-requests", async (req, res) => {
   const user = requireUser(req, res);
   if (!user) return;
-  return res.json(user.role === "admin" ? requests : requests.filter((item) => item.member.id === user.id));
+  const rows = await db.select().from(libraryBorrowingRequests);
+  const allBooks = await db.select().from(libraryBooks);
+  const bookMap = new Map(allBooks.map((b) => [b.id, publicBook(b)]));
+
+  const mapped = rows.map((r) => ({
+    id: r.id,
+    book: bookMap.get(r.bookId) || { id: r.bookId, title: "Book #" + r.bookId, author: "Unknown", available: 1, total: 1, type: "hardcopy" as const },
+    member: { id: r.memberId, name: r.memberName, email: r.memberEmail, role: "member" },
+    status: r.status as "pending" | "approved" | "rejected",
+    requestedAt: r.requestedAt ? new Date(r.requestedAt).toISOString() : now(),
+    rejectionReason: r.rejectionReason ?? null,
+  }));
+
+  const filtered = user.role === "admin"
+    ? mapped
+    : mapped.filter((item) => item.member.id === user.id);
+  return res.json(filtered.sort((a, b) => b.id - a.id));
 });
 
 router.post("/borrowing-requests", async (req, res) => {
@@ -485,98 +524,215 @@ router.post("/borrowing-requests", async (req, res) => {
   if (!book) return res.status(404).json({ error: "Book not found." });
   const available = runtimeAvailability.get(book.id) ?? book.available;
   if (book.type !== "hardcopy" || available < 1) return res.status(409).json({ error: "This book is not currently available." });
-  book.available = available - 1;
-  runtimeAvailability.set(book.id, book.available);
-  const request = { id: requests.length + 1, book, member: user, status: "pending" as const, requestedAt: now(), rejectionReason: null };
-  requests.push(request);
+  
+  const newAvailable = Math.max(0, available - 1);
+  book.available = newAvailable;
+  runtimeAvailability.set(book.id, newAvailable);
+  await db.update(libraryBooks).set({ available: newAvailable }).where(eq(libraryBooks.id, book.id));
+
+  const [created] = await db.insert(libraryBorrowingRequests).values({
+    bookId: book.id,
+    memberId: user.id,
+    memberName: user.name,
+    memberEmail: user.email,
+    status: "pending",
+    rejectionReason: null,
+  }).returning();
+
+  const request = {
+    id: created.id,
+    book,
+    member: user,
+    status: "pending" as const,
+    requestedAt: created.requestedAt ? new Date(created.requestedAt).toISOString() : now(),
+    rejectionReason: null,
+  };
   return res.status(201).json(request);
 });
 
-router.put("/borrowing-requests/:id/approve", (req, res) => {
+router.put("/borrowing-requests/:id/approve", async (req, res) => {
   if (!requireAdmin(req, res)) return;
-  const request = requests.find((item) => item.id === Number(req.params.id));
-  if (!request) return res.status(404).json({ error: "Borrowing request not found." });
-  if (request.status !== "pending") return res.status(409).json({ error: "This request has already been processed." });
+  const id = Number(req.params.id);
+  const [requestRow] = await db.select().from(libraryBorrowingRequests).where(eq(libraryBorrowingRequests.id, id)).limit(1);
+  if (!requestRow) return res.status(404).json({ error: "Borrowing request not found." });
+  if (requestRow.status !== "pending") return res.status(409).json({ error: "This request has already been processed." });
   
   const rawDays = req.body?.days;
   const days = (typeof rawDays === "number" && rawDays > 0)
     ? Math.min(365, Math.floor(rawDays))
     : (Number(rawDays) > 0 ? Math.min(365, Math.floor(Number(rawDays))) : 14);
 
-  request.status = "approved";
+  await db.update(libraryBorrowingRequests).set({ status: "approved" }).where(eq(libraryBorrowingRequests.id, id));
+
   const due = new Date();
   due.setDate(due.getDate() + days);
-  borrowings.push({
-    id: borrowings.length + 1,
-    book: request.book,
-    member: request.member,
-    dueDate: due.toISOString().slice(0, 10),
+  const dueDateStr = due.toISOString().slice(0, 10);
+
+  const [borrowingRow] = await db.insert(libraryBorrowings).values({
+    bookId: requestRow.bookId,
+    memberId: requestRow.memberId,
+    memberName: requestRow.memberName,
+    memberEmail: requestRow.memberEmail,
+    dueDate: dueDateStr,
+    loanDays: days,
     status: "borrowed",
-    borrowedAt: now(),
+    borrowedAt: new Date(),
     returnedAt: null,
-  } as any);
-  return res.json({ ...request, loanDays: days, dueDate: due.toISOString().slice(0, 10) });
+  }).returning();
+
+  const book = await getBookById(requestRow.bookId);
+
+  return res.json({
+    id: requestRow.id,
+    book: book || { id: requestRow.bookId, title: "Book #" + requestRow.bookId },
+    member: { id: requestRow.memberId, name: requestRow.memberName, email: requestRow.memberEmail },
+    status: "approved",
+    loanDays: days,
+    dueDate: dueDateStr,
+    borrowingId: borrowingRow.id,
+  });
 });
 
-router.delete("/borrowing-requests/:id", (req, res) => {
+router.delete("/borrowing-requests/:id", async (req, res) => {
   const user = requireUser(req, res);
   if (!user) return;
   const id = Number(req.params.id);
-  const index = requests.findIndex((item) => item.id === id);
-  if (index === -1) return res.status(404).json({ error: "Borrowing request not found." });
-  const request = requests[index];
-  if (user.role !== "admin" && request.member.id !== user.id) {
+  const [requestRow] = await db.select().from(libraryBorrowingRequests).where(eq(libraryBorrowingRequests.id, id)).limit(1);
+  if (!requestRow) return res.status(404).json({ error: "Borrowing request not found." });
+  if (user.role !== "admin" && requestRow.memberId !== user.id) {
     return res.status(403).json({ error: "You cannot cancel another member's request." });
   }
-  if (request.status === "pending") {
-    const currentAvail = runtimeAvailability.get(request.book.id) ?? request.book.available;
-    request.book.available = currentAvail + 1;
-    runtimeAvailability.set(request.book.id, request.book.available);
+  if (requestRow.status === "pending") {
+    const book = await getBookById(requestRow.bookId);
+    if (book) {
+      const currentAvail = runtimeAvailability.get(book.id) ?? book.available;
+      const newAvail = Math.min(book.total, currentAvail + 1);
+      runtimeAvailability.set(book.id, newAvail);
+      await db.update(libraryBooks).set({ available: newAvail }).where(eq(libraryBooks.id, book.id));
+    }
   }
-  requests.splice(index, 1);
+  await db.delete(libraryBorrowingRequests).where(eq(libraryBorrowingRequests.id, id));
   return res.status(204).send();
 });
 
-router.put("/borrowing-requests/:id/cancel", (req, res) => {
+router.put("/borrowing-requests/:id/cancel", async (req, res) => {
   const user = requireUser(req, res);
   if (!user) return;
   const id = Number(req.params.id);
-  const index = requests.findIndex((item) => item.id === id);
-  if (index === -1) return res.status(404).json({ error: "Borrowing request not found." });
-  const request = requests[index];
-  if (user.role !== "admin" && request.member.id !== user.id) {
+  const [requestRow] = await db.select().from(libraryBorrowingRequests).where(eq(libraryBorrowingRequests.id, id)).limit(1);
+  if (!requestRow) return res.status(404).json({ error: "Borrowing request not found." });
+  if (user.role !== "admin" && requestRow.memberId !== user.id) {
     return res.status(403).json({ error: "You cannot cancel another member's request." });
   }
-  if (request.status === "pending") {
-    const currentAvail = runtimeAvailability.get(request.book.id) ?? request.book.available;
-    request.book.available = currentAvail + 1;
-    runtimeAvailability.set(request.book.id, request.book.available);
+  if (requestRow.status === "pending") {
+    const book = await getBookById(requestRow.bookId);
+    if (book) {
+      const currentAvail = runtimeAvailability.get(book.id) ?? book.available;
+      const newAvail = Math.min(book.total, currentAvail + 1);
+      runtimeAvailability.set(book.id, newAvail);
+      await db.update(libraryBooks).set({ available: newAvail }).where(eq(libraryBooks.id, book.id));
+    }
   }
-  requests.splice(index, 1);
+  await db.delete(libraryBorrowingRequests).where(eq(libraryBorrowingRequests.id, id));
   return res.status(200).json({ message: "Borrowing request cancelled successfully." });
 });
 
-router.put("/borrowing-requests/:id/reject", (req, res) => {
+router.put("/borrowing-requests/:id/reject", async (req, res) => {
   if (!requireAdmin(req, res)) return;
-  const request = requests.find((item) => item.id === Number(req.params.id));
-  if (!request) return res.status(404).json({ error: "Borrowing request not found." });
-  if (request.status !== "pending") return res.status(409).json({ error: "This request has already been processed." });
+  const id = Number(req.params.id);
+  const [requestRow] = await db.select().from(libraryBorrowingRequests).where(eq(libraryBorrowingRequests.id, id)).limit(1);
+  if (!requestRow) return res.status(404).json({ error: "Borrowing request not found." });
+  if (requestRow.status !== "pending") return res.status(409).json({ error: "This request has already been processed." });
+  
   const parsed = RejectBorrowingRequestBody.safeParse(req.body ?? {});
-  request.status = "rejected";
-  request.rejectionReason = parsed.success ? (parsed.data.reason ?? null) : null;
-  request.book.available = (runtimeAvailability.get(request.book.id) ?? request.book.available) + 1;
-  runtimeAvailability.set(request.book.id, request.book.available);
-  return res.json(request);
+  const reason = parsed.success ? (parsed.data.reason ?? null) : null;
+  await db.update(libraryBorrowingRequests).set({ status: "rejected", rejectionReason: reason }).where(eq(libraryBorrowingRequests.id, id));
+
+  const book = await getBookById(requestRow.bookId);
+  if (book) {
+    const currentAvail = runtimeAvailability.get(book.id) ?? book.available;
+    const newAvail = Math.min(book.total, currentAvail + 1);
+    runtimeAvailability.set(book.id, newAvail);
+    await db.update(libraryBooks).set({ available: newAvail }).where(eq(libraryBooks.id, book.id));
+  }
+
+  return res.json({ id, status: "rejected", rejectionReason: reason });
 });
 
-router.get("/borrowings", (req, res) => {
+router.get("/borrowings", async (req, res) => {
   const user = requireUser(req, res);
   if (!user) return;
-  return res.json(
-    user.role === "admin"
-      ? borrowings
-      : borrowings.filter((item) => (item as any).member?.id === user.id || !(item as any).member)
-  );
+  const rows = await db.select().from(libraryBorrowings);
+  const allBooks = await db.select().from(libraryBooks);
+  const bookMap = new Map(allBooks.map((b) => [b.id, publicBook(b)]));
+
+  const mapped = rows.map((b) => ({
+    id: b.id,
+    book: bookMap.get(b.bookId) || { id: b.bookId, title: "Book #" + b.bookId, author: "Unknown", available: 1, total: 1, type: "hardcopy" as const, category: "General", description: "" },
+    member: { id: b.memberId, name: b.memberName, email: b.memberEmail },
+    dueDate: b.dueDate,
+    loanDays: b.loanDays,
+    status: b.status as "borrowed" | "returned" | "return_pending",
+    borrowedAt: b.borrowedAt ? new Date(b.borrowedAt).toISOString() : now(),
+    returnedAt: b.returnedAt ? new Date(b.returnedAt).toISOString() : null,
+  }));
+
+  const filtered = user.role === "admin"
+    ? mapped
+    : mapped.filter((item) => item.member.id === user.id);
+  return res.json(filtered.sort((a, b) => b.id - a.id));
+});
+
+router.put("/borrowings/:id/return", async (req, res) => {
+  const user = requireUser(req, res);
+  if (!user) return;
+  const id = Number(req.params.id);
+  const [borrowing] = await db.select().from(libraryBorrowings).where(eq(libraryBorrowings.id, id)).limit(1);
+  if (!borrowing) return res.status(404).json({ error: "Borrowing record not found." });
+  if (user.role !== "admin" && borrowing.memberId !== user.id) {
+    return res.status(403).json({ error: "Unauthorized." });
+  }
+  if (borrowing.status === "returned") {
+    return res.status(400).json({ error: "This book has already been returned." });
+  }
+
+  if (user.role === "admin") {
+    const returnDate = new Date();
+    await db.update(libraryBorrowings).set({ status: "returned", returnedAt: returnDate }).where(eq(libraryBorrowings.id, id));
+    const book = await getBookById(borrowing.bookId);
+    if (book) {
+      const currentAvail = runtimeAvailability.get(book.id) ?? book.available;
+      const newAvail = Math.min(book.total, currentAvail + 1);
+      runtimeAvailability.set(book.id, newAvail);
+      await db.update(libraryBooks).set({ available: newAvail }).where(eq(libraryBooks.id, book.id));
+    }
+    return res.json({ message: "Book return confirmed and availability updated.", status: "returned", returnedAt: returnDate.toISOString() });
+  } else {
+    // Member initiates return:
+    await db.update(libraryBorrowings).set({ status: "return_pending" }).where(eq(libraryBorrowings.id, id));
+    return res.json({ message: "Return requested. Waiting for steward confirmation.", status: "return_pending" });
+  }
+});
+
+router.put("/borrowings/:id/confirm-return", async (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  const id = Number(req.params.id);
+  const [borrowing] = await db.select().from(libraryBorrowings).where(eq(libraryBorrowings.id, id)).limit(1);
+  if (!borrowing) return res.status(404).json({ error: "Borrowing record not found." });
+  if (borrowing.status === "returned") {
+    return res.status(400).json({ error: "This book has already been returned." });
+  }
+
+  const returnDate = new Date();
+  await db.update(libraryBorrowings).set({ status: "returned", returnedAt: returnDate }).where(eq(libraryBorrowings.id, id));
+  const book = await getBookById(borrowing.bookId);
+  if (book) {
+    const currentAvail = runtimeAvailability.get(book.id) ?? book.available;
+    const newAvail = Math.min(book.total, currentAvail + 1);
+    runtimeAvailability.set(book.id, newAvail);
+    await db.update(libraryBooks).set({ available: newAvail }).where(eq(libraryBooks.id, book.id));
+  }
+  return res.json({ message: "Book return confirmed and availability updated.", status: "returned", returnedAt: returnDate.toISOString() });
 });
 
 router.get("/study-notes", async (req, res) => {
@@ -821,12 +977,20 @@ router.delete("/questions/:id", async (req, res) => {
 router.get("/dashboard/summary", async (req, res) => {
   const user = requireUser(req, res);
   if (!user) return;
-  const [bookRows, approvedNotes] = await Promise.all([
+  const [bookRows, approvedNotes, activeBorrowings, pendingRequests] = await Promise.all([
     db.select({ id: libraryBooks.id }).from(libraryBooks),
     db
       .select({ id: libraryStudyNotes.id })
       .from(libraryStudyNotes)
       .where(eq(libraryStudyNotes.status, "approved")),
+    db
+      .select({ id: libraryBorrowings.id })
+      .from(libraryBorrowings)
+      .where(eq(libraryBorrowings.status, "borrowed")),
+    db
+      .select({ id: libraryBorrowingRequests.id })
+      .from(libraryBorrowingRequests)
+      .where(eq(libraryBorrowingRequests.status, "pending")),
   ]);
   if (user.role !== "admin") {
     return res.json({
@@ -839,8 +1003,8 @@ router.get("/dashboard/summary", async (req, res) => {
   return res.json({
     books: bookRows.length,
     studyNotes: approvedNotes.length,
-    activeBorrowings: borrowings.length,
-    pendingRequests: requests.filter((request) => request.status === "pending").length,
+    activeBorrowings: activeBorrowings.length,
+    pendingRequests: pendingRequests.length,
   });
 });
 

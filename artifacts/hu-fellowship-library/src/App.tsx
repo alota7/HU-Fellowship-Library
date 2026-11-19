@@ -687,40 +687,40 @@ function StudyNoteStoreCard({
 
   return (
     <div
-      className="group relative flex flex-col justify-between rounded-2xl bg-card border border-border p-2 sm:p-2.5 md:p-3 shadow-sm hover:shadow-xl transition duration-200"
+      className="group relative flex flex-col justify-between rounded-xl sm:rounded-2xl bg-card border border-border p-1.5 sm:p-2.5 md:p-3 shadow-xs hover:shadow-lg transition duration-200"
       data-testid={`card-note-${note.id}`}
     >
       <div
         onClick={() => onSelect(note)}
-        className="relative block aspect-[2/3] w-full overflow-hidden rounded-xl cursor-pointer bg-neutral-900 shadow transition duration-300 group-hover:scale-[1.03]"
+        className="relative flex items-center justify-center aspect-[2/3] max-h-36 min-[440px]:max-h-40 sm:max-h-64 w-full overflow-hidden rounded-lg sm:rounded-xl cursor-pointer bg-neutral-950/80 dark:bg-black/90 p-0.5 shadow-xs transition duration-300 group-hover:scale-[1.02]"
       >
-        <div className="relative h-full w-full flex flex-col justify-between p-3.5 text-white bg-gradient-to-br from-neutral-800 via-neutral-900 to-black">
+        <div className="relative h-full w-full flex flex-col justify-between p-2 sm:p-3 text-white bg-gradient-to-br from-neutral-800 via-neutral-900 to-black rounded-md sm:rounded-lg">
           <div className="book-crease-overlay" />
 
           <div className="flex items-center justify-between z-10">
-            <span className="text-[9px] font-mono uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-white/10 text-white ring-1 ring-white/20">
-              {isSummer ? 'Summer Study' : 'Personal Note'}
+            <span className="text-[7px] sm:text-[9px] font-mono uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-white/10 text-white ring-1 ring-white/20">
+              {isSummer ? 'Summer' : 'Personal'}
             </span>
-            <span className="text-[9px] font-mono text-white/50">HU</span>
+            <span className="text-[8px] sm:text-[9px] font-mono text-white/50">HU</span>
           </div>
 
-          <div className="my-auto py-2 text-center z-10">
-            <div className="mx-auto mb-2 flex h-9 w-9 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white">
-              {isSummer ? <BookOpen size={16} /> : <FileText size={16} />}
+          <div className="my-auto py-1 text-center z-10">
+            <div className="mx-auto mb-1 flex h-6 w-6 sm:h-8 sm:w-8 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white">
+              {isSummer ? <BookOpen size={13} /> : <FileText size={13} />}
             </div>
-            <h4 className="font-serif text-xs sm:text-sm font-bold leading-snug line-clamp-3 text-white">
+            <h4 className="font-serif text-[10px] sm:text-xs font-bold leading-tight line-clamp-2 sm:line-clamp-3 text-white">
               {note.title}
             </h4>
           </div>
 
-          <div className="z-10 text-center border-t border-white/10 pt-2">
-            <div className="text-[10px] text-white/60 truncate">by {note.author}</div>
+          <div className="z-10 text-center border-t border-white/10 pt-1">
+            <div className="text-[8px] sm:text-[9px] text-white/60 truncate">by {note.author}</div>
           </div>
         </div>
       </div>
 
-      <div className="mt-2.5 mb-2 text-center text-xs font-semibold text-foreground/80 tracking-wide">
-        Free
+      <div className="mt-1 sm:mt-2 mb-1 sm:mb-1.5 text-center text-[9px] sm:text-[11px] font-semibold text-foreground/80 tracking-wide truncate">
+        Free Guide
       </div>
 
       <div className="w-full">
@@ -728,21 +728,21 @@ function StudyNoteStoreCard({
           type="button"
           onClick={() => onSelect(note)}
           data-testid={`btn-view-note-${note.id}`}
-          className="w-full rounded-xl bg-foreground text-background hover:opacity-90 active:opacity-80 py-2 sm:py-2.5 px-3 text-xs sm:text-sm font-bold text-center block transition shadow-sm"
+          className="w-full rounded-lg sm:rounded-xl bg-foreground text-background hover:opacity-90 active:opacity-80 py-1 sm:py-2 px-1.5 text-[10px] sm:text-xs font-bold text-center block transition shadow-xs touch-target flex items-center justify-center"
         >
           View details
         </button>
         {cleanFileUrl && (
-          <div className="mt-1.5 flex items-center justify-center gap-2 text-[11px] text-muted-foreground">
+          <div className="mt-1 flex items-center justify-center gap-1 sm:gap-2 text-[9px] sm:text-[11px] text-muted-foreground">
             <a
               href={cleanFileUrl}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-1 hover:text-foreground transition underline-offset-2 hover:underline"
+              className="inline-flex items-center gap-0.5 hover:text-foreground transition underline-offset-2 hover:underline"
               data-testid={`link-note-open-${note.id}`}
               title="Open online"
             >
-              <Eye size={12} /> Open
+              <Eye size={10} /> Open
             </a>
             <span className="text-border">·</span>
             <a
@@ -750,11 +750,11 @@ function StudyNoteStoreCard({
               target="_blank"
               rel="noreferrer"
               download
-              className="inline-flex items-center gap-1 hover:text-foreground transition underline-offset-2 hover:underline"
+              className="inline-flex items-center gap-0.5 hover:text-foreground transition underline-offset-2 hover:underline"
               data-testid={`link-note-file-${note.id}`}
               title="Download file"
             >
-              <Download size={12} /> Download
+              <Download size={10} /> Download
             </a>
           </div>
         )}
@@ -1055,8 +1055,7 @@ function AuthenticatedLayout({ children, admin = false, preview = false }: { chi
             <Menu size={20} />
           </button>
           <div className="hidden items-center gap-2 text-sm text-muted-foreground sm:flex">
-            <span className="font-mono text-[10px] uppercase tracking-[.18em] text-accent">{admin ? 'Steward desk' : 'Member space'}</span>
-            <ChevronRight size={14} />{t('library')}
+            <span className="font-mono text-[10px] uppercase tracking-[.18em] text-accent">{admin ? 'Steward desk' : 'Library'}</span>
           </div>
           <div className="ml-auto flex items-center gap-2 sm:gap-3">
             {preview && <span data-testid="badge-sample-preview" className="rounded-full border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-800">Sample preview</span>}
@@ -1156,7 +1155,6 @@ function MemberDashboard({ preview = false }: { preview?: boolean }) {
   return (
     <AuthenticatedLayout preview={preview}>
       <PageHeading
-        eyebrow={t('overview', lang)}
         title={`${t('welcome', lang)}.`}
         detail="The HU Fellowship Library brings books, Bible-study resources, and a growing community of learners into one welcoming home."
         action={action}
@@ -1656,8 +1654,8 @@ function MemberNotes() {
       )}
 
       {query.isLoading ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
-          {[1,2,3,4,5,6].map(i => <Skeleton key={i} className="h-72 rounded-2xl" />)}
+        <div className="grid grid-cols-2 min-[440px]:grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-3 md:gap-4">
+          {[1,2,3,4,5,6].map(i => <Skeleton key={i} className="h-48 sm:h-72 rounded-2xl" />)}
         </div>
       ) : notes.length ? (
         <div className="space-y-12">
@@ -1673,7 +1671,7 @@ function MemberNotes() {
               </span>
             </div>
             {summerNotes.length ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3.5 sm:gap-4">
+              <div className="grid grid-cols-2 min-[440px]:grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-3 md:gap-4">
                 {summerNotes.map(note => (
                   <StudyNoteStoreCard key={note.id} note={note} onSelect={setSelectedNote} />
                 ))}
@@ -1697,7 +1695,7 @@ function MemberNotes() {
               </span>
             </div>
             {personalNotes.length ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3.5 sm:gap-4">
+              <div className="grid grid-cols-2 min-[440px]:grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-3 md:gap-4">
                 {personalNotes.map(note => (
                   <StudyNoteStoreCard key={note.id} note={note} onSelect={setSelectedNote} />
                 ))}
@@ -1781,10 +1779,15 @@ function MemberBorrowings() {
   const requestsQuery = useListBorrowingRequests();
   const client = useQueryClient();
   const [cancellingId, setCancellingId] = useState<number | null>(null);
+  const [returningId, setReturningId] = useState<number | null>(null);
 
   const pendingRequests = Array.isArray(requestsQuery.data)
     ? requestsQuery.data.filter((r) => r.status === 'pending')
     : [];
+
+  const allBorrowings = Array.isArray(borrowings.data) ? borrowings.data : [];
+  const activeBorrowings = allBorrowings.filter((b) => b.status === 'borrowed' || b.status === 'return_pending');
+  const returnedBorrowings = allBorrowings.filter((b) => b.status === 'returned');
 
   const handleCancelRequest = async (requestId: number) => {
     if (!window.confirm('Cancel this borrowing request?')) return;
@@ -1807,14 +1810,37 @@ function MemberBorrowings() {
     }
   };
 
+  const handleReturnBook = async (borrowingId: number) => {
+    if (!window.confirm('Submit return for this book? The steward will confirm receipt and restore availability.')) return;
+    setReturningId(borrowingId);
+    try {
+      const res = await fetch(`/api/borrowings/${borrowingId}/return`, {
+        method: 'PUT',
+        credentials: 'include',
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to submit return request');
+      }
+      await borrowings.refetch();
+      void client.invalidateQueries({ queryKey: getListBorrowingsQueryKey() });
+      void client.invalidateQueries({ queryKey: getListBooksQueryKey() });
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Could not return book');
+    } finally {
+      setReturningId(null);
+    }
+  };
+
   return (
     <AuthenticatedLayout>
       <PageHeading
         eyebrow={t('membersOnly', lang)}
         title={lang === 'am' ? 'የተዋሷቸው መጻሕፍት' : 'My Books & Borrowings'}
-        detail="Keep track of physical books currently in your care and pending requests."
+        detail="Keep track of books currently in your care, return records, and pending borrowing requests."
       />
       <div className="max-w-4xl space-y-10">
+        {/* Pending Requests */}
         {pendingRequests.length > 0 && (
           <section>
             <div className="mb-4 flex items-center justify-between">
@@ -1853,42 +1879,93 @@ function MemberBorrowings() {
           </section>
         )}
 
+        {/* Currently in my care (Active Reading) */}
         <section>
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="font-serif text-2xl font-bold">Currently in my care</h2>
+            <h2 className="font-serif text-2xl font-bold flex items-center gap-2">
+              <BookOpen size={20} className="text-primary" /> Currently Reading (In My Care)
+            </h2>
+            <span className="text-xs font-mono text-muted-foreground bg-secondary px-2.5 py-0.5 rounded-full">
+              {activeBorrowings.length} {activeBorrowings.length === 1 ? 'book' : 'books'}
+            </span>
           </div>
           {borrowings.isLoading ? (
-            <Skeleton className="h-52" />
-          ) : borrowings.data?.length ? (
+            <Skeleton className="h-40" />
+          ) : activeBorrowings.length ? (
             <div className="grid gap-3 sm:grid-cols-2">
-              {borrowings.data.map((item) => (
-                <div key={item.id} className="flex items-center gap-4 rounded-xl border border-border bg-card p-4">
-                  <div className="h-16 w-12 shrink-0 overflow-hidden rounded-md">
+              {activeBorrowings.map((item) => (
+                <div key={item.id} className="flex items-center gap-4 rounded-xl border border-border bg-card p-4 shadow-xs">
+                  <div className="h-20 w-14 shrink-0 overflow-hidden rounded-md">
                     <BookCover book={item.book} className="h-full w-full" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <h3 className="truncate font-serif font-bold">{item.book.title}</h3>
-                    <p className="text-xs text-muted-foreground">Due {new Date(item.dueDate).toLocaleDateString()}</p>
+                    <h3 className="truncate font-serif font-bold text-base">{item.book.title}</h3>
+                    <p className="truncate text-xs text-muted-foreground">by {item.book.author}</p>
+                    <div className="mt-1 text-xs text-muted-foreground flex items-center gap-1.5 font-mono">
+                      <Calendar size={13} className="text-primary" /> Due {item.dueDate}
+                    </div>
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      {item.status === 'return_pending' ? (
+                        <Status tone="warn">Return Pending Steward Confirmation</Status>
+                      ) : (
+                        <Button
+                          variant="soft"
+                          disabled={returningId === item.id}
+                          onClick={() => handleReturnBook(item.id)}
+                          className="py-1 px-3 text-xs"
+                          data-testid={`button-return-book-${item.id}`}
+                        >
+                          <Check size={13} /> {returningId === item.id ? 'Submitting…' : 'Return book'}
+                        </Button>
+                      )}
+                    </div>
                   </div>
-                  <Status tone={item.status === 'overdue' ? 'bad' : 'good'}>{item.status}</Status>
                 </div>
               ))}
             </div>
           ) : (
-            <EmptyState
-              icon={Bookmark}
-              title="Nothing borrowed yet"
-              detail="When you borrow a physical book from the collection, it will appear here."
-              action={
-                <Link
-                  href="/member/books"
-                  data-testid="link-empty-borrowings"
-                  className="inline-flex rounded-lg bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground"
-                >
-                  Browse books
-                </Link>
-              }
-            />
+            <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+              You currently have no physical books checked out. When you borrow a book and it is approved, it will appear here.
+            </div>
+          )}
+        </section>
+
+        {/* Returned Books (History) */}
+        <section>
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="font-serif text-2xl font-bold flex items-center gap-2 text-muted-foreground">
+              <Check size={20} className="text-emerald-500" /> Returned Books (History)
+            </h2>
+            <span className="text-xs font-mono text-muted-foreground bg-secondary px-2.5 py-0.5 rounded-full">
+              {returnedBorrowings.length} {returnedBorrowings.length === 1 ? 'book' : 'books'}
+            </span>
+          </div>
+          {borrowings.isLoading ? (
+            <Skeleton className="h-28" />
+          ) : returnedBorrowings.length ? (
+            <div className="grid gap-3 sm:grid-cols-2">
+              {returnedBorrowings.map((item) => (
+                <div key={item.id} className="flex items-center gap-4 rounded-xl border border-border/60 bg-card/60 p-4 opacity-85">
+                  <div className="h-16 w-12 shrink-0 overflow-hidden rounded-md grayscale-30">
+                    <BookCover book={item.book} className="h-full w-full" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="truncate font-serif font-bold">{item.book.title}</h3>
+                    <p className="truncate text-xs text-muted-foreground">by {item.book.author}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {item.returnedAt ? `Returned on ${new Date(item.returnedAt).toLocaleDateString()}` : 'Returned'}
+                    </p>
+                    <div className="mt-1.5">
+                      <Status tone="good">Returned & Restocked</Status>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-xl border border-dashed border-border/60 p-5 text-center text-xs text-muted-foreground">
+              No previous returned books in your history.
+            </div>
           )}
         </section>
       </div>
@@ -1934,6 +2011,24 @@ function AdminBooks() {
       : '';
   const empty = { title: '', author: '', type: 'hardcopy', category: '', description: '', total: '1', year: '', coverUrl: '', fileUrl: '' };
   const [form, setForm] = useState(empty);
+
+  const handleUpdateAvailability = async (bookId: number, target: number, total: number) => {
+    const clamped = Math.max(0, Math.min(total, target));
+    try {
+      const res = await fetch(`/api/books/${bookId}/availability`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ available: clamped }),
+        credentials: 'include',
+      });
+      if (!res.ok) throw new Error('Failed to update availability');
+      await query.refetch();
+      void client.invalidateQueries({ queryKey: getListBooksQueryKey() });
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Could not update availability');
+    }
+  };
+
   const openForm = (book?: Book) => {
     setEditing(book ?? null);
     setCoverFile(null);
@@ -2029,7 +2124,7 @@ function AdminBooks() {
       <div className="hidden grid-cols-[1fr_160px_130px_110px_90px] gap-4 border-b border-border bg-secondary/40 px-5 py-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground sm:grid"><span>Title</span><span>Category</span><span>Format</span><span>Availability</span><span /></div>
       {query.data.map(book => <div key={book.id} className="grid gap-3 border-b border-border p-4 last:border-0 sm:grid-cols-[1fr_160px_130px_110px_90px] sm:items-center sm:gap-4 sm:px-5">
         <div className="flex items-center gap-3"><div className="h-12 w-9 shrink-0 overflow-hidden rounded"><BookCover book={book} className="h-full w-full" /></div><div className="min-w-0"><div className="truncate font-serif font-bold">{book.title}</div><div className="truncate text-xs text-muted-foreground">{book.author}</div></div></div>
-        <span className="text-sm text-muted-foreground">{book.category}</span><span className="text-xs font-mono uppercase">{book.type}</span>{book.type === 'softcopy' ? <span className="text-xs font-mono text-muted-foreground">—</span> : <Status tone={book.available ? 'good' : 'bad'}>{book.available}/{book.total}</Status>}
+        <span className="text-sm text-muted-foreground">{book.category}</span><span className="text-xs font-mono uppercase">{book.type}</span>{book.type === 'softcopy' ? <span className="text-xs font-mono text-muted-foreground">—</span> : <div className="flex items-center gap-1.5"><button type="button" onClick={() => handleUpdateAvailability(book.id, book.available - 1, book.total)} disabled={book.available <= 0} className="h-6 w-6 rounded border border-border bg-secondary hover:bg-secondary/80 text-xs font-bold disabled:opacity-30 flex items-center justify-center cursor-pointer shadow-xs" title="Decrease available copies (-1)">-</button><Status tone={book.available ? 'good' : 'bad'}>{book.available}/{book.total}</Status><button type="button" onClick={() => handleUpdateAvailability(book.id, book.available + 1, book.total)} disabled={book.available >= book.total} className="h-6 w-6 rounded border border-border bg-secondary hover:bg-secondary/80 text-xs font-bold disabled:opacity-30 flex items-center justify-center cursor-pointer shadow-xs" title="Increase available copies (+1)">+</button></div>}
         <div className="flex gap-1">{book.type === 'softcopy' && book.fileUrl && <><a href={book.fileUrl.replace(/^\/api\/storage\/api\/storage\//, '/api/storage/')} target="_blank" rel="noreferrer" title="Open online" className="rounded p-2 text-primary hover:bg-primary/10" data-testid={`link-book-open-${book.id}`}><Eye size={16} /></a><a href={`${book.fileUrl.replace(/^\/api\/storage\/api\/storage\//, '/api/storage/')}?download=1`} target="_blank" rel="noreferrer" download title="Download file" className="rounded p-2 text-primary hover:bg-primary/10" data-testid={`link-book-file-${book.id}`}><Download size={16} /></a></>}<button onClick={() => openForm(book)} title="Edit book" data-testid={`button-edit-book-${book.id}`} className="rounded p-2 text-muted-foreground hover:bg-secondary hover:text-primary"><Pencil size={16} /></button><button onClick={() => { if (window.confirm('Remove this book from the collection?')) del.mutate({ id: book.id }, { onSuccess: () => client.invalidateQueries({ queryKey: getListBooksQueryKey() }) }); }} title="Delete book" data-testid={`button-delete-book-${book.id}`} className="rounded p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"><X size={16} /></button></div>
       </div>)}
     </div> : <EmptyState icon={BookOpen} title="Your collection is empty" detail="Add the first book to give members somewhere to begin." action={<Button onClick={() => openForm()} data-testid="button-empty-add-book"><Plus size={17} />Add a book</Button>} />}
@@ -2081,18 +2176,47 @@ function AdminMembers() {
 
 function AdminRequests() {
   const query = useListBorrowingRequests();
+  const borrowingsQuery = useListBorrowings();
   const reject = useRejectBorrowingRequest();
   const client = useQueryClient();
   const [approvingRequest, setApprovingRequest] = useState<BorrowingRequest | null>(null);
   const [loanDays, setLoanDays] = useState<number>(14);
   const [approving, setApproving] = useState<boolean>(false);
   const [approveError, setApproveError] = useState<string>('');
+  const [confirmingId, setConfirmingId] = useState<number | null>(null);
+
+  const activeLoans = Array.isArray(borrowingsQuery.data)
+    ? borrowingsQuery.data.filter((b) => b.status === 'borrowed' || b.status === 'return_pending')
+    : [];
 
   const refresh = () => {
     query.refetch();
+    borrowingsQuery.refetch();
     void client.invalidateQueries({ queryKey: getListBorrowingRequestsQueryKey() });
     void client.invalidateQueries({ queryKey: getListBorrowingsQueryKey() });
     void client.invalidateQueries({ queryKey: getListBooksQueryKey() });
+  };
+
+  const handleConfirmReturn = async (borrowingId: number) => {
+    if (!window.confirm('Confirm return for this book? This will mark the record as returned and automatically restore the book availability (+1) for other members.')) return;
+    setConfirmingId(borrowingId);
+    try {
+      const res = await fetch(`/api/borrowings/${borrowingId}/confirm-return`, {
+        method: 'PUT',
+        credentials: 'include',
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to confirm return');
+      }
+      await borrowingsQuery.refetch();
+      void client.invalidateQueries({ queryKey: getListBorrowingsQueryKey() });
+      void client.invalidateQueries({ queryKey: getListBooksQueryKey() });
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Error confirming return');
+    } finally {
+      setConfirmingId(null);
+    }
   };
 
   const handleOpenApproveModal = (req: BorrowingRequest) => {
@@ -2285,6 +2409,64 @@ function AdminRequests() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Active Book Loans & Steward Return Confirmation */}
+      <div className="mt-12 pt-8 border-t border-border">
+        <div className="mb-4 flex items-center justify-between">
+          <div>
+            <h2 className="font-serif text-2xl font-bold flex items-center gap-2">
+              <BookOpen size={20} className="text-primary" /> Active Loans & Return Confirmation
+            </h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Confirm receipt when a member returns a book to immediately restock it for other members.
+            </p>
+          </div>
+          <span className="text-xs font-mono text-muted-foreground bg-secondary px-2.5 py-0.5 rounded-full">
+            {activeLoans.length} active
+          </span>
+        </div>
+
+        {borrowingsQuery.isLoading ? (
+          <Skeleton className="h-32" />
+        ) : activeLoans.length ? (
+          <div className="grid gap-3 sm:grid-cols-2">
+            {activeLoans.map((item) => (
+              <div key={item.id} className="flex items-center gap-4 rounded-xl border border-border bg-card p-4 shadow-xs">
+                <div className="h-16 w-12 shrink-0 overflow-hidden rounded-md">
+                  <BookCover book={item.book} className="h-full w-full" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h3 className="truncate font-serif font-bold text-base">{item.book.title}</h3>
+                  <div className="text-xs text-muted-foreground mt-0.5">
+                    Borrower: <span className="font-medium text-foreground">{item.member.name}</span> ({item.member.email})
+                  </div>
+                  <div className="text-xs font-mono text-muted-foreground mt-1 flex items-center gap-1.5">
+                    <Clock3 size={13} className="text-primary" /> Due {item.dueDate}
+                  </div>
+                  <div className="mt-2.5 flex flex-wrap items-center gap-2">
+                    {item.status === 'return_pending' && (
+                      <Status tone="warn">Member Reported Returned</Status>
+                    )}
+                    <Button
+                      variant="soft"
+                      disabled={confirmingId === item.id}
+                      onClick={() => handleConfirmReturn(item.id)}
+                      className="py-1 px-3 text-xs"
+                      data-testid={`button-confirm-return-${item.id}`}
+                    >
+                      <Check size={14} /> {confirmingId === item.id ? 'Restocking…' : 'Confirm Return (+1 Restock)'}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+            No active book loans. All borrowed books have been returned and restocked.
+          </div>
+        )}
+      </div>
     </AuthenticatedLayout>
   );
 }

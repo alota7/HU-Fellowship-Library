@@ -90,3 +90,48 @@ export const libraryQuestions = pgTable("library_questions", {
     mode: "date",
   }),
 });
+
+export const libraryBorrowingRequests = pgTable("library_borrowing_requests", {
+  id: serial("id").primaryKey(),
+  bookId: integer("book_id")
+    .references(() => libraryBooks.id, { onDelete: "cascade" })
+    .notNull(),
+  memberId: integer("member_id")
+    .references(() => libraryUsers.id, { onDelete: "cascade" })
+    .notNull(),
+  memberName: text("member_name").notNull(),
+  memberEmail: text("member_email").notNull(),
+  status: text("status").notNull().default("pending"),
+  rejectionReason: text("rejection_reason"),
+  requestedAt: timestamp("requested_at", {
+    withTimezone: true,
+    mode: "date",
+  })
+    .notNull()
+    .defaultNow(),
+});
+
+export const libraryBorrowings = pgTable("library_borrowings", {
+  id: serial("id").primaryKey(),
+  bookId: integer("book_id")
+    .references(() => libraryBooks.id, { onDelete: "cascade" })
+    .notNull(),
+  memberId: integer("member_id")
+    .references(() => libraryUsers.id, { onDelete: "cascade" })
+    .notNull(),
+  memberName: text("member_name").notNull(),
+  memberEmail: text("member_email").notNull(),
+  dueDate: text("due_date").notNull(),
+  loanDays: integer("loan_days").notNull().default(14),
+  status: text("status").notNull().default("borrowed"),
+  borrowedAt: timestamp("borrowed_at", {
+    withTimezone: true,
+    mode: "date",
+  })
+    .notNull()
+    .defaultNow(),
+  returnedAt: timestamp("returned_at", {
+    withTimezone: true,
+    mode: "date",
+  }),
+});
