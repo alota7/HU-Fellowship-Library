@@ -1,5 +1,7 @@
 import { Router, type IRouter, type Request } from "express";
 import crypto from "node:crypto";
+import fs from "node:fs";
+import path from "node:path";
 import { ReplitConnectors } from "@replit/connectors-sdk";
 import { eq } from "drizzle-orm";
 import {
@@ -392,11 +394,36 @@ router.put("/books/:id", async (req, res) => {
 router.delete("/books/:id", async (req, res) => {
   if (!requireAdmin(req, res)) return;
   const id = Number(req.params.id);
-  const [deleted] = await db
-    .delete(libraryBooks)
+  const [existing] = await db
+    .select()
+    .from(libraryBooks)
     .where(eq(libraryBooks.id, id))
-    .returning({ id: libraryBooks.id });
-  if (!deleted) return res.status(404).json({ error: "Book not found." });
+    .limit(1);
+
+  if (!existing) return res.status(404).json({ error: "Book not found." });
+
+  // Clean up uploaded files if present
+  for (const url of [existing.fileUrl, existing.coverUrl]) {
+    if (url) {
+      try {
+        const match = url.match(/\/uploads\/file\/([^/]+)\/([^/?#]+)/);
+        if (match) {
+          const [, fileId] = match;
+          const dirPath = path.resolve(process.cwd(), "uploads", fileId);
+          if (fs.existsSync(dirPath)) {
+            fs.rmSync(dirPath, { recursive: true, force: true });
+          }
+        }
+      } catch (err) {
+        console.error("Error deleting book file:", err);
+      }
+    }
+  }
+
+  await db
+    .delete(libraryBooks)
+    .where(eq(libraryBooks.id, id));
+
   runtimeAvailability.delete(id);
   return res.status(204).send();
 });
@@ -582,11 +609,36 @@ router.put("/study-notes/:id/reject", async (req, res) => {
 
 router.delete("/study-notes/:id", async (req, res) => {
   if (!requireAdmin(req, res)) return;
-  const [deleted] = await db
+  const id = Number(req.params.id);
+  if (Number.isNaN(id)) return res.status(400).json({ error: "Invalid study note ID." });
+
+  const [existing] = await db
+    .select()
+    .from(libraryStudyNotes)
+    .where(eq(libraryStudyNotes.id, id))
+    .limit(1);
+
+  if (!existing) return res.status(404).json({ error: "Study note not found." });
+
+  if (existing.fileUrl) {
+    try {
+      const match = existing.fileUrl.match(/\/uploads\/file\/([^/]+)\/([^/?#]+)/);
+      if (match) {
+        const [, fileId] = match;
+        const dirPath = path.resolve(process.cwd(), "uploads", fileId);
+        if (fs.existsSync(dirPath)) {
+          fs.rmSync(dirPath, { recursive: true, force: true });
+        }
+      }
+    } catch (err) {
+      console.error("Error deleting study note file:", err);
+    }
+  }
+
+  await db
     .delete(libraryStudyNotes)
-    .where(eq(libraryStudyNotes.id, Number(req.params.id)))
-    .returning({ id: libraryStudyNotes.id });
-  if (!deleted) return res.status(404).json({ error: "Study note not found." });
+    .where(eq(libraryStudyNotes.id, id));
+
   return res.status(204).send();
 });
 
