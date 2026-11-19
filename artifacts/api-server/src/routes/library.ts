@@ -727,10 +727,18 @@ router.get("/dashboard/summary", async (req, res) => {
       .from(libraryStudyNotes)
       .where(eq(libraryStudyNotes.status, "approved")),
   ]);
+  if (user.role !== "admin") {
+    return res.json({
+      books: bookRows.length,
+      studyNotes: approvedNotes.length,
+      activeBorrowings: 0,
+      pendingRequests: 0,
+    });
+  }
   return res.json({
     books: bookRows.length,
     studyNotes: approvedNotes.length,
-    activeBorrowings: user.role === "admin" ? borrowings.length : borrowings.length,
+    activeBorrowings: borrowings.length,
     pendingRequests: requests.filter((request) => request.status === "pending").length,
   });
 });

@@ -93,7 +93,7 @@ const previewBorrowingRequests: BorrowingRequest[] = [
   { id: -2, book: previewBooks[1], member: { ...previewMember, id: -4, name: 'Dawit Bekele', email: 'dawit@example.test' }, status: 'pending', requestedAt: '2026-11-10T14:15:00.000Z', rejectionReason: null },
   { id: -3, book: previewBooks[2], member: { ...previewMember, id: -5, name: 'Hana Tesfaye', email: 'hana@example.test' }, status: 'pending', requestedAt: '2026-11-09T08:00:00.000Z', rejectionReason: null },
 ];
-const previewMemberSummary: DashboardSummary = { books: 32, studyNotes: 9, activeBorrowings: 1, pendingRequests: 1 };
+const previewMemberSummary: DashboardSummary = { books: 32, studyNotes: 9, activeBorrowings: 0, pendingRequests: 0 };
 const previewAdminSummary: DashboardSummary = { books: 32, studyNotes: 9, activeBorrowings: 7, pendingRequests: 3 };
 
 const Button = ({ children, variant = 'primary', className = '', ...props }: { children: ReactNode; variant?: 'primary' | 'soft' | 'outline' | 'ghost' | 'danger'; className?: string } & React.ButtonHTMLAttributes<HTMLButtonElement>) => {
@@ -965,14 +965,15 @@ function MemberDashboard({ preview = false }: { preview?: boolean }) {
   const { lang } = useLang();
   const summary = useGetDashboardSummary({ query: { queryKey: getGetDashboardSummaryQueryKey(), enabled: !preview } });
   const books = useListBooks(undefined, { query: { queryKey: getListBooksQueryKey(), enabled: !preview } });
-  const borrowings = useListBorrowings({ query: { queryKey: getListBorrowingsQueryKey(), enabled: !preview } });
   const notes = useListStudyNotes(undefined, { query: { queryKey: getListStudyNotesQueryKey(), enabled: !preview } });
+  const categories = useListCategories({ query: { queryKey: getListCategoriesQueryKey(), enabled: !preview } });
   const data = preview ? previewMemberSummary : summary.data;
   const latest = preview ? previewBooks : (Array.isArray(books.data) ? books.data : []).slice(0, 3);
+  const totalCategories = preview ? 6 : (Array.isArray(categories.data) ? categories.data.length : 0);
   const action = preview
     ? <Button disabled variant="soft" data-testid="button-preview-browse"><ChevronRight size={16} />Preview only</Button>
     : <Link href="/member/books" data-testid="link-dashboard-browse" className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground">{t('browse', lang)} <ChevronRight size={16} /></Link>;
-  return <AuthenticatedLayout preview={preview}><PageHeading eyebrow={t('overview', lang)} title={`${t('welcome', lang)}.`} detail="A good study habit starts by knowing where to look." action={action} /><div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{!preview && summary.isLoading ? [1,2,3,4].map(i => <Skeleton key={i} className="h-36" />) : <><Metric label={lang === 'am' ? 'በስብስቡ ውስጥ መጻሕፍት' : 'Books in collection'} value={data?.books ?? 0} icon={BookOpen} /><Metric label={lang === 'am' ? 'የእኔ የነባር ውሰቶች' : 'Active borrowings'} value={data?.activeBorrowings ?? (preview ? 1 : borrowings.data?.length ?? 0)} icon={Bookmark} accent="accent" /><Metric label={lang === 'am' ? 'የጥናት ማስታወሻዎች' : 'Study notes'} value={data?.studyNotes ?? (preview ? 4 : notes.data?.length ?? 0)} icon={FileText} /><Metric label={lang === 'am' ? 'በመጠባበቅ ላይ ጥያቄዎች' : 'Pending requests'} value={data?.pendingRequests ?? 0} icon={Clock3} /></>}</div><div className="mt-8 grid gap-6 xl:grid-cols-[1.25fr_.75fr]"><section className="rounded-2xl border border-border bg-card p-6"><div className="flex items-center justify-between"><div><div className="text-xs font-bold uppercase tracking-[.2em] text-accent">{t('featured', lang)}</div><h2 className="mt-1 font-serif text-2xl font-bold">Begin with a good question.</h2></div>{preview ? <span className="text-sm font-semibold text-muted-foreground">Sample shelf</span> : <Link href="/member/books" data-testid="link-dashboard-books" className="text-sm font-bold text-primary">See all</Link>}</div>{!preview && books.isLoading ? <div className="mt-6 grid gap-3">{[1,2,3].map(i => <Skeleton key={i} className="h-20" />)}</div> : latest.length ? <div className="mt-6 grid gap-3">{latest.map(book => {
+  return <AuthenticatedLayout preview={preview}><PageHeading eyebrow={t('overview', lang)} title={`${t('welcome', lang)}.`} detail="A good study habit starts by knowing where to look." action={action} /><div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{!preview && summary.isLoading ? [1,2,3].map(i => <Skeleton key={i} className="h-36" />) : <><Metric label={lang === 'am' ? 'በስብስቡ ውስጥ መጻሕፍት' : 'Books in collection'} value={data?.books ?? 0} icon={BookOpen} /><Metric label={lang === 'am' ? 'የጥናት ማስታወሻዎች' : 'Study notes & guides'} value={data?.studyNotes ?? (preview ? 9 : notes.data?.length ?? 0)} icon={FileText} /><Metric label={lang === 'am' ? 'የመጽሐፍ ምድቦች' : 'Book categories'} value={totalCategories} icon={FolderOpen} /></>}</div><div className="mt-8 grid gap-6 xl:grid-cols-[1.25fr_.75fr]"><section className="rounded-2xl border border-border bg-card p-6"><div className="flex items-center justify-between"><div><div className="text-xs font-bold uppercase tracking-[.2em] text-accent">{t('featured', lang)}</div><h2 className="mt-1 font-serif text-2xl font-bold">Begin with a good question.</h2></div>{preview ? <span className="text-sm font-semibold text-muted-foreground">Sample shelf</span> : <Link href="/member/books" data-testid="link-dashboard-books" className="text-sm font-bold text-primary">See all</Link>}</div>{!preview && books.isLoading ? <div className="mt-6 grid gap-3">{[1,2,3].map(i => <Skeleton key={i} className="h-20" />)}</div> : latest.length ? <div className="mt-6 grid gap-3">{latest.map(book => {
     const content = <><div className="h-16 w-12 shrink-0 overflow-hidden rounded-md"><BookCover book={book} className="h-full w-full" /></div><div className="min-w-0 flex-1"><h3 className="truncate font-serif font-bold">{book.title}</h3><p className="truncate text-xs text-muted-foreground">{book.author} · {book.category}</p></div>{!preview && <ArrowUpRight size={17} className="text-muted-foreground" />}</>;
     return preview
       ? <div key={book.id} data-testid={`row-preview-book-${Math.abs(book.id)}`} className="flex items-center gap-4 rounded-xl border border-border/70 p-3">{content}</div>
@@ -1385,8 +1386,57 @@ function MemberNotes() {
 function NoteCard({ note }: { note: StudyNote }) { return <StudyNoteStoreCard note={note} onSelect={() => {}} />; }
 
 function MemberBorrowings() {
-  const { lang } = useLang(); const borrowings = useListBorrowings(); const requests = useListBorrowingRequests();
-  return <AuthenticatedLayout><PageHeading eyebrow={t('membersOnly', lang)} title={t('borrowings', lang)} detail="Keep an eye on what is with you and what is on its way." /><div className="grid gap-8 xl:grid-cols-[1.2fr_.8fr]"><section><div className="mb-4 flex items-center justify-between"><h2 className="font-serif text-2xl font-bold">Currently with me</h2><Status tone="good">{borrowings.data?.length ?? 0} active</Status></div>{borrowings.isLoading ? <Skeleton className="h-52" /> : borrowings.data?.length ? <div className="grid gap-3">{borrowings.data.map(item => <div key={item.id} className="flex items-center gap-4 rounded-xl border border-border bg-card p-4"><div className="h-16 w-12 shrink-0 overflow-hidden rounded-md"><BookCover book={item.book} className="h-full w-full" /></div><div className="min-w-0 flex-1"><h3 className="truncate font-serif font-bold">{item.book.title}</h3><p className="text-xs text-muted-foreground">Due {new Date(item.dueDate).toLocaleDateString()}</p></div><Status tone={item.status === 'overdue' ? 'bad' : 'good'}>{item.status}</Status></div>)}</div> : <EmptyState icon={Bookmark} title="Nothing borrowed yet" detail="When you borrow a book, its due date and status will live here." action={<Link href="/member/books" data-testid="link-empty-borrowings" className="inline-flex rounded-lg bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground">Browse books</Link>} />}</section><section><h2 className="mb-4 font-serif text-2xl font-bold">Request history</h2>{requests.isLoading ? <Skeleton className="h-52" /> : requests.data?.length ? <div className="grid gap-3">{requests.data.map(item => <div key={item.id} className="rounded-xl border border-border bg-card p-4"><div className="flex items-center justify-between gap-3"><h3 className="truncate font-semibold">{item.book.title}</h3><Status tone={item.status === 'approved' ? 'good' : item.status === 'pending' ? 'warn' : 'bad'}>{item.status}</Status></div><p className="mt-2 text-xs text-muted-foreground">Requested {new Date(item.requestedAt).toLocaleDateString()}</p>{item.rejectionReason && <p className="mt-2 text-xs text-destructive">{item.rejectionReason}</p>}</div>)}</div> : <EmptyState icon={Clock3} title="No requests yet" detail="Borrowing requests you make will appear here." />}</section></div></AuthenticatedLayout>;
+  const { lang } = useLang();
+  const borrowings = useListBorrowings();
+  return (
+    <AuthenticatedLayout>
+      <PageHeading
+        eyebrow={t('membersOnly', lang)}
+        title={lang === 'am' ? 'የተዋሷቸው መጻሕፍት' : 'My Books'}
+        detail="Keep track of physical books currently in your care."
+      />
+      <div className="max-w-4xl">
+        <section>
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="font-serif text-2xl font-bold">Currently in my care</h2>
+          </div>
+          {borrowings.isLoading ? (
+            <Skeleton className="h-52" />
+          ) : borrowings.data?.length ? (
+            <div className="grid gap-3 sm:grid-cols-2">
+              {borrowings.data.map((item) => (
+                <div key={item.id} className="flex items-center gap-4 rounded-xl border border-border bg-card p-4">
+                  <div className="h-16 w-12 shrink-0 overflow-hidden rounded-md">
+                    <BookCover book={item.book} className="h-full w-full" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="truncate font-serif font-bold">{item.book.title}</h3>
+                    <p className="text-xs text-muted-foreground">Due {new Date(item.dueDate).toLocaleDateString()}</p>
+                  </div>
+                  <Status tone={item.status === 'overdue' ? 'bad' : 'good'}>{item.status}</Status>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <EmptyState
+              icon={Bookmark}
+              title="Nothing borrowed yet"
+              detail="When you borrow a physical book from the collection, it will appear here."
+              action={
+                <Link
+                  href="/member/books"
+                  data-testid="link-empty-borrowings"
+                  className="inline-flex rounded-lg bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground"
+                >
+                  Browse books
+                </Link>
+              }
+            />
+          )}
+        </section>
+      </div>
+    </AuthenticatedLayout>
+  );
 }
 
 function Profile() {
