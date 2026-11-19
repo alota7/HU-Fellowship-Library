@@ -364,29 +364,25 @@ function Home() {
 function AuthShell({ children, eyebrow, title, detail }: { children: ReactNode; eyebrow: string; title: string; detail: string }) {
   return (
     <div className="noise min-h-[100dvh] bg-background">
-      <div className="grid min-h-[100dvh] lg:grid-cols-2">
-        <div className="hidden bg-sidebar p-8 lg:p-12 xl:p-16 text-sidebar-foreground lg:flex lg:flex-col lg:justify-between lg:items-end border-r border-sidebar-border/40">
-          <div className="w-full max-w-md flex flex-col justify-between h-full">
-            <div>
-              <Logo dark />
+      <div className="mx-auto grid min-h-[100dvh] max-w-6xl xl:max-w-7xl lg:grid-cols-2">
+        <div className="hidden bg-sidebar p-8 lg:p-12 xl:p-14 text-sidebar-foreground lg:flex lg:flex-col lg:justify-between border-r border-border/40">
+          <Logo dark />
+          <div className="max-w-md pb-12">
+            <div className="mb-5 text-xs font-bold uppercase tracking-[.22em] text-sidebar-primary">HU Fellowship Library</div>
+            <h2 className="font-serif text-4xl lg:text-5xl font-bold leading-tight">Make room for the word.</h2>
+            <p className="mt-6 leading-7 text-sidebar-foreground/65">A trusted collection for the people who keep asking better questions.</p>
+            <div className="mt-12 border-l-2 border-sidebar-primary/60 pl-5 font-serif text-lg italic text-sidebar-foreground/85">
+              “Let the word of Christ dwell in you richly.”
+              <span className="mt-2 block font-sans text-xs not-italic text-sidebar-primary">Colossians 3:16</span>
             </div>
-            <div className="py-10">
-              <div className="mb-5 text-xs font-bold uppercase tracking-[.22em] text-sidebar-primary">HU Fellowship Library</div>
-              <h2 className="font-serif text-4xl lg:text-5xl font-bold leading-tight">Make room for the word.</h2>
-              <p className="mt-6 leading-7 text-sidebar-foreground/65">A trusted collection for the people who keep asking better questions.</p>
-              <div className="mt-12 border-l-2 border-sidebar-primary/60 pl-5 font-serif text-lg italic text-sidebar-foreground/85">
-                “Let the word of Christ dwell in you richly.”
-                <span className="mt-2 block font-sans text-xs not-italic text-sidebar-primary">Colossians 3:16</span>
-              </div>
-            </div>
-            <div className="flex items-center justify-between text-sidebar-foreground/45 border-t border-sidebar-border pt-4">
-              <div className="font-mono text-[10px] uppercase tracking-[.2em]">Study / Serve / Share</div>
-              <ThemeToggle className="text-sidebar-foreground/70 hover:text-sidebar-foreground border-sidebar-border/40 bg-sidebar-accent/50" />
-            </div>
+          </div>
+          <div className="flex items-center justify-between text-sidebar-foreground/45 border-t border-sidebar-border pt-4">
+            <div className="font-mono text-[10px] uppercase tracking-[.2em]">Study / Serve / Share</div>
+            <ThemeToggle className="text-sidebar-foreground/70 hover:text-sidebar-foreground border-sidebar-border/40 bg-sidebar-accent/50" />
           </div>
         </div>
         
-        <div className="flex items-center justify-start px-6 py-8 sm:px-10 lg:pl-12 xl:pl-20 lg:pr-12 xl:pr-24 safe-bottom">
+        <div className="flex items-center justify-center lg:justify-start px-6 py-8 sm:px-10 lg:pl-12 lg:pr-14 xl:pl-16 xl:pr-24 safe-bottom">
           <div className="w-full max-w-md">
             <div className="mb-8 flex items-center justify-between lg:hidden">
               <Logo />
@@ -573,7 +569,7 @@ function ModernBookCard({ book, publicCard = false }: { book: Book; publicCard?:
       </Link>
 
       <div className="mt-2 sm:mt-2.5 mb-1.5 sm:mb-2 text-center text-xs font-semibold text-foreground/80 tracking-wide">
-        {book.type === 'softcopy' ? 'Digital book' : (book.available > 0 ? 'Free' : 'On loan')}
+        {book.type === 'softcopy' ? 'Digital Edition' : (book.available > 0 ? 'Free' : 'On loan')}
       </div>
 
       <div className="w-full">
@@ -1191,7 +1187,7 @@ function BookDetail() {
   if (book.isLoading) return <AuthenticatedLayout><div className="grid gap-6 md:grid-cols-[260px_1fr]"><Skeleton className="h-80" /><div className="grid gap-4"><Skeleton className="h-10 w-2/3" /><Skeleton className="h-28" /></div></div></AuthenticatedLayout>;
   if (book.isError || !book.data) return <AuthenticatedLayout><ErrorState retry={() => book.refetch()} /></AuthenticatedLayout>;
   const item = book.data;
-  return <AuthenticatedLayout><Link href="/member/books" data-testid="link-back-books" className="mb-7 inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-primary"><ArrowLeft size={16} /> {t('books', lang)}</Link><div className="grid gap-10 md:grid-cols-[260px_1fr] lg:grid-cols-[300px_1fr]"><div><BookCover book={item} large /></div><div className="max-w-3xl"><div className="flex flex-wrap items-center gap-2">{item.type !== 'softcopy' && <Status tone={item.available > 0 ? 'good' : 'bad'}>{item.available > 0 ? `${item.available} available` : 'Currently unavailable'}</Status>}<Status>{item.type}</Status></div><h1 className="mt-4 font-serif text-4xl font-bold leading-tight sm:text-5xl">{item.title}</h1><p className="mt-3 text-lg text-muted-foreground">by {item.author}</p><div className="mt-8 grid gap-5 border-y border-border py-6 sm:grid-cols-3"><div><div className="text-xs uppercase tracking-wider text-muted-foreground">Category</div><div className="mt-1 font-semibold">{item.category}</div></div><div><div className="text-xs uppercase tracking-wider text-muted-foreground">Published</div><div className="mt-1 font-semibold">{item.year ?? '—'}</div></div><div><div className="text-xs uppercase tracking-wider text-muted-foreground">Copies</div><div className="mt-1 font-semibold">{item.type === 'softcopy' ? 'Digital copy' : `${item.available} of ${item.total}`}</div></div></div><p className="mt-7 max-w-2xl leading-7 text-muted-foreground">{item.description}</p><div className="mt-9 flex flex-wrap gap-3">{item.type === 'softcopy' ? (item.fileUrl ? <><a href={item.fileUrl.replace(/^\/api\/storage\/api\/storage\//, '/api/storage/')} target="_blank" rel="noreferrer" data-testid="link-read-online-book" className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-3 text-sm font-bold text-primary-foreground shadow-sm hover:opacity-95"><Eye size={17} />{lang === 'am' ? 'በመስመር ላይ ክፈት' : 'Open online'}</a><a href={`${item.fileUrl.replace(/^\/api\/storage\/api\/storage\//, '/api/storage/')}?download=1`} target="_blank" rel="noreferrer" download data-testid="link-download-book" className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-5 py-3 text-sm font-bold text-foreground shadow-sm hover:bg-secondary"><Download size={17} />{lang === 'am' ? 'ያውርዱ' : 'Download file'}</a></> : <span className="text-sm text-muted-foreground">Softcopy file is being prepared.</span>) : <>{item.available > 0 && <Button disabled={request.isPending || sent} onClick={() => request.mutate({ data: { bookId: item.id } }, { onSuccess: () => setSent(true) })} data-testid="button-request-book">{sent ? <><Check size={17} />Request sent</> : request.isPending ? 'Sending…' : <><Bookmark size={17} />{t('request', lang)}</>}</Button>}{item.available === 0 && <Button variant="soft" disabled data-testid="button-unavailable">Currently unavailable</Button>}</>}</div></div></div></AuthenticatedLayout>;
+  return <AuthenticatedLayout><Link href="/member/books" data-testid="link-back-books" className="mb-7 inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-primary"><ArrowLeft size={16} /> {t('books', lang)}</Link><div className="grid gap-10 md:grid-cols-[260px_1fr] lg:grid-cols-[300px_1fr]"><div><BookCover book={item} large /></div><div className="max-w-3xl"><div className="flex flex-wrap items-center gap-2">{item.type !== 'softcopy' && <Status tone={item.available > 0 ? 'good' : 'bad'}>{item.available > 0 ? `${item.available} available` : 'Currently unavailable'}</Status>}<Status>{item.type}</Status></div><h1 className="mt-4 font-serif text-4xl font-bold leading-tight sm:text-5xl">{item.title}</h1><p className="mt-3 text-lg text-muted-foreground">by {item.author}</p><div className="mt-8 grid gap-5 border-y border-border py-6 sm:grid-cols-3"><div><div className="text-xs uppercase tracking-wider text-muted-foreground">Category</div><div className="mt-1 font-semibold">{item.category}</div></div><div><div className="text-xs uppercase tracking-wider text-muted-foreground">Published</div><div className="mt-1 font-semibold">{item.year ?? '—'}</div></div><div><div className="text-xs uppercase tracking-wider text-muted-foreground">{item.type === 'softcopy' ? 'Format' : 'Copies'}</div><div className="mt-1 font-semibold">{item.type === 'softcopy' ? 'Digital (Softcopy)' : `${item.available} of ${item.total}`}</div></div></div><p className="mt-7 max-w-2xl leading-7 text-muted-foreground">{item.description}</p><div className="mt-9 flex flex-wrap gap-3">{item.type === 'softcopy' ? (item.fileUrl ? <><a href={item.fileUrl.replace(/^\/api\/storage\/api\/storage\//, '/api/storage/')} target="_blank" rel="noreferrer" data-testid="link-read-online-book" className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-3 text-sm font-bold text-primary-foreground shadow-sm hover:opacity-95"><Eye size={17} />{lang === 'am' ? 'በመስመር ላይ ክፈት' : 'Open online'}</a><a href={`${item.fileUrl.replace(/^\/api\/storage\/api\/storage\//, '/api/storage/')}?download=1`} target="_blank" rel="noreferrer" download data-testid="link-download-book" className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-5 py-3 text-sm font-bold text-foreground shadow-sm hover:bg-secondary"><Download size={17} />{lang === 'am' ? 'ያውርዱ' : 'Download file'}</a></> : <span className="text-sm text-muted-foreground">Softcopy file is being prepared.</span>) : <>{item.available > 0 && <Button disabled={request.isPending || sent} onClick={() => request.mutate({ data: { bookId: item.id } }, { onSuccess: () => setSent(true) })} data-testid="button-request-book">{sent ? <><Check size={17} />Request sent</> : request.isPending ? 'Sending…' : <><Bookmark size={17} />{t('request', lang)}</>}</Button>}{item.available === 0 && <Button variant="soft" disabled data-testid="button-unavailable">Currently unavailable</Button>}</>}</div></div></div></AuthenticatedLayout>;
 }
 
 function MemberNotes() {
@@ -1558,7 +1554,7 @@ function AdminBooks() {
           <option value="">Choose a category</option>{(Array.isArray(cats.data) ? cats.data : []).map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
         </select>
       </label>
-      {form.type !== 'softcopy' && <Field label="Total copies" type="number" min="0" value={form.total} onChange={e => setForm({ ...form, total: e.target.value })} required data-testid="input-book-total" />}
+      <Field label="Total copies" type="number" min="0" value={form.total} onChange={e => setForm({ ...form, total: e.target.value })} required data-testid="input-book-total" />
       <Field label="Year" type="number" value={form.year} onChange={e => setForm({ ...form, year: e.target.value })} data-testid="input-book-year" />
       <div className="md:col-span-2"><TextAreaField label="Description" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} required data-testid="textarea-book-description" /></div>
       <label className="grid gap-2 text-sm font-semibold">Cover image
@@ -1580,7 +1576,7 @@ function AdminBooks() {
       <div className="hidden grid-cols-[1fr_160px_130px_110px_90px] gap-4 border-b border-border bg-secondary/40 px-5 py-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground sm:grid"><span>Title</span><span>Category</span><span>Format</span><span>Availability</span><span /></div>
       {query.data.map(book => <div key={book.id} className="grid gap-3 border-b border-border p-4 last:border-0 sm:grid-cols-[1fr_160px_130px_110px_90px] sm:items-center sm:gap-4 sm:px-5">
         <div className="flex items-center gap-3"><div className="h-12 w-9 shrink-0 overflow-hidden rounded"><BookCover book={book} className="h-full w-full" /></div><div className="min-w-0"><div className="truncate font-serif font-bold">{book.title}</div><div className="truncate text-xs text-muted-foreground">{book.author}</div></div></div>
-        <span className="text-sm text-muted-foreground">{book.category}</span><span className="text-xs font-mono uppercase">{book.type}</span>{book.type === 'softcopy' ? <span className="text-xs text-muted-foreground">—</span> : <Status tone={book.available ? 'good' : 'bad'}>{book.available}/{book.total}</Status>}
+        <span className="text-sm text-muted-foreground">{book.category}</span><span className="text-xs font-mono uppercase">{book.type}</span>{book.type === 'softcopy' ? <span className="text-xs font-mono text-muted-foreground">—</span> : <Status tone={book.available ? 'good' : 'bad'}>{book.available}/{book.total}</Status>}
         <div className="flex gap-1">{book.type === 'softcopy' && book.fileUrl && <><a href={book.fileUrl.replace(/^\/api\/storage\/api\/storage\//, '/api/storage/')} target="_blank" rel="noreferrer" title="Open online" className="rounded p-2 text-primary hover:bg-primary/10" data-testid={`link-book-open-${book.id}`}><Eye size={16} /></a><a href={`${book.fileUrl.replace(/^\/api\/storage\/api\/storage\//, '/api/storage/')}?download=1`} target="_blank" rel="noreferrer" download title="Download file" className="rounded p-2 text-primary hover:bg-primary/10" data-testid={`link-book-file-${book.id}`}><Download size={16} /></a></>}<button onClick={() => openForm(book)} title="Edit book" data-testid={`button-edit-book-${book.id}`} className="rounded p-2 text-muted-foreground hover:bg-secondary hover:text-primary"><Pencil size={16} /></button><button onClick={() => { if (window.confirm('Remove this book from the collection?')) del.mutate({ id: book.id }, { onSuccess: () => client.invalidateQueries({ queryKey: getListBooksQueryKey() }) }); }} title="Delete book" data-testid={`button-delete-book-${book.id}`} className="rounded p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"><X size={16} /></button></div>
       </div>)}
     </div> : <EmptyState icon={BookOpen} title="Your collection is empty" detail="Add the first book to give members somewhere to begin." action={<Button onClick={() => openForm()} data-testid="button-empty-add-book"><Plus size={17} />Add a book</Button>} />}
@@ -1647,28 +1643,34 @@ function AdminNotes() {
   const [noteFile, setNoteFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
+  const [deletingId, setDeletingId] = useState<number | null>(null);
   const [form, setForm] = useState({ title: '', description: '', type: 'summer', fileUrl: '' });
 
   const refresh = () => {
-    client.invalidateQueries({ queryKey: getListStudyNotesQueryKey() });
     query.refetch();
+    void client.invalidateQueries({ queryKey: getListStudyNotesQueryKey() });
     setShowForm(false);
     setNoteFile(null);
     setUploadError('');
     setForm({ title: '', description: '', type: 'summer', fileUrl: '' });
   };
 
-  const handleDelete = (id: number) => {
-    if (window.confirm('Delete this study note and attached file completely?')) {
-      remove.mutate(
-        { id },
-        {
-          onSuccess: refresh,
-          onError: (err) => {
-            setUploadError(err instanceof Error ? err.message : 'Could not delete study note.');
-          },
-        }
-      );
+  const handleDeleteNote = async (id: number) => {
+    if (!window.confirm('Delete this study note and its attached document permanently?')) return;
+    setDeletingId(id);
+    try {
+      const res = await fetch(`/api/study-notes/${id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      if (!res.ok && res.status !== 404) {
+        throw new Error('Failed to delete study note');
+      }
+      refresh();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Could not delete study note');
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -1725,7 +1727,7 @@ function AdminNotes() {
         <Button type="button" variant="ghost" onClick={() => setShowForm(false)} data-testid="button-cancel-admin-note">Cancel</Button>
       </div>
     </form>}
-    {query.isLoading ? <div className="grid gap-4 md:grid-cols-2">{[1,2,3,4].map(i => <Skeleton key={i} className="h-40" />)}</div> : query.data?.length ? <div className="grid gap-4 md:grid-cols-2">{query.data.map(note => <div key={note.id} className="rounded-xl border border-border bg-card p-5"><div className="flex items-center justify-between"><Status tone={note.status === 'approved' ? 'good' : note.status === 'pending' ? 'warn' : 'bad'}>{note.status}</Status><span className="text-xs text-muted-foreground">{new Date(note.submittedAt).toLocaleDateString()}</span></div><h3 className="mt-4 font-serif text-xl font-bold">{note.title}</h3><p className="mt-1 text-xs text-muted-foreground">submitted by {note.author} · <span className="uppercase font-mono">{note.type}</span></p><p className="mt-3 line-clamp-2 text-sm leading-6 text-muted-foreground">{note.description}</p>{note.fileUrl && <div className="mt-3"><a href={note.fileUrl.replace(/^\/api\/storage\/api\/storage\//, '/api/storage/')} target="_blank" rel="noreferrer" download className="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:underline" data-testid={`link-admin-note-file-${note.id}`}><FileText size={14} /> Review attached PDF / document <ArrowUpRight size={12} /></a></div>}<div className="mt-5 flex flex-wrap gap-2">{note.status === 'pending' && <><Button variant="soft" disabled={approve.isPending} onClick={() => approve.mutate({ id: note.id }, { onSuccess: refresh })} data-testid={`button-approve-note-${note.id}`}><Check size={15} />Approve</Button><Button variant="outline" disabled={reject.isPending} onClick={() => reject.mutate({ id: note.id, data: { reason: 'Needs another review before sharing.' } }, { onSuccess: refresh })} data-testid={`button-reject-note-${note.id}`}><X size={15} />Reject</Button></>}<Button variant="danger" disabled={remove.isPending} onClick={() => handleDelete(note.id)} data-testid={`button-delete-note-${note.id}`}><X size={15} />Delete</Button></div></div>)}</div> : <EmptyState icon={FileText} title="No notes to review" detail="New member submissions and summer study materials will appear here." />}
+    {query.isLoading ? <div className="grid gap-4 md:grid-cols-2">{[1,2,3,4].map(i => <Skeleton key={i} className="h-40" />)}</div> : query.data?.length ? <div className="grid gap-4 md:grid-cols-2">{query.data.map(note => <div key={note.id} className="rounded-xl border border-border bg-card p-5"><div className="flex items-center justify-between"><Status tone={note.status === 'approved' ? 'good' : note.status === 'pending' ? 'warn' : 'bad'}>{note.status}</Status><span className="text-xs text-muted-foreground">{new Date(note.submittedAt).toLocaleDateString()}</span></div><h3 className="mt-4 font-serif text-xl font-bold">{note.title}</h3><p className="mt-1 text-xs text-muted-foreground">submitted by {note.author} · <span className="uppercase font-mono">{note.type}</span></p><p className="mt-3 line-clamp-2 text-sm leading-6 text-muted-foreground">{note.description}</p>{note.fileUrl && <div className="mt-3"><a href={note.fileUrl.replace(/^\/api\/storage\/api\/storage\//, '/api/storage/')} target="_blank" rel="noreferrer" download className="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:underline" data-testid={`link-admin-note-file-${note.id}`}><FileText size={14} /> Review attached PDF / document <ArrowUpRight size={12} /></a></div>}<div className="mt-5 flex flex-wrap gap-2">{note.status === 'pending' && <><Button variant="soft" disabled={approve.isPending} onClick={() => approve.mutate({ id: note.id }, { onSuccess: refresh })} data-testid={`button-approve-note-${note.id}`}><Check size={15} />Approve</Button><Button variant="danger" disabled={reject.isPending} onClick={() => reject.mutate({ id: note.id, data: { reason: 'Needs another review before sharing.' } }, { onSuccess: refresh })} data-testid={`button-reject-note-${note.id}`}><X size={15} />Reject</Button></>}<Button variant="danger" disabled={deletingId === note.id} onClick={() => handleDeleteNote(note.id)} data-testid={`button-delete-note-${note.id}`}>{deletingId === note.id ? <LoaderCircle size={15} className="animate-spin" /> : <X size={15} />}Delete</Button></div></div>)}</div> : <EmptyState icon={FileText} title="No notes to review" detail="New member submissions and summer study materials will appear here." />}
   </AuthenticatedLayout>;
 }
 
