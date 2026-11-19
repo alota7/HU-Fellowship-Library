@@ -138,8 +138,8 @@ async function uploadLibraryFile(file: File, purpose: UploadPurpose) {
 }
 const Logo = ({ dark = false }: { dark?: boolean }) => (
   <Link href="/" data-testid="link-brand" className="flex items-center gap-3">
-    <span className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border border-border bg-white shadow-xs">
-      <img src={logo} alt="HU Fellowship Library" className="block h-full w-full origin-center scale-125 object-contain object-center grayscale contrast-200" />
+    <span className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border border-border bg-black shadow-xs">
+      <img src={logo} alt="HU Fellowship Library" className="block h-full w-full object-contain p-0.5" />
     </span>
     <span className={`font-serif text-sm font-bold leading-tight ${dark ? 'text-sidebar-foreground' : 'text-foreground'}`}>
       HU Fellowship<br />
@@ -300,8 +300,8 @@ function Home() {
                   2 Timothy 2:15
                 </div>
                 <div className="mt-8 sm:mt-12 flex items-end justify-between">
-                  <div className="flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center overflow-hidden rounded-full border border-sidebar-border bg-white p-1">
-                    <img src={logo} alt="" className="block h-full w-full origin-center scale-[1.25] object-contain object-center grayscale contrast-200" />
+                  <div className="flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center overflow-hidden rounded-full border border-sidebar-border bg-black p-0.5">
+                    <img src={logo} alt="" className="block h-full w-full object-contain" />
                   </div>
                   <div className="text-right text-xs text-sidebar-foreground/50">Fellowship<br />Library</div>
                 </div>
@@ -1235,8 +1235,8 @@ function MemberDashboard({ preview = false }: { preview?: boolean }) {
             <p className="mt-4 text-xs text-sidebar-foreground/55">Proverbs 3:5</p>
           </div>
           <div className="mt-10 flex justify-end">
-            <span className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-full border border-sidebar-border bg-white">
-              <img src={logo} alt="" className="block h-full w-full origin-center scale-125 object-contain object-center grayscale contrast-200" />
+            <span className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-full border border-sidebar-border bg-black p-0.5">
+              <img src={logo} alt="" className="block h-full w-full object-contain" />
             </span>
           </div>
         </section>
