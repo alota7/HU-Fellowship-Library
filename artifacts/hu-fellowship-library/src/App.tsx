@@ -567,22 +567,22 @@ function BookCover({ book, large = false, className = '' }: { book: Book; large?
   const normalizedCoverUrl = book.coverUrl
     ? book.coverUrl.replace(/^\/api\/storage\/api\/storage\//, '/api/storage/')
     : null;
-  const appliedClass = className || (large ? 'h-80' : 'h-48');
+  const appliedClass = className || (large ? 'h-72 sm:h-96' : 'h-36 sm:h-48');
 
   return (
-    <div className={`relative overflow-hidden rounded-lg ${className?.includes('h-') ? className : ''}`}>
+    <div className={`relative flex items-center justify-center overflow-hidden rounded-lg bg-neutral-950/80 p-0.5 ${className?.includes('h-') ? className : ''}`}>
       {normalizedCoverUrl && !imgError ? (
         <img
           src={normalizedCoverUrl}
           alt={book.title}
           onError={() => setImgError(true)}
-          className={`book-spine w-full rounded-lg object-cover ${appliedClass}`}
+          className={`w-full rounded-lg object-contain ${appliedClass}`}
         />
       ) : (
-        <div className={`book-spine flex w-full flex-col justify-between rounded-lg bg-secondary p-4 text-secondary-foreground ${appliedClass}`}>
-          <span className="font-mono text-[10px] uppercase tracking-[.2em] text-primary truncate">{book.category}</span>
-          <BookOpen className="self-center text-primary/50 shrink-0" size={large ? 45 : 30} />
-          <span className="font-serif text-lg font-bold leading-tight line-clamp-2">{book.title}</span>
+        <div className={`book-spine flex w-full flex-col justify-between rounded-lg bg-secondary p-3 sm:p-4 text-secondary-foreground ${appliedClass}`}>
+          <span className="font-mono text-[9px] sm:text-[10px] uppercase tracking-[.2em] text-primary truncate">{book.category}</span>
+          <BookOpen className="self-center text-primary/50 shrink-0" size={large ? 40 : 26} />
+          <span className="font-serif text-sm sm:text-lg font-bold leading-tight line-clamp-2">{book.title}</span>
         </div>
       )}
       <div className="book-crease-overlay" />
@@ -601,57 +601,60 @@ function ModernBookCard({ book, publicCard = false }: { book: Book; publicCard?:
 
   return (
     <div
-      className="group relative flex flex-col justify-between rounded-xl sm:rounded-2xl bg-card border border-border p-1.5 sm:p-2.5 md:p-3 shadow-xs hover:shadow-xl transition duration-200"
+      className="group relative flex flex-col justify-between rounded-xl sm:rounded-2xl bg-card border border-border p-1.5 sm:p-2.5 md:p-3 shadow-xs hover:shadow-lg transition duration-200"
       data-testid={`card-book-${book.id}`}
     >
-      <Link href={detailLink} className="relative block aspect-[2/3] max-h-44 sm:max-h-none w-full overflow-hidden rounded-lg sm:rounded-xl bg-neutral-900 shadow">
+      <Link
+        href={detailLink}
+        className="relative flex items-center justify-center aspect-[2/3] max-h-36 min-[440px]:max-h-40 sm:max-h-64 w-full overflow-hidden rounded-lg sm:rounded-xl bg-neutral-950/80 dark:bg-black/90 p-0.5 shadow-xs"
+      >
         {normalizedCoverUrl && !imgError ? (
           <img
             src={normalizedCoverUrl}
             alt={book.title}
             onError={() => setImgError(true)}
-            className="h-full w-full object-cover rounded-lg sm:rounded-xl transition duration-300 group-hover:scale-[1.03]"
+            className="h-full w-full object-contain rounded-md sm:rounded-lg transition duration-300 group-hover:scale-[1.02]"
           />
         ) : (
-          <div className="flex h-full w-full flex-col justify-between p-2.5 sm:p-3.5 bg-gradient-to-br from-neutral-800 via-neutral-900 to-neutral-950 text-white rounded-lg sm:rounded-xl">
-            <div className="text-[9px] sm:text-[10px] font-mono uppercase tracking-wider text-neutral-300 truncate">{book.category}</div>
-            <BookOpen className="self-center text-white/30" size={24} />
+          <div className="flex h-full w-full flex-col justify-between p-2 sm:p-3.5 bg-gradient-to-br from-neutral-800 via-neutral-900 to-neutral-950 text-white rounded-md sm:rounded-lg">
+            <div className="text-[8px] sm:text-[10px] font-mono uppercase tracking-wider text-neutral-300 truncate">{book.category}</div>
+            <BookOpen className="self-center text-white/30" size={20} />
             <div>
-              <div className="font-serif font-bold text-[11px] sm:text-sm leading-tight line-clamp-2 text-white">{book.title}</div>
-              <div className="text-[9px] sm:text-[11px] text-neutral-400 truncate mt-0.5">{book.author}</div>
+              <div className="font-serif font-bold text-[10px] sm:text-xs leading-tight line-clamp-2 text-white">{book.title}</div>
+              <div className="text-[8px] sm:text-[10px] text-neutral-400 truncate mt-0.5">{book.author}</div>
             </div>
           </div>
         )}
 
-        <div className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 z-10">
-          <span className="inline-flex items-center rounded-full px-1.5 sm:px-2.5 py-0.5 text-[8px] sm:text-[9px] font-bold uppercase tracking-wider shadow bg-black/85 text-white ring-1 ring-white/20 backdrop-blur-sm">
+        <div className="absolute top-1 right-1 sm:top-1.5 sm:right-1.5 z-10">
+          <span className="inline-flex items-center rounded-full px-1.5 sm:px-2 py-0.5 text-[7px] sm:text-[9px] font-bold uppercase tracking-wider shadow bg-black/85 text-white ring-1 ring-white/20 backdrop-blur-sm">
             {book.type === 'softcopy' ? 'Softcopy' : 'Hardcopy'}
           </span>
         </div>
       </Link>
 
-      <div className="mt-1.5 sm:mt-2.5 mb-1 sm:mb-2 text-center text-[10px] sm:text-xs font-semibold text-foreground/80 tracking-wide truncate">
+      <div className="mt-1 sm:mt-2 mb-1 sm:mb-1.5 text-center text-[9px] sm:text-[11px] font-semibold text-foreground/80 tracking-wide truncate">
         {book.type === 'softcopy' ? 'Digital Edition' : (book.available > 0 ? 'Free' : 'On loan')}
       </div>
 
       <div className="w-full">
         <Link
           href={detailLink}
-          className="w-full rounded-lg sm:rounded-xl bg-foreground text-background hover:opacity-90 active:opacity-80 py-1.5 sm:py-2.5 px-2 text-[11px] sm:text-xs font-bold text-center block transition shadow-xs touch-target flex items-center justify-center"
+          className="w-full rounded-lg sm:rounded-xl bg-foreground text-background hover:opacity-90 active:opacity-80 py-1 sm:py-2 px-1.5 text-[10px] sm:text-xs font-bold text-center block transition shadow-xs touch-target flex items-center justify-center"
         >
           View details
         </Link>
         {book.type === 'softcopy' && cleanFileUrl && !publicCard && (
-          <div className="mt-1 sm:mt-1.5 flex items-center justify-center gap-1.5 sm:gap-2 text-[10px] sm:text-[11px] text-muted-foreground">
+          <div className="mt-1 flex items-center justify-center gap-1 sm:gap-2 text-[9px] sm:text-[11px] text-muted-foreground">
             <a
               href={cleanFileUrl}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-1 hover:text-foreground transition underline-offset-2 hover:underline"
+              className="inline-flex items-center gap-0.5 hover:text-foreground transition underline-offset-2 hover:underline"
               data-testid={`shelf-open-${book.id}`}
               title="Open online"
             >
-              <Eye size={11} /> Open
+              <Eye size={10} /> Open
             </a>
             <span className="text-border">·</span>
             <a
@@ -659,11 +662,11 @@ function ModernBookCard({ book, publicCard = false }: { book: Book; publicCard?:
               target="_blank"
               rel="noreferrer"
               download
-              className="inline-flex items-center gap-1 hover:text-foreground transition underline-offset-2 hover:underline"
+              className="inline-flex items-center gap-0.5 hover:text-foreground transition underline-offset-2 hover:underline"
               data-testid={`shelf-download-${book.id}`}
-              title="Download file"
+              title="Download"
             >
-              <Download size={12} /> Download
+              <Download size={10} /> Download
             </a>
           </div>
         )}
@@ -1349,44 +1352,44 @@ function MemberBooks() {
       {query.isError ? (
         <ErrorState retry={() => query.refetch()} />
       ) : (query.isLoading && !query.data) ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-3.5 md:gap-4">
-          {[1,2,3,4,5,6].map(i => <Skeleton key={i} className="h-72 rounded-2xl" />)}
+        <div className="grid grid-cols-2 min-[440px]:grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-3 md:gap-4">
+          {[1,2,3,4,5,6].map(i => <Skeleton key={i} className="h-44 sm:h-72 rounded-xl sm:rounded-2xl" />)}
         </div>
       ) : books.length ? (
         viewMode === 'store' ? (
-          <div className="space-y-10">
+          <div className="space-y-8 sm:space-y-10">
             {category || search ? (
               <div>
-                <div className="mb-4 flex items-center justify-between">
-                  <h3 className="font-serif text-xl sm:text-2xl font-bold text-foreground">
+                <div className="mb-3 sm:mb-4 flex items-center justify-between">
+                  <h3 className="font-serif text-lg sm:text-2xl font-bold text-foreground">
                     {category || 'Search Results'}
                   </h3>
                   <span className="text-xs sm:text-sm font-semibold text-muted-foreground">
                     {books.length} {books.length === 1 ? 'book' : 'books'}
                   </span>
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-3.5 md:gap-4">
+                <div className="grid grid-cols-2 min-[440px]:grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-3 md:gap-4">
                   {books.map(book => <ModernBookCard key={book.id} book={book} />)}
                 </div>
               </div>
             ) : (
               <>
                 <div>
-                  <div className="mb-4 flex items-center justify-between">
-                    <h3 className="font-serif text-xl sm:text-2xl font-bold text-foreground">Popular books</h3>
+                  <div className="mb-3 sm:mb-4 flex items-center justify-between">
+                    <h3 className="font-serif text-lg sm:text-2xl font-bold text-foreground">Popular books</h3>
                     <span className="text-xs sm:text-sm font-semibold text-foreground hover:underline cursor-pointer">
                       View all
                     </span>
                   </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-3.5 md:gap-4">
+                  <div className="grid grid-cols-2 min-[440px]:grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-3 md:gap-4">
                     {popularBooks.map(book => <ModernBookCard key={book.id} book={book} />)}
                   </div>
                 </div>
 
                 {Object.entries(booksByCategory).map(([catName, catBooks]) => (
                   <div key={catName}>
-                    <div className="mb-4 flex items-center justify-between">
-                      <h3 className="font-serif text-xl sm:text-2xl font-bold text-foreground">{catName}</h3>
+                    <div className="mb-3 sm:mb-4 flex items-center justify-between">
+                      <h3 className="font-serif text-lg sm:text-2xl font-bold text-foreground">{catName}</h3>
                       <button
                         onClick={() => setCategory(catName)}
                         className="text-xs sm:text-sm font-semibold text-foreground hover:underline transition"
@@ -1394,7 +1397,7 @@ function MemberBooks() {
                         View all ({catBooks.length})
                       </button>
                     </div>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-3.5 md:gap-4">
+                    <div className="grid grid-cols-2 min-[440px]:grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-3 md:gap-4">
                       {catBooks.map(book => <ModernBookCard key={book.id} book={book} />)}
                     </div>
                   </div>
@@ -1403,7 +1406,7 @@ function MemberBooks() {
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-3.5 md:gap-4">
+          <div className="grid grid-cols-2 min-[440px]:grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-3 md:gap-4">
             {books.map(book => <ModernBookCard key={book.id} book={book} />)}
           </div>
         )
