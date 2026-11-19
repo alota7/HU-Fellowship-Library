@@ -322,11 +322,11 @@ function Home() {
               </Link>
             </div>
             {booksQuery.isLoading ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2.5 sm:gap-4">
-                {[1, 2, 3, 4, 5, 6].map(i => <Skeleton key={i} className="h-64 sm:h-72 rounded-2xl bg-neutral-900/10 dark:bg-neutral-900" />)}
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 sm:gap-3.5 md:gap-4">
+                {[1, 2, 3, 4, 5, 6].map(i => <Skeleton key={i} className="h-48 sm:h-72 rounded-2xl bg-neutral-900/10 dark:bg-neutral-900" />)}
               </div>
             ) : popularBooks.length ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2.5 sm:gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 sm:gap-3.5 md:gap-4">
                 {popularBooks.map(book => <ModernBookCard key={book.id} book={book} publicCard />)}
               </div>
             ) : (
@@ -601,48 +601,48 @@ function ModernBookCard({ book, publicCard = false }: { book: Book; publicCard?:
 
   return (
     <div
-      className="group relative flex flex-col justify-between rounded-2xl bg-card border border-border p-2 sm:p-2.5 md:p-3 shadow-sm hover:shadow-xl transition duration-200"
+      className="group relative flex flex-col justify-between rounded-xl sm:rounded-2xl bg-card border border-border p-1.5 sm:p-2.5 md:p-3 shadow-xs hover:shadow-xl transition duration-200"
       data-testid={`card-book-${book.id}`}
     >
-      <Link href={detailLink} className="relative block aspect-[2/3] w-full overflow-hidden rounded-xl bg-neutral-900 shadow">
+      <Link href={detailLink} className="relative block aspect-[2/3] max-h-44 sm:max-h-none w-full overflow-hidden rounded-lg sm:rounded-xl bg-neutral-900 shadow">
         {normalizedCoverUrl && !imgError ? (
           <img
             src={normalizedCoverUrl}
             alt={book.title}
             onError={() => setImgError(true)}
-            className="h-full w-full object-cover rounded-xl transition duration-300 group-hover:scale-[1.03]"
+            className="h-full w-full object-cover rounded-lg sm:rounded-xl transition duration-300 group-hover:scale-[1.03]"
           />
         ) : (
-          <div className="flex h-full w-full flex-col justify-between p-3 sm:p-3.5 bg-gradient-to-br from-neutral-800 via-neutral-900 to-neutral-950 text-white rounded-xl">
-            <div className="text-[10px] font-mono uppercase tracking-wider text-neutral-300 truncate">{book.category}</div>
-            <BookOpen className="self-center text-white/30" size={32} />
+          <div className="flex h-full w-full flex-col justify-between p-2.5 sm:p-3.5 bg-gradient-to-br from-neutral-800 via-neutral-900 to-neutral-950 text-white rounded-lg sm:rounded-xl">
+            <div className="text-[9px] sm:text-[10px] font-mono uppercase tracking-wider text-neutral-300 truncate">{book.category}</div>
+            <BookOpen className="self-center text-white/30" size={24} />
             <div>
-              <div className="font-serif font-bold text-xs sm:text-sm leading-tight line-clamp-2 text-white">{book.title}</div>
-              <div className="text-[10px] sm:text-[11px] text-neutral-400 truncate mt-1">{book.author}</div>
+              <div className="font-serif font-bold text-[11px] sm:text-sm leading-tight line-clamp-2 text-white">{book.title}</div>
+              <div className="text-[9px] sm:text-[11px] text-neutral-400 truncate mt-0.5">{book.author}</div>
             </div>
           </div>
         )}
 
-        <div className="absolute top-2 right-2 z-10">
-          <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider shadow bg-black/85 text-white ring-1 ring-white/20 backdrop-blur-sm">
+        <div className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 z-10">
+          <span className="inline-flex items-center rounded-full px-1.5 sm:px-2.5 py-0.5 text-[8px] sm:text-[9px] font-bold uppercase tracking-wider shadow bg-black/85 text-white ring-1 ring-white/20 backdrop-blur-sm">
             {book.type === 'softcopy' ? 'Softcopy' : 'Hardcopy'}
           </span>
         </div>
       </Link>
 
-      <div className="mt-2 sm:mt-2.5 mb-1.5 sm:mb-2 text-center text-xs font-semibold text-foreground/80 tracking-wide">
+      <div className="mt-1.5 sm:mt-2.5 mb-1 sm:mb-2 text-center text-[10px] sm:text-xs font-semibold text-foreground/80 tracking-wide truncate">
         {book.type === 'softcopy' ? 'Digital Edition' : (book.available > 0 ? 'Free' : 'On loan')}
       </div>
 
       <div className="w-full">
         <Link
           href={detailLink}
-          className="w-full rounded-xl bg-foreground text-background hover:opacity-90 active:opacity-80 py-2 sm:py-2.5 px-2.5 text-xs sm:text-sm font-bold text-center block transition shadow-sm touch-target flex items-center justify-center"
+          className="w-full rounded-lg sm:rounded-xl bg-foreground text-background hover:opacity-90 active:opacity-80 py-1.5 sm:py-2.5 px-2 text-[11px] sm:text-xs font-bold text-center block transition shadow-xs touch-target flex items-center justify-center"
         >
           View details
         </Link>
         {book.type === 'softcopy' && cleanFileUrl && !publicCard && (
-          <div className="mt-1.5 flex items-center justify-center gap-2 text-[11px] text-muted-foreground">
+          <div className="mt-1 sm:mt-1.5 flex items-center justify-center gap-1.5 sm:gap-2 text-[10px] sm:text-[11px] text-muted-foreground">
             <a
               href={cleanFileUrl}
               target="_blank"
@@ -651,7 +651,7 @@ function ModernBookCard({ book, publicCard = false }: { book: Book; publicCard?:
               data-testid={`shelf-open-${book.id}`}
               title="Open online"
             >
-              <Eye size={12} /> Open
+              <Eye size={11} /> Open
             </a>
             <span className="text-border">·</span>
             <a
@@ -880,7 +880,6 @@ const memberLinks = [
   { href: '/member/notes', key: 'notes', icon: FileText },
   { href: '/member/questions', key: 'questions', icon: HelpCircle },
   { href: '/member/borrowings', key: 'borrowings', icon: Bookmark },
-  { href: '/member/profile', key: 'profile', icon: UserRound }
 ];
 const adminLinks = [
   { href: '/admin/dashboard', key: 'dashboard', icon: HomeIcon },
@@ -893,7 +892,70 @@ const adminLinks = [
   { href: '/admin/settings', key: 'settings', icon: Settings }
 ];
 
-function Sidebar({ admin, user, close, preview = false }: { admin: boolean; user?: User; close?: () => void; preview?: boolean }) {
+function ProfileModal({ user, open, onOpenChange }: { user?: User; open: boolean; onOpenChange: (open: boolean) => void }) {
+  const [, setLocation] = useLocation();
+  const logout = useLogout();
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md bg-card border-border text-foreground">
+        <DialogTitle className="font-serif text-xl font-bold flex items-center gap-2">
+          <CircleUserRound className="text-primary" size={22} />
+          About My Profile
+        </DialogTitle>
+        <DialogDescription className="text-xs text-muted-foreground">
+          Your HU Fellowship Library member details and account standing.
+        </DialogDescription>
+        <div className="mt-4 flex flex-col items-center p-4 rounded-2xl bg-secondary/40 border border-border/60 text-center">
+          <span className="flex h-16 w-16 items-center justify-center rounded-full bg-primary font-serif text-2xl font-bold text-primary-foreground shadow-sm">
+            {user?.name?.slice(0, 1) ?? 'H'}
+          </span>
+          <div className="mt-3 font-serif text-lg font-bold text-foreground">{user?.name ?? 'Fellowship Member'}</div>
+          <div className="mt-1 flex items-center gap-1.5">
+            <Status tone="good">Verified Member</Status>
+            <span className="text-xs text-muted-foreground uppercase tracking-wider font-mono">{user?.role ?? 'member'}</span>
+          </div>
+        </div>
+
+        <div className="mt-4 grid gap-3 text-sm">
+          <div className="flex items-center justify-between border-b border-border/50 pb-2">
+            <span className="text-xs uppercase tracking-wider text-muted-foreground">Email</span>
+            <span className="font-medium text-foreground">{user?.email ?? '—'}</span>
+          </div>
+          <div className="flex items-center justify-between border-b border-border/50 pb-2">
+            <span className="text-xs uppercase tracking-wider text-muted-foreground">Phone</span>
+            <span className="font-medium text-foreground">{user?.phone || 'Not added'}</span>
+          </div>
+          <div className="flex items-center justify-between border-b border-border/50 pb-2">
+            <span className="text-xs uppercase tracking-wider text-muted-foreground">Department</span>
+            <span className="font-medium text-foreground">{user?.department || 'Not added'}</span>
+          </div>
+          <div className="flex items-center justify-between border-b border-border/50 pb-2">
+            <span className="text-xs uppercase tracking-wider text-muted-foreground">School Year</span>
+            <span className="font-medium text-foreground">{user?.schoolYear || 'Not added'}</span>
+          </div>
+        </div>
+
+        <div className="mt-6 flex items-center justify-between gap-3 pt-2">
+          <button
+            type="button"
+            onClick={() => {
+              onOpenChange(false);
+              logout.mutate(undefined, { onSuccess: () => setLocation('/login') });
+            }}
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-destructive hover:underline py-2 px-3 rounded-lg hover:bg-destructive/10 transition"
+          >
+            <LogOut size={14} /> Sign out
+          </button>
+          <Button variant="primary" onClick={() => onOpenChange(false)}>
+            Close
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function Sidebar({ admin, user, close, preview = false, onOpenProfile }: { admin: boolean; user?: User; close?: () => void; preview?: boolean; onOpenProfile?: () => void }) {
   const [, setLocation] = useLocation(); const logout = useLogout();
   const links = preview
     ? [{ href: admin ? '/__preview/admin' : '/__preview/member', key: 'dashboard', icon: HomeIcon }]
@@ -930,17 +992,30 @@ function Sidebar({ admin, user, close, preview = false }: { admin: boolean; user
           <ThemeToggle />
         </div>
         <div className="flex items-center gap-3 border-t border-sidebar-border px-3 pb-2 pt-4">
-          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-sidebar-primary font-bold text-sidebar-primary-foreground">{user?.name?.slice(0, 1) ?? 'H'}</span>
-          <div className="min-w-0 flex-1">
-            <div className="truncate text-sm font-bold">{user?.name ?? 'Fellowship member'}</div>
-            <div className="truncate text-xs text-sidebar-foreground/45">{user?.email ?? 'Signed in'}</div>
-          </div>
+          <button
+            type="button"
+            onClick={() => {
+              close?.();
+              onOpenProfile?.();
+            }}
+            className="flex items-center gap-3 min-w-0 flex-1 text-left rounded-xl p-1.5 -ml-1.5 hover:bg-sidebar-accent/60 transition group cursor-pointer"
+            title="Click to view about my profile"
+            data-testid="button-sidebar-profile"
+          >
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sidebar-primary font-bold text-sidebar-primary-foreground group-hover:scale-105 transition-transform">
+              {user?.name?.slice(0, 1) ?? 'H'}
+            </span>
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-sm font-bold group-hover:text-sidebar-accent-foreground transition-colors">{user?.name ?? 'Fellowship member'}</div>
+              <div className="truncate text-xs text-sidebar-foreground/50">{user?.email ?? 'Signed in'}</div>
+            </div>
+          </button>
           {!preview && (
             <button
               onClick={() => logout.mutate(undefined, { onSuccess: () => setLocation('/login') })}
               title={t('signOut')}
               data-testid="button-sign-out"
-              className="text-sidebar-foreground/45 hover:text-sidebar-foreground p-1 rounded-md transition"
+              className="text-sidebar-foreground/45 hover:text-sidebar-foreground p-1.5 rounded-md transition hover:bg-sidebar-accent/50"
             >
               <LogOut size={17} />
             </button>
@@ -952,19 +1027,22 @@ function Sidebar({ admin, user, close, preview = false }: { admin: boolean; user
 }
 
 function AuthenticatedLayout({ children, admin = false, preview = false }: { children: ReactNode; admin?: boolean; preview?: boolean }) {
-  const [open, setOpen] = useState(false); const path = window.location.pathname;
+  const [open, setOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const path = window.location.pathname;
   const current = useGetCurrentUser({ query: { enabled: !preview && (path.startsWith('/member') || path.startsWith('/admin')), queryKey: getGetCurrentUserQueryKey() } });
   const user = preview ? (admin ? previewAdmin : previewMember) : current.data;
   return (
     <div className="min-h-[100dvh] bg-background">
+      <ProfileModal user={user} open={profileOpen} onOpenChange={setProfileOpen} />
       <div className={`fixed inset-y-0 left-0 z-40 hidden lg:block ${admin ? 'shadow-2xl shadow-primary/10' : ''}`}>
-        <Sidebar admin={admin} user={user} preview={preview} />
+        <Sidebar admin={admin} user={user} preview={preview} onOpenProfile={() => setProfileOpen(true)} />
       </div>
       {open && (
         <>
           <button aria-label="Close menu" onClick={() => setOpen(false)} className="fixed inset-0 z-40 bg-sidebar/35 backdrop-blur-sm lg:hidden" data-testid="button-close-menu" />
           <div className="fixed inset-y-0 left-0 z-50 lg:hidden">
-            <Sidebar admin={admin} user={user} preview={preview} close={() => setOpen(false)} />
+            <Sidebar admin={admin} user={user} preview={preview} close={() => setOpen(false)} onOpenProfile={() => setProfileOpen(true)} />
           </div>
         </>
       )}
@@ -980,9 +1058,18 @@ function AuthenticatedLayout({ children, admin = false, preview = false }: { chi
           <div className="ml-auto flex items-center gap-2 sm:gap-3">
             {preview && <span data-testid="badge-sample-preview" className="rounded-full border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-800">Sample preview</span>}
             <ThemeToggle />
-            <div className="hidden items-center gap-2 rounded-full bg-secondary px-3 py-1.5 text-xs font-semibold text-secondary-foreground sm:flex">
-              <CircleUserRound size={14} />{user?.name ?? 'Signed in'}
-            </div>
+            <button
+              type="button"
+              onClick={() => setProfileOpen(true)}
+              className="flex items-center gap-2 rounded-full bg-secondary hover:bg-secondary/80 px-2.5 sm:px-3 py-1.5 text-xs font-semibold text-secondary-foreground transition cursor-pointer shadow-xs border border-border/40 touch-target"
+              title="Click to view about my profile"
+              data-testid="button-header-profile"
+            >
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary font-bold text-primary-foreground text-[10px]">
+                {user?.name?.slice(0, 1) ?? 'H'}
+              </span>
+              <span className="hidden sm:inline font-medium">{user?.name ?? 'Fellowship member'}</span>
+            </button>
             {!preview && <span className="h-2 w-2 rounded-full bg-emerald-500" title="Connected" />}
           </div>
         </header>
@@ -1164,7 +1251,7 @@ function MemberBooks() {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [category, setCategory] = useState('');
   const [type, setType] = useState('');
-  const [viewMode, setViewMode] = useState<'store' | 'shelf' | 'grid'>('store');
+  const [viewMode, setViewMode] = useState<'store' | 'grid'>('store');
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -1222,14 +1309,6 @@ function MemberBooks() {
               <Library size={15} /> Store Shelf
             </button>
             <button
-              onClick={() => setViewMode('shelf')}
-              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition ${
-                viewMode === 'shelf' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              <BookOpen size={15} /> Wooden Shelf
-            </button>
-            <button
               onClick={() => setViewMode('grid')}
               className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition ${
                 viewMode === 'grid' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
@@ -1270,7 +1349,7 @@ function MemberBooks() {
       {query.isError ? (
         <ErrorState retry={() => query.refetch()} />
       ) : (query.isLoading && !query.data) ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-3.5 md:gap-4">
           {[1,2,3,4,5,6].map(i => <Skeleton key={i} className="h-72 rounded-2xl" />)}
         </div>
       ) : books.length ? (
@@ -1286,7 +1365,7 @@ function MemberBooks() {
                     {books.length} {books.length === 1 ? 'book' : 'books'}
                   </span>
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3.5 sm:gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-3.5 md:gap-4">
                   {books.map(book => <ModernBookCard key={book.id} book={book} />)}
                 </div>
               </div>
@@ -1299,7 +1378,7 @@ function MemberBooks() {
                       View all
                     </span>
                   </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3.5 sm:gap-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-3.5 md:gap-4">
                     {popularBooks.map(book => <ModernBookCard key={book.id} book={book} />)}
                   </div>
                 </div>
@@ -1315,7 +1394,7 @@ function MemberBooks() {
                         View all ({catBooks.length})
                       </button>
                     </div>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3.5 sm:gap-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-3.5 md:gap-4">
                       {catBooks.map(book => <ModernBookCard key={book.id} book={book} />)}
                     </div>
                   </div>
@@ -1323,23 +1402,8 @@ function MemberBooks() {
               </>
             )}
           </div>
-        ) : viewMode === 'shelf' ? (
-          <div className="bookshelf-stage space-y-6">
-            {Object.keys(booksByCategory).length > 0 ? (
-              Object.entries(booksByCategory).map(([catName, catBooks]) => (
-                <BookshelfRow
-                  key={catName}
-                  title={catName}
-                  eyebrow="Category Shelf"
-                  books={catBooks}
-                />
-              ))
-            ) : (
-              <BookshelfRow books={books} />
-            )}
-          </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3.5 sm:gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-3.5 md:gap-4">
             {books.map(book => <ModernBookCard key={book.id} book={book} />)}
           </div>
         )
