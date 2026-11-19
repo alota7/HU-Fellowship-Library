@@ -1814,8 +1814,11 @@ function useDeleteQuestion() {
         method: 'DELETE',
         credentials: 'include',
       });
-      if (!res.ok) throw new Error('Failed to delete question');
-      return res.json();
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'Failed to delete question');
+      }
+      return res.status === 204 ? null : res.json().catch(() => null);
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['questions'] });
@@ -1832,24 +1835,13 @@ function MemberQuestions() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'my' | 'all'>('my');
   const [form, setForm] = useState({
-    category: 'Bible Interpretation',
     question: '',
-    details: '',
   });
   const [errorMsg, setErrorMsg] = useState('');
 
   const questions = Array.isArray(questionsQuery.data) ? questionsQuery.data : [];
   const myQuestions = questions.filter(q => q.memberId === currentUser.data?.id);
   const answeredQuestions = questions.filter(q => q.status === 'answered');
-
-  const categories = [
-    'Bible Interpretation',
-    'Christian Living & Faith',
-    'Fellowship & Ministry',
-    'Prayer & Guidance',
-    'Theology & Doctrine',
-    'General Question',
-  ];
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -1858,10 +1850,13 @@ function MemberQuestions() {
       return;
     }
     setErrorMsg('');
-    createQuestion.mutate(form, {
+    createQuestion.mutate({
+      question: form.question.trim(),
+      category: 'Bible Question',
+    }, {
       onSuccess: () => {
         setDialogOpen(false);
-        setForm({ category: 'Bible Interpretation', question: '', details: '' });
+        setForm({ question: '' });
       },
       onError: (err) => {
         setErrorMsg(err instanceof Error ? err.message : 'Could not submit your question.');
@@ -1923,33 +1918,13 @@ function MemberQuestions() {
             Your question will be sent directly to the fellowship stewards. Once answered, you'll find the response here.
           </DialogDescription>
           <form onSubmit={handleSubmit} className="mt-4 space-y-4">
-            <label className="grid gap-1.5 text-sm font-semibold">
-              Category
-              <select
-                value={form.category}
-                onChange={e => setForm({ ...form, category: e.target.value })}
-                className="h-11 rounded-lg border border-input bg-card px-3 text-sm"
-                data-testid="select-question-category"
-              >
-                {categories.map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
-            </label>
-
-            <Field
-              label="Question"
-              placeholder="e.g. What is the context and meaning of Romans 8:28?"
-              value={form.question}
-              onChange={e => setForm({ ...form, question: e.target.value })}
-              required
-              data-testid="input-question-text"
-            />
-
             <TextAreaField
-              label="Additional context or details (optional)"
+              label="Question"
               placeholder="Include any verses, specific situations, or background details..."
-              value={form.details}
-              onChange={e => setForm({ ...form, details: e.target.value })}
-              data-testid="textarea-question-details"
+              value={form.question}
+              onChange={e => setForm({ question: e.target.value })}
+              required
+              data-testid="textarea-question-text"
             />
 
             {errorMsg && (
@@ -1994,7 +1969,7 @@ function MemberQuestions() {
               <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/70 pb-3">
                 <div className="flex items-center gap-2">
                   <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
-                    {q.category}
+                    {q.category || 'Bible Q&A'}
                   </span>
                   <span className="text-xs text-muted-foreground">
                     Asked {new Date(q.createdAt).toLocaleDateString()}
@@ -2007,14 +1982,17 @@ function MemberQuestions() {
                   {q.memberId === currentUser.data?.id && (
                     <button
                       type="button"
+                      disabled={deleteQuestion.isPending}
                       onClick={() => {
-                        if (confirm('Delete this question?')) deleteQuestion.mutate(q.id);
+                        if (window.confirm('Delete this question and answer history?')) {
+                          deleteQuestion.mutate(q.id);
+                        }
                       }}
-                      className="p-1.5 text-muted-foreground hover:text-destructive rounded-lg hover:bg-destructive/10 transition"
-                      title="Delete question"
+                      className="inline-flex items-center gap-1 rounded-lg border border-border bg-secondary/50 px-2.5 py-1 text-xs font-semibold text-muted-foreground hover:border-destructive hover:bg-destructive/10 hover:text-destructive transition shadow-sm"
+                      title="Delete question and answer history"
                       data-testid={`button-delete-question-${q.id}`}
                     >
-                      <X size={15} />
+                      <X size={14} /> Delete
                     </button>
                   )}
                 </div>
