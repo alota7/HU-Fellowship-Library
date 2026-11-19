@@ -139,10 +139,10 @@ async function uploadLibraryFile(file: File, purpose: UploadPurpose) {
 const Logo = ({ dark = false }: { dark?: boolean }) => (
   <Link href="/" data-testid="link-brand" className="flex items-center gap-3">
     <span className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl border border-border bg-black shadow-xs p-1">
-      <img src={logo} alt="HU Fellowship Library" className="block h-full w-full object-contain" />
+      <img src={logo} alt="LOGOS Library" className="block h-full w-full object-contain" />
     </span>
     <span className={`font-serif text-sm font-bold leading-tight ${dark ? 'text-sidebar-foreground' : 'text-foreground'}`}>
-      HU Fellowship<br />
+      LOGOS<br />
       <span className="font-sans text-[10px] font-medium uppercase tracking-[.2em] opacity-70">Library</span>
     </span>
   </Link>
@@ -258,11 +258,11 @@ function Home() {
             <div className="mb-4 sm:mb-7 flex items-center gap-2 text-xs font-bold uppercase tracking-[.22em] text-primary">
               <span className="h-px w-8 bg-primary" />Study. Serve. Share.
             </div>
-            <h1 className="max-w-2xl font-serif text-3xl sm:text-5xl lg:text-7xl font-bold leading-[1.08] tracking-tight">
+            <h1 className="max-w-2xl font-serif text-2xl sm:text-4xl lg:text-5xl font-bold leading-[1.12] tracking-tight">
               A quiet place for <span className="text-primary">deep roots.</span>
             </h1>
             <p className="mt-4 sm:mt-7 max-w-xl text-base sm:text-lg leading-7 sm:leading-8 text-muted-foreground">
-              The HU Fellowship Library brings books, Bible-study resources, and a growing community of learners into one welcoming home.
+              The LOGOS Library brings books, Bible-study resources, and a growing community of learners into one welcoming home.
             </p>
             <div className="mt-6 sm:mt-9 flex flex-col sm:flex-row flex-wrap gap-3">
               <Link href="/login" data-testid="link-start-exploring" className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-bold text-primary-foreground shadow-lg shadow-primary/15 touch-target">
@@ -303,7 +303,7 @@ function Home() {
                   <div className="flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center overflow-hidden rounded-xl border border-sidebar-border bg-black p-1">
                     <img src={logo} alt="" className="block h-full w-full object-contain" />
                   </div>
-                  <div className="text-right text-xs text-sidebar-foreground/50">Fellowship<br />Library</div>
+                  <div className="text-right text-xs text-sidebar-foreground/50">LOGOS<br />Library</div>
                 </div>
               </div>
             </div>
@@ -315,7 +315,7 @@ function Home() {
             <div className="mb-6 sm:mb-8 flex flex-wrap items-end justify-between gap-4">
               <div>
                 <div className="text-xs font-bold uppercase tracking-[.2em] text-muted-foreground">From the shelves</div>
-                <h2 className="mt-1.5 font-serif text-2xl sm:text-3xl font-bold text-foreground">Popular books</h2>
+                <h2 className="mt-1 font-serif text-xl sm:text-2xl font-bold text-foreground">Popular books</h2>
               </div>
               <Link href="/login" data-testid="link-browse-all" className="text-xs sm:text-sm font-semibold text-foreground hover:underline transition flex items-center gap-1">
                 Browse the whole library <ArrowUpRight size={15} className="ml-1 inline" />
@@ -338,9 +338,9 @@ function Home() {
         <section id="about" className="mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-20 lg:px-10">
           <div className="mb-8 max-w-3xl">
             <div className="text-xs font-bold uppercase tracking-[.2em] text-accent">About the library</div>
-            <h2 className="mt-2 font-serif text-2xl sm:text-4xl font-bold leading-tight">Welcome to the HU Fellowship Library</h2>
+            <h2 className="mt-2 font-serif text-xl sm:text-2xl lg:text-3xl font-bold leading-snug">Welcome to LOGOS Library</h2>
             <p className="mt-4 text-base sm:text-lg leading-7 sm:leading-8 text-muted-foreground">
-              Rooted in biblical study, theology, and discipleship, the HU Fellowship Library serves university students, leaders, and fellowship members. Explore physical hardcopies available to borrow, softcopy theological classics available for immediate reading and download, peer study notes, and an active Bible Q&A community.
+              Rooted in biblical study, theology, and discipleship, LOGOS Library serves university students, leaders, and fellowship members. Explore physical hardcopies available to borrow, softcopy theological classics available for immediate reading and download, peer study notes, and an active Bible Q&A community.
             </p>
           </div>
 
@@ -393,7 +393,7 @@ function Home() {
       <footer className="border-t border-border/80 bg-card/60 px-4 py-8 text-xs text-muted-foreground lg:px-10 safe-bottom">
         <div className="mx-auto flex max-w-7xl flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <span className="font-serif font-bold text-foreground">HU Fellowship Library</span>
+            <span className="font-serif font-bold text-foreground">LOGOS Library</span>
             <span>·</span>
             <span>A home for study and community</span>
           </div>
@@ -430,9 +430,9 @@ function AuthShell({ children, eyebrow, title, detail }: { children: ReactNode; 
         <div className="hidden bg-sidebar p-8 lg:p-12 xl:p-14 text-sidebar-foreground lg:flex lg:flex-col lg:justify-between border-r border-border/40">
           <Logo dark />
           <div className="max-w-md pb-12">
-            <div className="mb-5 text-xs font-bold uppercase tracking-[.22em] text-sidebar-primary">HU Fellowship Library</div>
-            <h2 className="font-serif text-4xl lg:text-5xl font-bold leading-tight">Make room for the word.</h2>
-            <p className="mt-6 leading-7 text-sidebar-foreground/75">The HU Fellowship Library brings books, Bible-study resources, and a growing community of learners into one welcoming home. A trusted collection for the people who keep asking better questions.</p>
+            <div className="mb-5 text-xs font-bold uppercase tracking-[.22em] text-sidebar-primary">LOGOS Library</div>
+            <h2 className="font-serif text-2xl sm:text-3xl lg:text-4xl font-bold leading-tight">Make room for the word.</h2>
+            <p className="mt-6 leading-7 text-sidebar-foreground/75">The LOGOS Library brings books, Bible-study resources, and a growing community of learners into one welcoming home. A trusted collection for the people who keep asking better questions.</p>
             <div className="mt-12 border-l-2 border-sidebar-primary/60 pl-5 font-serif text-lg italic text-sidebar-foreground/85">
               “Let the word of Christ dwell in you richly.”
               <span className="mt-2 block font-sans text-xs not-italic text-sidebar-primary">Colossians 3:16</span>
@@ -455,7 +455,7 @@ function AuthShell({ children, eyebrow, title, detail }: { children: ReactNode; 
             </div>
             <div className="mb-6 sm:mb-8">
               <div className="text-xs font-bold uppercase tracking-[.2em] text-accent">{eyebrow}</div>
-              <h1 className="mt-2 font-serif text-3xl sm:text-4xl font-bold">{title}</h1>
+              <h1 className="mt-2 font-serif text-2xl sm:text-3xl font-bold">{title}</h1>
               <p className="mt-2 text-sm leading-6 text-muted-foreground">{detail}</p>
             </div>
             {children}
@@ -906,7 +906,7 @@ function ProfileModal({ user, open, onOpenChange }: { user?: User; open: boolean
           About My Profile
         </DialogTitle>
         <DialogDescription className="text-xs text-muted-foreground">
-          Your HU Fellowship Library member details and account standing.
+          Your LOGOS Library member details and account standing.
         </DialogDescription>
         <div className="mt-4 flex flex-col items-center p-4 rounded-2xl bg-secondary/40 border border-border/60 text-center">
           <span className="flex h-16 w-16 items-center justify-center rounded-full bg-primary font-serif text-2xl font-bold text-primary-foreground shadow-sm">
@@ -1080,7 +1080,7 @@ function AuthenticatedLayout({ children, admin = false, preview = false }: { chi
         <footer className="mt-auto border-t border-border/80 bg-card/60 px-4 py-5 sm:px-6 lg:px-9 safe-bottom">
           <div className="mx-auto flex max-w-[1500px] flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground">
             <div className="flex items-center gap-2">
-              <span className="font-serif font-bold text-foreground">HU Fellowship Library</span>
+              <span className="font-serif font-bold text-foreground">LOGOS Library</span>
               <span>·</span>
               <span>A home for study & community</span>
             </div>
@@ -1112,7 +1112,7 @@ function AuthenticatedLayout({ children, admin = false, preview = false }: { chi
 }
 
 function PageHeading({ eyebrow, title, detail, action }: { eyebrow?: string; title: string; detail?: string; action?: ReactNode }) {
-  return <div className="mb-8 flex flex-wrap items-end justify-between gap-5"><div>{eyebrow && <div className="mb-2 text-xs font-bold uppercase tracking-[.2em] text-accent">{eyebrow}</div>}<h1 className="font-serif text-3xl font-bold tracking-tight sm:text-4xl">{title}</h1>{detail && <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">{detail}</p>}</div>{action}</div>;
+  return <div className="mb-6 sm:mb-8 flex flex-wrap items-end justify-between gap-4"><div>{eyebrow && <div className="mb-1.5 text-xs font-bold uppercase tracking-[.2em] text-accent">{eyebrow}</div>}<h1 className="font-serif text-2xl font-bold tracking-tight sm:text-3xl">{title}</h1>{detail && <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-muted-foreground">{detail}</p>}</div>{action}</div>;
 }
 function Metric({ label, value, icon: Icon, accent = 'primary' }: { label: string; value: string | number; icon: typeof Library; accent?: 'primary' | 'accent' }) { return <div className="rounded-xl border border-border bg-card p-5"><div className={`mb-5 flex h-10 w-10 items-center justify-center rounded-lg ${accent === 'accent' ? 'bg-accent/10 text-accent' : 'bg-secondary text-primary'}`}><Icon size={19} /></div><div className="font-mono text-3xl font-bold">{value}</div><div className="mt-1 text-xs font-medium text-muted-foreground">{label}</div></div>; }
 
@@ -1156,7 +1156,7 @@ function MemberDashboard({ preview = false }: { preview?: boolean }) {
     <AuthenticatedLayout preview={preview}>
       <PageHeading
         title={`${t('welcome', lang)}.`}
-        detail="The HU Fellowship Library brings books, Bible-study resources, and a growing community of learners into one welcoming home."
+        detail="The LOGOS Library brings books, Bible-study resources, and a growing community of learners into one welcoming home."
         action={action}
       />
 
@@ -1177,7 +1177,7 @@ function MemberDashboard({ preview = false }: { preview?: boolean }) {
           <div className="flex items-center justify-between">
             <div>
               <div className="text-xs font-bold uppercase tracking-[.2em] text-accent">Diverse Categories</div>
-              <h2 className="mt-1 font-serif text-2xl font-bold">Popular books</h2>
+              <h2 className="mt-1 font-serif text-xl sm:text-2xl font-bold">Popular books</h2>
             </div>
             {preview ? (
               <span className="text-sm font-semibold text-muted-foreground">Sample shelf</span>
@@ -1480,7 +1480,7 @@ function BookDetail() {
             <Status>{item.type}</Status>
             {pendingReq && <Status tone="warn">Request pending</Status>}
           </div>
-          <h1 className="mt-4 font-serif text-4xl font-bold leading-tight sm:text-5xl">{item.title}</h1>
+          <h1 className="mt-3 font-serif text-2xl sm:text-3xl lg:text-4xl font-bold leading-snug">{item.title}</h1>
           <p className="mt-3 text-lg text-muted-foreground">by {item.author}</p>
           <div className="mt-8 grid gap-5 border-y border-border py-6 sm:grid-cols-3">
             <div>
@@ -1844,7 +1844,7 @@ function MemberBorrowings() {
         {pendingRequests.length > 0 && (
           <section>
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="font-serif text-2xl font-bold flex items-center gap-2">
+              <h2 className="font-serif text-lg sm:text-xl font-bold flex items-center gap-2">
                 <Clock3 size={20} className="text-amber-500" /> Pending Borrowing Requests
               </h2>
               <span className="text-xs font-mono text-muted-foreground bg-secondary px-2.5 py-0.5 rounded-full">
@@ -1882,7 +1882,7 @@ function MemberBorrowings() {
         {/* Currently in my care (Active Reading) */}
         <section>
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="font-serif text-2xl font-bold flex items-center gap-2">
+            <h2 className="font-serif text-lg sm:text-xl font-bold flex items-center gap-2">
               <BookOpen size={20} className="text-primary" /> Currently Reading (In My Care)
             </h2>
             <span className="text-xs font-mono text-muted-foreground bg-secondary px-2.5 py-0.5 rounded-full">
@@ -1933,7 +1933,7 @@ function MemberBorrowings() {
         {/* Returned Books (History) */}
         <section>
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="font-serif text-2xl font-bold flex items-center gap-2 text-muted-foreground">
+            <h2 className="font-serif text-lg sm:text-xl font-bold flex items-center gap-2 text-muted-foreground">
               <Check size={20} className="text-emerald-500" /> Returned Books (History)
             </h2>
             <span className="text-xs font-mono text-muted-foreground bg-secondary px-2.5 py-0.5 rounded-full">
@@ -1988,7 +1988,7 @@ function AdminDashboard({ preview = false }: { preview?: boolean }) {
   const action = preview
     ? <Button disabled variant="soft" data-testid="button-preview-add-book"><Plus size={17} />Preview only</Button>
     : <Link href="/admin/books" data-testid="link-admin-add-book" className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground"><Plus size={17} />{t('newBook', lang)}</Link>;
-  return <AuthenticatedLayout admin preview={preview}><PageHeading eyebrow="Steward desk" title={`${t('welcome', lang)}, steward.`} detail="Keep the collection useful, current, and ready for the next question." action={action} /><div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{!preview && summary.isLoading ? [1,2,3,4].map(i => <Skeleton key={i} className="h-36" />) : <><Metric label="Total books" value={data?.books ?? 0} icon={BookOpen} /><Metric label="Approved notes" value={data?.studyNotes ?? 0} icon={FileText} accent="accent" /><Metric label="Active borrowings" value={data?.activeBorrowings ?? 0} icon={Bookmark} /><Metric label="Pending requests" value={data?.pendingRequests ?? requestItems.filter(r => r.status === 'pending').length} icon={Clock3} /></>}</div><div className="mt-8 grid gap-6 lg:grid-cols-2"><section className="rounded-2xl border border-border bg-card p-6"><div className="flex items-center justify-between"><h2 className="font-serif text-2xl font-bold">Needs your attention</h2>{preview ? <span className="text-sm font-semibold text-muted-foreground">Sample queue</span> : <Link href="/admin/requests" data-testid="link-dashboard-requests" className="text-sm font-bold text-primary">Review all</Link>}</div>{requestItems.filter(r => r.status === 'pending').slice(0, 3).map(r => <div key={r.id} data-testid={preview ? `row-preview-request-${Math.abs(r.id)}` : undefined} className="mt-4 flex items-center gap-3 rounded-lg bg-secondary/50 p-3"><span className="rounded-lg bg-primary/10 p-2 text-primary"><Clock3 size={16} /></span><div className="min-w-0 flex-1"><div className="truncate text-sm font-bold">{r.book.title}</div><div className="text-xs text-muted-foreground">{r.member.name} · {new Date(r.requestedAt).toLocaleDateString()}</div></div><Status tone="warn">Pending</Status></div>)}{!preview && !requests.isLoading && !requestItems.some(r => r.status === 'pending') && <div className="mt-5"><EmptyState icon={Check} title="All clear for now" detail="New requests will appear here." /></div>}</section><section className="rounded-2xl bg-primary p-7 text-primary-foreground"><ShieldCheck size={25} /><h2 className="mt-10 font-serif text-3xl font-bold">A healthy shelf is a living one.</h2><p className="mt-4 max-w-md leading-7 text-primary-foreground/75">Review requests, welcome new members, and keep study notes moving from submission to shared wisdom.</p><div className="mt-8 flex flex-wrap gap-3">{preview ? <><Button disabled variant="outline" className="border-primary-foreground/30 bg-transparent text-primary-foreground" data-testid="button-preview-moderate">Moderate notes</Button><Button disabled variant="outline" className="border-primary-foreground/30 bg-transparent text-primary-foreground" data-testid="button-preview-members">View members</Button></> : <><Link href="/admin/notes" data-testid="link-dashboard-notes" className="rounded-lg bg-primary-foreground px-4 py-2.5 text-sm font-bold text-primary">Moderate notes</Link><Link href="/admin/members" data-testid="link-dashboard-members" className="rounded-lg border border-primary-foreground/30 px-4 py-2.5 text-sm font-bold">View members</Link></>}</div></section></div></AuthenticatedLayout>;
+  return <AuthenticatedLayout admin preview={preview}><PageHeading eyebrow="Steward desk" title={`${t('welcome', lang)}, steward.`} detail="Keep the collection useful, current, and ready for the next question." action={action} /><div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{!preview && summary.isLoading ? [1,2,3,4].map(i => <Skeleton key={i} className="h-36" />) : <><Metric label="Total books" value={data?.books ?? 0} icon={BookOpen} /><Metric label="Approved notes" value={data?.studyNotes ?? 0} icon={FileText} accent="accent" /><Metric label="Active borrowings" value={data?.activeBorrowings ?? 0} icon={Bookmark} /><Metric label="Pending requests" value={data?.pendingRequests ?? requestItems.filter(r => r.status === 'pending').length} icon={Clock3} /></>}</div><div className="mt-8 grid gap-6 lg:grid-cols-2"><section className="rounded-2xl border border-border bg-card p-6"><div className="flex items-center justify-between"><h2 className="font-serif text-lg sm:text-xl font-bold">Needs your attention</h2>{preview ? <span className="text-sm font-semibold text-muted-foreground">Sample queue</span> : <Link href="/admin/requests" data-testid="link-dashboard-requests" className="text-sm font-bold text-primary">Review all</Link>}</div>{requestItems.filter(r => r.status === 'pending').slice(0, 3).map(r => <div key={r.id} data-testid={preview ? `row-preview-request-${Math.abs(r.id)}` : undefined} className="mt-4 flex items-center gap-3 rounded-lg bg-secondary/50 p-3"><span className="rounded-lg bg-primary/10 p-2 text-primary"><Clock3 size={16} /></span><div className="min-w-0 flex-1"><div className="truncate text-sm font-bold">{r.book.title}</div><div className="text-xs text-muted-foreground">{r.member.name} · {new Date(r.requestedAt).toLocaleDateString()}</div></div><Status tone="warn">Pending</Status></div>)}{!preview && !requests.isLoading && !requestItems.some(r => r.status === 'pending') && <div className="mt-5"><EmptyState icon={Check} title="All clear for now" detail="New requests will appear here." /></div>}</section><section className="rounded-2xl bg-primary p-7 text-primary-foreground"><ShieldCheck size={25} /><h2 className="mt-8 font-serif text-xl sm:text-2xl font-bold">A healthy shelf is a living one.</h2><p className="mt-4 max-w-md leading-7 text-primary-foreground/75">Review requests, welcome new members, and keep study notes moving from submission to shared wisdom.</p><div className="mt-8 flex flex-wrap gap-3">{preview ? <><Button disabled variant="outline" className="border-primary-foreground/30 bg-transparent text-primary-foreground" data-testid="button-preview-moderate">Moderate notes</Button><Button disabled variant="outline" className="border-primary-foreground/30 bg-transparent text-primary-foreground" data-testid="button-preview-members">View members</Button></> : <><Link href="/admin/notes" data-testid="link-dashboard-notes" className="rounded-lg bg-primary-foreground px-4 py-2.5 text-sm font-bold text-primary">Moderate notes</Link><Link href="/admin/members" data-testid="link-dashboard-members" className="rounded-lg border border-primary-foreground/30 px-4 py-2.5 text-sm font-bold">View members</Link></>}</div></section></div></AuthenticatedLayout>;
 }
 
 function AdminBooks() {
@@ -2414,7 +2414,7 @@ function AdminRequests() {
       <div className="mt-12 pt-8 border-t border-border">
         <div className="mb-4 flex items-center justify-between">
           <div>
-            <h2 className="font-serif text-2xl font-bold flex items-center gap-2">
+            <h2 className="font-serif text-lg sm:text-xl font-bold flex items-center gap-2">
               <BookOpen size={20} className="text-primary" /> Active Loans & Return Confirmation
             </h2>
             <p className="text-xs text-muted-foreground mt-0.5">
@@ -2571,7 +2571,7 @@ function AdminNotes() {
 }
 
 function AdminSettings() {
-  const { lang } = useLang(); const [saved, setSaved] = useState(false); const [name, setName] = useState('HU Fellowship Library'); const [email, setEmail] = useState('library@hu-fellowship.edu');
+  const { lang } = useLang(); const [saved, setSaved] = useState(false); const [name, setName] = useState('LOGOS Library'); const [email, setEmail] = useState('library@logos-library.edu');
   return <AuthenticatedLayout admin><PageHeading eyebrow={t('settings', lang)} title={t('settings', lang)} detail="The small details that keep the library trustworthy." /><form className="grid max-w-2xl gap-5 rounded-2xl border border-border bg-card p-6" onSubmit={e => { e.preventDefault(); setSaved(true); setTimeout(() => setSaved(false), 2400); }}><div className="flex items-center gap-3 border-b border-border pb-5"><Settings className="text-primary" /><div><div className="font-serif text-xl font-bold">Library identity</div><div className="text-sm text-muted-foreground">Shown across member communications.</div></div></div><Field label="Library name" value={name} onChange={e => setName(e.target.value)} data-testid="input-library-name" /><Field label="Contact email" type="email" value={email} onChange={e => setEmail(e.target.value)} data-testid="input-library-email" /><div className="flex items-center gap-3"><Button type="submit" data-testid="button-save-settings">{saved ? <><Check size={16} />Saved</> : t('save', lang)}</Button>{saved && <span className="text-sm text-emerald-700">Your settings are up to date.</span>}</div></form></AuthenticatedLayout>;
 }
 

@@ -1,6 +1,6 @@
 kind = "web"
 previewPath = "/"
-title = "HU Fellowship Library"
+title = "LOGOS Library"
 description = "A bilingual fellowship library platform for browsing books, discovering Bible study resources, and managing borrowing and study notes for members and administrators."
 version = "1.0.0"
 id = "artifacts/hu-fellowship-library"
