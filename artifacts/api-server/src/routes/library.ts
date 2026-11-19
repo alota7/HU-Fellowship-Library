@@ -497,18 +497,63 @@ router.put("/borrowing-requests/:id/approve", (req, res) => {
   const request = requests.find((item) => item.id === Number(req.params.id));
   if (!request) return res.status(404).json({ error: "Borrowing request not found." });
   if (request.status !== "pending") return res.status(409).json({ error: "This request has already been processed." });
+  
+  const rawDays = req.body?.days;
+  const days = (typeof rawDays === "number" && rawDays > 0)
+    ? Math.min(365, Math.floor(rawDays))
+    : (Number(rawDays) > 0 ? Math.min(365, Math.floor(Number(rawDays))) : 14);
+
   request.status = "approved";
   const due = new Date();
-  due.setDate(due.getDate() + 14);
+  due.setDate(due.getDate() + days);
   borrowings.push({
     id: borrowings.length + 1,
     book: request.book,
+    member: request.member,
     dueDate: due.toISOString().slice(0, 10),
     status: "borrowed",
     borrowedAt: now(),
     returnedAt: null,
-  });
-  return res.json(request);
+  } as any);
+  return res.json({ ...request, loanDays: days, dueDate: due.toISOString().slice(0, 10) });
+});
+
+router.delete("/borrowing-requests/:id", (req, res) => {
+  const user = requireUser(req, res);
+  if (!user) return;
+  const id = Number(req.params.id);
+  const index = requests.findIndex((item) => item.id === id);
+  if (index === -1) return res.status(404).json({ error: "Borrowing request not found." });
+  const request = requests[index];
+  if (user.role !== "admin" && request.member.id !== user.id) {
+    return res.status(403).json({ error: "You cannot cancel another member's request." });
+  }
+  if (request.status === "pending") {
+    const currentAvail = runtimeAvailability.get(request.book.id) ?? request.book.available;
+    request.book.available = currentAvail + 1;
+    runtimeAvailability.set(request.book.id, request.book.available);
+  }
+  requests.splice(index, 1);
+  return res.status(204).send();
+});
+
+router.put("/borrowing-requests/:id/cancel", (req, res) => {
+  const user = requireUser(req, res);
+  if (!user) return;
+  const id = Number(req.params.id);
+  const index = requests.findIndex((item) => item.id === id);
+  if (index === -1) return res.status(404).json({ error: "Borrowing request not found." });
+  const request = requests[index];
+  if (user.role !== "admin" && request.member.id !== user.id) {
+    return res.status(403).json({ error: "You cannot cancel another member's request." });
+  }
+  if (request.status === "pending") {
+    const currentAvail = runtimeAvailability.get(request.book.id) ?? request.book.available;
+    request.book.available = currentAvail + 1;
+    runtimeAvailability.set(request.book.id, request.book.available);
+  }
+  requests.splice(index, 1);
+  return res.status(200).json({ message: "Borrowing request cancelled successfully." });
 });
 
 router.put("/borrowing-requests/:id/reject", (req, res) => {
@@ -527,7 +572,11 @@ router.put("/borrowing-requests/:id/reject", (req, res) => {
 router.get("/borrowings", (req, res) => {
   const user = requireUser(req, res);
   if (!user) return;
-  return res.json(borrowings);
+  return res.json(
+    user.role === "admin"
+      ? borrowings
+      : borrowings.filter((item) => (item as any).member?.id === user.id || !(item as any).member)
+  );
 });
 
 router.get("/study-notes", async (req, res) => {

@@ -5,7 +5,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import {
-  BookOpen, BookMarked, Bookmark, Check, ChevronRight, CircleUserRound, Clock3, Download, Eye,
+  BookOpen, BookMarked, Bookmark, Calendar, Check, ChevronRight, CircleUserRound, Clock3, Download, Eye,
   FileText, FolderOpen, HelpCircle, Home as HomeIcon, LayoutGrid, Library, LogOut, Mail, Menu, MessageSquare, Moon, Pencil, Plus, Search, Send, Settings, ShieldCheck, Sparkles, Sun,
   UserRound, Users, X, ArrowLeft, ArrowRight, ArrowUpRight, AlertCircle, LoaderCircle
 } from 'lucide-react';
@@ -138,8 +138,8 @@ async function uploadLibraryFile(file: File, purpose: UploadPurpose) {
 }
 const Logo = ({ dark = false }: { dark?: boolean }) => (
   <Link href="/" data-testid="link-brand" className="flex items-center gap-3">
-    <span className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border border-border bg-black shadow-xs">
-      <img src={logo} alt="HU Fellowship Library" className="block h-full w-full object-contain p-0.5" />
+    <span className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl border border-border bg-black shadow-xs p-1">
+      <img src={logo} alt="HU Fellowship Library" className="block h-full w-full object-contain" />
     </span>
     <span className={`font-serif text-sm font-bold leading-tight ${dark ? 'text-sidebar-foreground' : 'text-foreground'}`}>
       HU Fellowship<br />
@@ -300,7 +300,7 @@ function Home() {
                   2 Timothy 2:15
                 </div>
                 <div className="mt-8 sm:mt-12 flex items-end justify-between">
-                  <div className="flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center overflow-hidden rounded-full border border-sidebar-border bg-black p-0.5">
+                  <div className="flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center overflow-hidden rounded-xl border border-sidebar-border bg-black p-1">
                     <img src={logo} alt="" className="block h-full w-full object-contain" />
                   </div>
                   <div className="text-right text-xs text-sidebar-foreground/50">Fellowship<br />Library</div>
@@ -1238,7 +1238,7 @@ function MemberDashboard({ preview = false }: { preview?: boolean }) {
             <p className="mt-4 text-xs text-sidebar-foreground/55">Proverbs 3:5</p>
           </div>
           <div className="mt-10 flex justify-end">
-            <span className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-full border border-sidebar-border bg-black p-0.5">
+            <span className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-xl border border-sidebar-border bg-black p-1">
               <img src={logo} alt="" className="block h-full w-full object-contain" />
             </span>
           </div>
@@ -1423,11 +1423,157 @@ function MemberBooks() {
 }
 
 function BookDetail() {
-  const params = useParams<{ id: string }>(); const id = Number(params.id); const { lang } = useLang(); const book = useGetBook(id); const request = useCreateBorrowingRequest(); const [sent, setSent] = useState(false);
+  const params = useParams<{ id: string }>();
+  const id = Number(params.id);
+  const { lang } = useLang();
+  const book = useGetBook(id);
+  const requestsQuery = useListBorrowingRequests();
+  const request = useCreateBorrowingRequest();
+  const client = useQueryClient();
+  const [cancelling, setCancelling] = useState(false);
+
   if (book.isLoading) return <AuthenticatedLayout><div className="grid gap-6 md:grid-cols-[260px_1fr]"><Skeleton className="h-80" /><div className="grid gap-4"><Skeleton className="h-10 w-2/3" /><Skeleton className="h-28" /></div></div></AuthenticatedLayout>;
   if (book.isError || !book.data) return <AuthenticatedLayout><ErrorState retry={() => book.refetch()} /></AuthenticatedLayout>;
   const item = book.data;
-  return <AuthenticatedLayout><Link href="/member/books" data-testid="link-back-books" className="mb-7 inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-primary"><ArrowLeft size={16} /> {t('books', lang)}</Link><div className="grid gap-10 md:grid-cols-[260px_1fr] lg:grid-cols-[300px_1fr]"><div><BookCover book={item} large /></div><div className="max-w-3xl"><div className="flex flex-wrap items-center gap-2">{item.type !== 'softcopy' && <Status tone={item.available > 0 ? 'good' : 'bad'}>{item.available > 0 ? `${item.available} available` : 'Currently unavailable'}</Status>}<Status>{item.type}</Status></div><h1 className="mt-4 font-serif text-4xl font-bold leading-tight sm:text-5xl">{item.title}</h1><p className="mt-3 text-lg text-muted-foreground">by {item.author}</p><div className="mt-8 grid gap-5 border-y border-border py-6 sm:grid-cols-3"><div><div className="text-xs uppercase tracking-wider text-muted-foreground">Category</div><div className="mt-1 font-semibold">{item.category}</div></div><div><div className="text-xs uppercase tracking-wider text-muted-foreground">Published</div><div className="mt-1 font-semibold">{item.year ?? '—'}</div></div><div><div className="text-xs uppercase tracking-wider text-muted-foreground">{item.type === 'softcopy' ? 'Format' : 'Copies'}</div><div className="mt-1 font-semibold">{item.type === 'softcopy' ? 'Digital (Softcopy)' : `${item.available} of ${item.total}`}</div></div></div><p className="mt-7 max-w-2xl leading-7 text-muted-foreground">{item.description}</p><div className="mt-9 flex flex-wrap gap-3">{item.type === 'softcopy' ? (item.fileUrl ? <><a href={item.fileUrl.replace(/^\/api\/storage\/api\/storage\//, '/api/storage/')} target="_blank" rel="noreferrer" data-testid="link-read-online-book" className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-3 text-sm font-bold text-primary-foreground shadow-sm hover:opacity-95"><Eye size={17} />{lang === 'am' ? 'በመስመር ላይ ክፈት' : 'Open online'}</a><a href={`${item.fileUrl.replace(/^\/api\/storage\/api\/storage\//, '/api/storage/')}?download=1`} target="_blank" rel="noreferrer" download data-testid="link-download-book" className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-5 py-3 text-sm font-bold text-foreground shadow-sm hover:bg-secondary"><Download size={17} />{lang === 'am' ? 'ያውርዱ' : 'Download file'}</a></> : <span className="text-sm text-muted-foreground">Softcopy file is being prepared.</span>) : <>{item.available > 0 && <Button disabled={request.isPending || sent} onClick={() => request.mutate({ data: { bookId: item.id } }, { onSuccess: () => setSent(true) })} data-testid="button-request-book">{sent ? <><Check size={17} />Request sent</> : request.isPending ? 'Sending…' : <><Bookmark size={17} />{t('request', lang)}</>}</Button>}{item.available === 0 && <Button variant="soft" disabled data-testid="button-unavailable">Currently unavailable</Button>}</>}</div></div></div></AuthenticatedLayout>;
+
+  const pendingReq = Array.isArray(requestsQuery.data)
+    ? requestsQuery.data.find(r => r.book?.id === id && r.status === 'pending')
+    : undefined;
+
+  const handleCancelRequest = async () => {
+    if (!pendingReq) return;
+    if (!window.confirm('Cancel your borrowing request for this book?')) return;
+    setCancelling(true);
+    try {
+      const res = await fetch(`/api/borrowing-requests/${pendingReq.id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      if (!res.ok && res.status !== 404) {
+        throw new Error('Failed to cancel request');
+      }
+      await requestsQuery.refetch();
+      await book.refetch();
+      void client.invalidateQueries({ queryKey: getListBorrowingRequestsQueryKey() });
+      void client.invalidateQueries({ queryKey: getListBooksQueryKey() });
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Could not cancel request');
+    } finally {
+      setCancelling(false);
+    }
+  };
+
+  return (
+    <AuthenticatedLayout>
+      <Link href="/member/books" data-testid="link-back-books" className="mb-7 inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-primary">
+        <ArrowLeft size={16} /> {t('books', lang)}
+      </Link>
+      <div className="grid gap-10 md:grid-cols-[260px_1fr] lg:grid-cols-[300px_1fr]">
+        <div>
+          <BookCover book={item} large />
+        </div>
+        <div className="max-w-3xl">
+          <div className="flex flex-wrap items-center gap-2">
+            {item.type !== 'softcopy' && (
+              <Status tone={item.available > 0 ? 'good' : 'bad'}>
+                {item.available > 0 ? `${item.available} available` : 'Currently unavailable'}
+              </Status>
+            )}
+            <Status>{item.type}</Status>
+            {pendingReq && <Status tone="warn">Request pending</Status>}
+          </div>
+          <h1 className="mt-4 font-serif text-4xl font-bold leading-tight sm:text-5xl">{item.title}</h1>
+          <p className="mt-3 text-lg text-muted-foreground">by {item.author}</p>
+          <div className="mt-8 grid gap-5 border-y border-border py-6 sm:grid-cols-3">
+            <div>
+              <div className="text-xs uppercase tracking-wider text-muted-foreground">Category</div>
+              <div className="mt-1 font-semibold">{item.category}</div>
+            </div>
+            <div>
+              <div className="text-xs uppercase tracking-wider text-muted-foreground">Published</div>
+              <div className="mt-1 font-semibold">{item.year ?? '—'}</div>
+            </div>
+            <div>
+              <div className="text-xs uppercase tracking-wider text-muted-foreground">{item.type === 'softcopy' ? 'Format' : 'Copies'}</div>
+              <div className="mt-1 font-semibold">{item.type === 'softcopy' ? 'Digital (Softcopy)' : `${item.available} of ${item.total}`}</div>
+            </div>
+          </div>
+          <p className="mt-7 max-w-2xl leading-7 text-muted-foreground">{item.description}</p>
+          <div className="mt-9 flex flex-wrap gap-3 items-center">
+            {item.type === 'softcopy' ? (
+              item.fileUrl ? (
+                <>
+                  <a
+                    href={item.fileUrl.replace(/^\/api\/storage\/api\/storage\//, '/api/storage/')}
+                    target="_blank"
+                    rel="noreferrer"
+                    data-testid="link-read-online-book"
+                    className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-3 text-sm font-bold text-primary-foreground shadow-sm hover:opacity-95"
+                  >
+                    <Eye size={17} />{lang === 'am' ? 'በመስመር ላይ ክፈት' : 'Open online'}
+                  </a>
+                  <a
+                    href={`${item.fileUrl.replace(/^\/api\/storage\/api\/storage\//, '/api/storage/')}?download=1`}
+                    target="_blank"
+                    rel="noreferrer"
+                    download
+                    data-testid="link-download-book"
+                    className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-5 py-3 text-sm font-bold text-foreground shadow-sm hover:bg-secondary"
+                  >
+                    <Download size={17} />{lang === 'am' ? 'ያውርዱ' : 'Download file'}
+                  </a>
+                </>
+              ) : (
+                <span className="text-sm text-muted-foreground">Softcopy file is being prepared.</span>
+              )
+            ) : (
+              <>
+                {pendingReq ? (
+                  <div className="flex flex-wrap items-center gap-3">
+                    <span className="inline-flex items-center gap-1.5 rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-950/60 dark:border-amber-700/60 px-4 py-2.5 text-xs font-bold text-amber-800 dark:text-amber-200">
+                      <Clock3 size={15} /> Request waiting for steward approval
+                    </span>
+                    <Button
+                      variant="danger"
+                      disabled={cancelling}
+                      onClick={handleCancelRequest}
+                      data-testid="button-cancel-request"
+                    >
+                      <X size={15} /> {cancelling ? 'Cancelling…' : 'Cancel request'}
+                    </Button>
+                  </div>
+                ) : item.available > 0 ? (
+                  <Button
+                    disabled={request.isPending}
+                    onClick={() => {
+                      request.mutate(
+                        { data: { bookId: item.id } },
+                        {
+                          onSuccess: () => {
+                            requestsQuery.refetch();
+                            book.refetch();
+                            void client.invalidateQueries({ queryKey: getListBorrowingRequestsQueryKey() });
+                            void client.invalidateQueries({ queryKey: getListBooksQueryKey() });
+                          },
+                        }
+                      );
+                    }}
+                    data-testid="button-request-book"
+                  >
+                    {request.isPending ? 'Sending…' : <><Bookmark size={17} />{t('request', lang)}</>}
+                  </Button>
+                ) : (
+                  <Button variant="soft" disabled data-testid="button-unavailable">
+                    Currently unavailable
+                  </Button>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    </AuthenticatedLayout>
+  );
 }
 
 function MemberNotes() {
@@ -1632,14 +1778,81 @@ function NoteCard({ note }: { note: StudyNote }) { return <StudyNoteStoreCard no
 function MemberBorrowings() {
   const { lang } = useLang();
   const borrowings = useListBorrowings();
+  const requestsQuery = useListBorrowingRequests();
+  const client = useQueryClient();
+  const [cancellingId, setCancellingId] = useState<number | null>(null);
+
+  const pendingRequests = Array.isArray(requestsQuery.data)
+    ? requestsQuery.data.filter((r) => r.status === 'pending')
+    : [];
+
+  const handleCancelRequest = async (requestId: number) => {
+    if (!window.confirm('Cancel this borrowing request?')) return;
+    setCancellingId(requestId);
+    try {
+      const res = await fetch(`/api/borrowing-requests/${requestId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      if (!res.ok && res.status !== 404) {
+        throw new Error('Failed to cancel request');
+      }
+      await requestsQuery.refetch();
+      void client.invalidateQueries({ queryKey: getListBorrowingRequestsQueryKey() });
+      void client.invalidateQueries({ queryKey: getListBooksQueryKey() });
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Could not cancel request');
+    } finally {
+      setCancellingId(null);
+    }
+  };
+
   return (
     <AuthenticatedLayout>
       <PageHeading
         eyebrow={t('membersOnly', lang)}
-        title={lang === 'am' ? 'የተዋሷቸው መጻሕፍት' : 'My Books'}
-        detail="Keep track of physical books currently in your care."
+        title={lang === 'am' ? 'የተዋሷቸው መጻሕፍት' : 'My Books & Borrowings'}
+        detail="Keep track of physical books currently in your care and pending requests."
       />
-      <div className="max-w-4xl">
+      <div className="max-w-4xl space-y-10">
+        {pendingRequests.length > 0 && (
+          <section>
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="font-serif text-2xl font-bold flex items-center gap-2">
+                <Clock3 size={20} className="text-amber-500" /> Pending Borrowing Requests
+              </h2>
+              <span className="text-xs font-mono text-muted-foreground bg-secondary px-2.5 py-0.5 rounded-full">
+                {pendingRequests.length} {pendingRequests.length === 1 ? 'request' : 'requests'}
+              </span>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {pendingRequests.map((r) => (
+                <div key={r.id} className="flex items-center gap-4 rounded-xl border border-amber-300/40 bg-card p-4 shadow-xs">
+                  <div className="h-16 w-12 shrink-0 overflow-hidden rounded-md">
+                    <BookCover book={r.book} className="h-full w-full" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="truncate font-serif font-bold">{r.book.title}</h3>
+                    <p className="text-xs text-muted-foreground">Requested {new Date(r.requestedAt).toLocaleDateString()}</p>
+                    <div className="mt-1.5 flex items-center gap-2">
+                      <Status tone="warn">Pending Steward</Status>
+                    </div>
+                  </div>
+                  <Button
+                    variant="danger"
+                    disabled={cancellingId === r.id}
+                    onClick={() => handleCancelRequest(r.id)}
+                    className="py-1.5 px-3 text-xs"
+                    data-testid={`button-cancel-request-${r.id}`}
+                  >
+                    <X size={13} /> {cancellingId === r.id ? '…' : 'Cancel'}
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
         <section>
           <div className="mb-4 flex items-center justify-between">
             <h2 className="font-serif text-2xl font-bold">Currently in my care</h2>
@@ -1867,9 +2080,213 @@ function AdminMembers() {
 }
 
 function AdminRequests() {
-  const query = useListBorrowingRequests(); const approve = useApproveBorrowingRequest(); const reject = useRejectBorrowingRequest();
-  const refresh = () => query.refetch();
-  return <AuthenticatedLayout admin><PageHeading eyebrow="Steward desk" title="Borrowing requests" detail="Review the requests waiting for a thoughtful yes." />{query.isLoading ? <div className="grid gap-3">{[1,2,3].map(i => <Skeleton key={i} className="h-24" />)}</div> : query.data?.length ? <div className="grid gap-3">{query.data.map(r => <div key={r.id} className="flex flex-wrap items-center gap-4 rounded-xl border border-border bg-card p-4"><div className="flex h-12 w-12 items-center justify-center rounded-lg bg-secondary text-primary"><BookMarked size={20} /></div><div className="min-w-0 flex-1"><div className="truncate font-serif font-bold">{r.book.title}</div><div className="text-xs text-muted-foreground">{r.member.name} · {r.member.email} · {new Date(r.requestedAt).toLocaleDateString()}</div></div><Status tone={r.status === 'approved' ? 'good' : r.status === 'pending' ? 'warn' : 'bad'}>{r.status}</Status>{r.status === 'pending' && <div className="flex gap-2"><Button variant="soft" disabled={approve.isPending} onClick={() => approve.mutate({ id: r.id }, { onSuccess: refresh })} data-testid={`button-approve-request-${r.id}`}><Check size={15} />Approve</Button><Button variant="danger" disabled={reject.isPending} onClick={() => reject.mutate({ id: r.id, data: { reason: 'Not available at this time.' } }, { onSuccess: refresh })} data-testid={`button-reject-request-${r.id}`}><X size={15} />Reject</Button></div>}</div>)}</div> : <EmptyState icon={Check} title="No borrowing requests" detail="The queue is clear." />}</AuthenticatedLayout>;
+  const query = useListBorrowingRequests();
+  const reject = useRejectBorrowingRequest();
+  const client = useQueryClient();
+  const [approvingRequest, setApprovingRequest] = useState<BorrowingRequest | null>(null);
+  const [loanDays, setLoanDays] = useState<number>(14);
+  const [approving, setApproving] = useState<boolean>(false);
+  const [approveError, setApproveError] = useState<string>('');
+
+  const refresh = () => {
+    query.refetch();
+    void client.invalidateQueries({ queryKey: getListBorrowingRequestsQueryKey() });
+    void client.invalidateQueries({ queryKey: getListBorrowingsQueryKey() });
+    void client.invalidateQueries({ queryKey: getListBooksQueryKey() });
+  };
+
+  const handleOpenApproveModal = (req: BorrowingRequest) => {
+    setApprovingRequest(req);
+    setLoanDays(14);
+    setApproveError('');
+  };
+
+  const handleConfirmApproval = async () => {
+    if (!approvingRequest) return;
+    const days = Math.max(1, Math.min(365, Number(loanDays) || 14));
+    setApproving(true);
+    setApproveError('');
+    try {
+      const res = await fetch(`/api/borrowing-requests/${approvingRequest.id}/approve`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ days }),
+        credentials: 'include',
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to approve borrowing request');
+      }
+      setApprovingRequest(null);
+      refresh();
+    } catch (err) {
+      setApproveError(err instanceof Error ? err.message : 'Error approving request');
+    } finally {
+      setApproving(false);
+    }
+  };
+
+  const getDueDateString = (days: number) => {
+    const d = new Date();
+    d.setDate(d.getDate() + Number(days || 0));
+    return d.toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
+  };
+
+  return (
+    <AuthenticatedLayout admin>
+      <PageHeading
+        eyebrow="Steward desk"
+        title="Borrowing requests"
+        detail="Review requests waiting for steward approval and define lending duration."
+      />
+      {query.isLoading ? (
+        <div className="grid gap-3">
+          {[1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-24" />
+          ))}
+        </div>
+      ) : query.data?.length ? (
+        <div className="grid gap-3">
+          {query.data.map((r) => (
+            <div
+              key={r.id}
+              className="flex flex-wrap items-center gap-4 rounded-xl border border-border bg-card p-4 transition shadow-xs"
+            >
+              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-secondary text-primary">
+                <BookMarked size={20} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="truncate font-serif font-bold text-base">{r.book.title}</div>
+                <div className="text-xs text-muted-foreground mt-0.5">
+                  <span className="font-medium text-foreground">{r.member.name}</span> · {r.member.email} · Requested {new Date(r.requestedAt).toLocaleDateString()}
+                </div>
+              </div>
+              <Status tone={r.status === 'approved' ? 'good' : r.status === 'pending' ? 'warn' : 'bad'}>
+                {r.status}
+              </Status>
+              {r.status === 'pending' && (
+                <div className="flex gap-2">
+                  <Button
+                    variant="soft"
+                    onClick={() => handleOpenApproveModal(r)}
+                    data-testid={`button-approve-request-${r.id}`}
+                  >
+                    <Check size={15} /> Approve loan
+                  </Button>
+                  <Button
+                    variant="danger"
+                    disabled={reject.isPending}
+                    onClick={() =>
+                      reject.mutate(
+                        { id: r.id, data: { reason: 'Not available at this time.' } },
+                        { onSuccess: refresh }
+                      )
+                    }
+                    data-testid={`button-reject-request-${r.id}`}
+                  >
+                    <X size={15} /> Reject
+                  </Button>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      ) : (
+        <EmptyState icon={Check} title="No borrowing requests" detail="The queue is clear." />
+      )}
+
+      {/* Admin Approval with Reading Duration Dialog */}
+      <Dialog open={!!approvingRequest} onOpenChange={(open) => !open && setApprovingRequest(null)}>
+        <DialogContent className="sm:max-w-md bg-card border border-border text-foreground p-6 rounded-2xl shadow-2xl">
+          <DialogTitle className="font-serif text-xl font-bold flex items-center gap-2">
+            <Calendar size={20} className="text-primary" /> Set Loan Period & Approve
+          </DialogTitle>
+          <DialogDescription className="text-xs text-muted-foreground mt-1">
+            Specify the reading time limit (in days) granted to the member before this book must be returned.
+          </DialogDescription>
+
+          {approvingRequest && (
+            <div className="mt-4 space-y-4">
+              <div className="rounded-xl border border-border bg-secondary/30 p-3.5 text-xs space-y-1">
+                <div className="font-serif font-bold text-sm text-foreground">{approvingRequest.book.title}</div>
+                <div className="text-muted-foreground">Borrower: <span className="text-foreground font-medium">{approvingRequest.member.name}</span> ({approvingRequest.member.email})</div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                  Loan Duration (Days to Read)
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min="1"
+                    max="365"
+                    value={loanDays}
+                    onChange={(e) => setLoanDays(Math.max(1, Math.min(365, parseInt(e.target.value) || 1)))}
+                    className="h-11 w-28 rounded-lg border border-input bg-card px-3 text-center text-base font-bold outline-none focus:ring-2 focus:ring-primary"
+                    data-testid="input-loan-days"
+                  />
+                  <span className="text-sm font-medium text-foreground">days</span>
+                </div>
+
+                {/* Quick preset chips */}
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  {[7, 14, 21, 30].map((d) => (
+                    <button
+                      key={d}
+                      type="button"
+                      onClick={() => setLoanDays(d)}
+                      className={`px-3 py-1 text-xs font-semibold rounded-lg border transition ${
+                        loanDays === d
+                          ? 'bg-primary text-primary-foreground border-primary'
+                          : 'bg-card text-foreground border-border hover:bg-secondary'
+                      }`}
+                    >
+                      {d} days {d === 7 ? '(1 wk)' : d === 14 ? '(2 wks)' : d === 21 ? '(3 wks)' : '(1 mo)'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-primary/20 bg-primary/10 p-3.5 flex items-center justify-between text-xs">
+                <div className="text-muted-foreground">Calculated Due Date:</div>
+                <div className="font-mono font-bold text-foreground text-sm flex items-center gap-1.5">
+                  <Clock3 size={15} className="text-primary" />
+                  {getDueDateString(loanDays)}
+                </div>
+              </div>
+
+              {approveError && (
+                <p role="alert" className="text-xs text-destructive font-medium">
+                  {approveError}
+                </p>
+              )}
+
+              <div className="mt-6 flex justify-end gap-2 pt-2 border-t border-border">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => setApprovingRequest(null)}
+                  disabled={approving}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  onClick={handleConfirmApproval}
+                  disabled={approving || loanDays < 1}
+                  data-testid="button-confirm-approve-loan"
+                >
+                  <Check size={16} />
+                  {approving ? 'Approving…' : `Confirm (${loanDays} days)`}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </AuthenticatedLayout>
+  );
 }
 
 function AdminNotes() {
