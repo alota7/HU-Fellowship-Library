@@ -1,4 +1,4 @@
-import { type ReactNode, createContext, useContext, useEffect, useState } from 'react';
+import { type ReactNode, createContext, useContext, useEffect, useState, useMemo } from 'react';
 import { QueryClient, QueryClientProvider, useQueryClient, useQuery, useMutation } from '@tanstack/react-query';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { Toaster } from '@/components/ui/toaster';
@@ -226,64 +226,133 @@ function Home() {
   const categoriesQuery = useListCategories();
   const books = Array.isArray(booksQuery.data) ? booksQuery.data : [];
   const featured = books.filter((book) => book.featured).slice(0, 6);
+
+  const shelfBooks = useMemo(() => {
+    if (!books.length) return [];
+    const selected: Book[] = [];
+    const seenCategories = new Set<string>();
+
+    for (const b of books) {
+      const cat = b.category?.name || 'General';
+      if (!seenCategories.has(cat)) {
+        seenCategories.add(cat);
+        selected.push(b);
+      }
+    }
+    for (const b of books) {
+      if (!selected.some(s => s.id === b.id)) {
+        selected.push(b);
+      }
+      if (selected.length >= 8) break;
+    }
+    return selected;
+  }, [books]);
+
   return (
     <div className="noise min-h-[100dvh] overflow-x-hidden">
       <PublicNav />
       <main>
-        <section className="relative mx-auto grid max-w-7xl gap-8 sm:gap-12 px-4 py-8 sm:px-6 sm:py-16 lg:grid-cols-[1.04fr_.96fr] lg:items-center lg:px-10 lg:pb-28 lg:pt-16">
-          <div className="animate-rise">
-            <div className="mb-4 sm:mb-7 flex items-center gap-2 text-xs font-bold uppercase tracking-[.22em] text-primary">
-              <span className="h-px w-8 bg-primary" />Study. Serve. Share.
-            </div>
-            <h1 className="max-w-2xl font-serif text-3xl sm:text-5xl lg:text-7xl font-bold leading-[1.08] tracking-tight">
-              A quiet place for <span className="text-primary">deep roots.</span>
-            </h1>
-            <p className="mt-4 sm:mt-7 max-w-xl text-base sm:text-lg leading-7 sm:leading-8 text-muted-foreground">
-              The HU Fellowship Library brings books, Bible-study resources, and a growing community of learners into one welcoming home.
-            </p>
-            <div className="mt-6 sm:mt-9 flex flex-col sm:flex-row flex-wrap gap-3">
-              <Link href="/login" data-testid="link-start-exploring" className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-bold text-primary-foreground shadow-lg shadow-primary/15 touch-target">
-                Start exploring <ChevronRight size={17} />
-              </Link>
-              <a href="#featured" data-testid="link-view-featured" className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl border border-border bg-card px-5 py-3 text-sm font-bold touch-target">
-                View featured resources
-              </a>
-            </div>
-            <div className="mt-8 sm:mt-12 flex flex-wrap items-center gap-4 sm:gap-8 border-t border-border pt-6">
-              <div>
-                <div className="font-mono text-xl sm:text-2xl font-bold text-primary">{booksQuery.isLoading ? '—' : books.length}</div>
-                <div className="text-xs text-muted-foreground">books in collection</div>
+        <section className="relative mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-16 lg:px-10">
+          <div className="grid gap-8 sm:gap-12 lg:grid-cols-[1.1fr_.9fr] lg:items-start">
+            <div className="animate-rise">
+              <div className="mb-4 sm:mb-6 flex items-center gap-2 text-xs font-bold uppercase tracking-[.22em] text-primary">
+                <span className="h-px w-8 bg-primary" />Study. Serve. Share.
               </div>
-              <div className="h-8 w-px bg-border" />
-              <div>
-                <div className="font-mono text-xl sm:text-2xl font-bold text-primary">{categoriesQuery.isLoading ? '—' : (categoriesQuery.data?.length ?? 0)}</div>
-                <div className="text-xs text-muted-foreground">categories to explore</div>
+              <h1 className="max-w-2xl font-serif text-3xl sm:text-5xl lg:text-7xl font-bold leading-[1.08] tracking-tight">
+                A quiet place for <span className="text-primary">deep roots.</span>
+              </h1>
+              <p className="mt-4 sm:mt-6 max-w-xl text-base sm:text-lg leading-7 sm:leading-8 text-muted-foreground">
+                The HU Fellowship Library brings books, Bible-study resources, and a growing community of learners into one welcoming home.
+              </p>
+
+              {/* Welcoming description card for all visitors */}
+              <div className="mt-6 rounded-2xl border border-border/80 bg-card/75 p-5 text-sm leading-relaxed backdrop-blur-md shadow-xs">
+                <div className="flex items-center gap-2 font-serif font-bold text-foreground mb-2">
+                  <Sparkles size={16} className="text-primary" />
+                  <span>Welcome to the HU Fellowship Library</span>
+                </div>
+                <p className="text-muted-foreground text-xs sm:text-sm leading-6">
+                  Rooted in biblical study, theology, and discipleship, the HU Fellowship Library serves university students, leaders, and fellowship members. Explore physical hardcopies available to borrow, softcopy theological classics available for immediate reading and download, peer study notes, and an active Bible Q&A community.
+                </p>
+                <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3.5 border-t border-border/60 text-xs">
+                  <div className="flex items-center gap-2 text-foreground font-medium">
+                    <BookOpen size={14} className="text-primary shrink-0" />
+                    <span>Curated Library Shelves</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-foreground font-medium">
+                    <FileText size={14} className="text-primary shrink-0" />
+                    <span>Notes & Summer Studies</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-foreground font-medium">
+                    <HelpCircle size={14} className="text-primary shrink-0" />
+                    <span>Fellowship Bible Q&A</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row flex-wrap gap-3">
+                <Link href="/login" data-testid="link-start-exploring" className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-bold text-primary-foreground shadow-lg shadow-primary/15 touch-target">
+                  Start exploring <ChevronRight size={17} />
+                </Link>
+                <a href="#shelf" data-testid="link-view-shelf" className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl border border-border bg-card px-5 py-3 text-sm font-bold touch-target">
+                  <Library size={16} className="text-primary" /> Browse library shelves
+                </a>
+              </div>
+
+              <div className="mt-8 flex flex-wrap items-center gap-4 sm:gap-8 border-t border-border pt-6">
+                <div>
+                  <div className="font-mono text-xl sm:text-2xl font-bold text-primary">{booksQuery.isLoading ? '—' : books.length}</div>
+                  <div className="text-xs text-muted-foreground">books in collection</div>
+                </div>
+                <div className="h-8 w-px bg-border" />
+                <div>
+                  <div className="font-mono text-xl sm:text-2xl font-bold text-primary">{categoriesQuery.isLoading ? '—' : (categoriesQuery.data?.length ?? 0)}</div>
+                  <div className="text-xs text-muted-foreground">categories to explore</div>
+                </div>
+                <div className="h-8 w-px bg-border" />
+                <div>
+                  <div className="font-mono text-xl sm:text-2xl font-bold text-primary">Open</div>
+                  <div className="text-xs text-muted-foreground">fellowship community</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="paper-grid relative mx-auto w-full max-w-lg animate-rise stagger-1">
+              <div className="absolute -right-8 -top-8 h-40 w-40 rounded-full bg-accent/10 blur-3xl" />
+              <div className="relative rounded-2xl sm:rounded-[2rem] border border-primary/15 bg-secondary/45 p-3.5 sm:p-5 shadow-2xl shadow-primary/10">
+                <div className="rounded-xl sm:rounded-[1.5rem] bg-sidebar p-5 sm:p-8 text-sidebar-foreground">
+                  <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-[.2em] text-sidebar-primary">
+                    <span>HU / 01</span>
+                    <span>Est. 2004</span>
+                  </div>
+                  <div className="mt-8 sm:mt-12 max-w-xs font-serif text-2xl sm:text-3xl font-bold leading-tight">
+                    “Study to show yourself approved.”
+                  </div>
+                  <div className="mt-2.5 sm:mt-3 font-mono text-[10px] uppercase tracking-widest text-sidebar-primary">
+                    2 Timothy 2:15
+                  </div>
+                  <div className="mt-6 border-t border-sidebar-border/60 pt-4 text-xs text-sidebar-foreground/75 leading-relaxed">
+                    “Let the word of Christ dwell in you richly, teaching and admonishing one another in all wisdom.”
+                  </div>
+                  <div className="mt-8 sm:mt-10 flex items-end justify-between">
+                    <div className="flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center overflow-hidden rounded-full border border-sidebar-border bg-white p-1">
+                      <img src={logo} alt="" className="block h-full w-full origin-center scale-[1.25] object-contain object-center grayscale contrast-200" />
+                    </div>
+                    <div className="text-right text-xs text-sidebar-foreground/50">Fellowship<br />Library</div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
 
-          <div className="paper-grid relative mx-auto w-full max-w-lg animate-rise stagger-1">
-            <div className="absolute -right-8 -top-8 h-40 w-40 rounded-full bg-accent/10 blur-3xl" />
-            <div className="relative rounded-2xl sm:rounded-[2rem] border border-primary/15 bg-secondary/45 p-3.5 sm:p-5 shadow-2xl shadow-primary/10">
-              <div className="rounded-xl sm:rounded-[1.5rem] bg-sidebar p-5 sm:p-8 text-sidebar-foreground">
-                <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-[.2em] text-sidebar-primary">
-                  <span>HU / 01</span>
-                  <span>Est. 2004</span>
-                </div>
-                <div className="mt-8 sm:mt-16 max-w-xs font-serif text-2xl sm:text-3xl font-bold leading-tight">
-                  “Study to show yourself approved.”
-                </div>
-                <div className="mt-2.5 sm:mt-3 font-mono text-[10px] uppercase tracking-widest text-sidebar-primary">
-                  2 Timothy 2:15
-                </div>
-                <div className="mt-8 sm:mt-12 flex items-end justify-between">
-                  <div className="flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center overflow-hidden rounded-full border border-sidebar-border bg-white p-1">
-                    <img src={logo} alt="" className="block h-full w-full origin-center scale-[1.25] object-contain object-center grayscale contrast-200" />
-                  </div>
-                  <div className="text-right text-xs text-sidebar-foreground/50">Fellowship<br />Library</div>
-                </div>
-              </div>
-            </div>
+          {/* Wooden Bookshelf Row directly connected under "A quiet place for deep roots." */}
+          <div id="shelf" className="mt-12 sm:mt-16 pt-8 border-t border-border/70">
+            <BookshelfRow
+              title="Books on the Fellowship Shelf"
+              eyebrow="A quiet place for deep roots"
+              books={shelfBooks}
+              publicShelf={true}
+            />
           </div>
         </section>
 
@@ -371,7 +440,7 @@ function AuthShell({ children, eyebrow, title, detail }: { children: ReactNode; 
           <div className="max-w-md pb-12">
             <div className="mb-5 text-xs font-bold uppercase tracking-[.22em] text-sidebar-primary">HU Fellowship Library</div>
             <h2 className="font-serif text-4xl lg:text-5xl font-bold leading-tight">Make room for the word.</h2>
-            <p className="mt-6 leading-7 text-sidebar-foreground/65">A trusted collection for the people who keep asking better questions.</p>
+            <p className="mt-6 leading-7 text-sidebar-foreground/75">The HU Fellowship Library brings books, Bible-study resources, and a growing community of learners into one welcoming home. A trusted collection for the people who keep asking better questions.</p>
             <div className="mt-12 border-l-2 border-sidebar-primary/60 pl-5 font-serif text-lg italic text-sidebar-foreground/85">
               “Let the word of Christ dwell in you richly.”
               <span className="mt-2 block font-sans text-xs not-italic text-sidebar-primary">Colossians 3:16</span>
