@@ -86,7 +86,8 @@ const previewMember: User = {
 const previewBooks: Book[] = [
   { id: -1, title: 'Knowing God', author: 'J. I. Packer', type: 'hardcopy', category: 'Christian Living', description: 'A sample book for dashboard layout previews.', year: 1973, available: 2, total: 4, featured: true },
   { id: -2, title: 'The Cost of Discipleship', author: 'Dietrich Bonhoeffer', type: 'hardcopy', category: 'Bible Study', description: 'A sample book for dashboard layout previews.', year: 1937, available: 1, total: 3, featured: true },
-  { id: -3, title: 'Celebration of Discipline', author: 'Richard J. Foster', type: 'softcopy', category: 'Christian Living', description: 'A sample book for dashboard layout previews.', year: 1978, available: 0, total: 2, featured: true },
+  { id: -3, title: 'Celebration of Discipline', author: 'Richard J. Foster', type: 'softcopy', category: 'Spiritual Formation', description: 'A sample book for dashboard layout previews.', year: 1978, available: 0, total: 2, featured: true },
+  { id: -4, title: 'On the Incarnation', author: 'Athanasius of Alexandria', type: 'softcopy', category: 'Christology', description: 'A foundational theological reflection on Christ becoming man.', year: 400, available: 1, total: 1, featured: true },
 ];
 const previewBorrowingRequests: BorrowingRequest[] = [
   { id: -1, book: previewBooks[0], member: { ...previewMember, id: -3, name: 'Mekdes Alemu', email: 'mekdes@example.test' }, status: 'pending', requestedAt: '2026-11-11T09:30:00.000Z', rejectionReason: null },
@@ -972,17 +973,148 @@ function MemberDashboard({ preview = false }: { preview?: boolean }) {
   const notes = useListStudyNotes(undefined, { query: { queryKey: getListStudyNotesQueryKey(), enabled: !preview } });
   const categories = useListCategories({ query: { queryKey: getListCategoriesQueryKey(), enabled: !preview } });
   const data = preview ? previewMemberSummary : summary.data;
-  const latest = preview ? previewBooks : (Array.isArray(books.data) ? books.data : []).slice(0, 3);
+
+  // Pick at least 4 popular books ensuring different categories
+  const allBooks: Book[] = preview ? previewBooks : (Array.isArray(books.data) ? books.data : []);
+  const popularBooks: Book[] = [];
+  const seenCategories = new Set<string>();
+
+  for (const b of allBooks) {
+    const cat = b.category || 'General';
+    if (!seenCategories.has(cat)) {
+      seenCategories.add(cat);
+      popularBooks.push(b);
+    }
+  }
+
+  if (popularBooks.length < 4) {
+    for (const b of allBooks) {
+      if (!popularBooks.some(p => p.id === b.id)) {
+        popularBooks.push(b);
+        if (popularBooks.length >= 4) break;
+      }
+    }
+  }
+
+  const latest = popularBooks.slice(0, 6);
   const totalCategories = preview ? 6 : (Array.isArray(categories.data) ? categories.data.length : 0);
   const action = preview
     ? <Button disabled variant="soft" data-testid="button-preview-browse"><ChevronRight size={16} />Preview only</Button>
     : <Link href="/member/books" data-testid="link-dashboard-browse" className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground">{t('browse', lang)} <ChevronRight size={16} /></Link>;
-  return <AuthenticatedLayout preview={preview}><PageHeading eyebrow={t('overview', lang)} title={`${t('welcome', lang)}.`} detail="A good study habit starts by knowing where to look." action={action} /><div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{!preview && summary.isLoading ? [1,2,3].map(i => <Skeleton key={i} className="h-36" />) : <><Metric label={lang === 'am' ? 'በስብስቡ ውስጥ መጻሕፍት' : 'Books in collection'} value={data?.books ?? 0} icon={BookOpen} /><Metric label={lang === 'am' ? 'የጥናት ማስታወሻዎች' : 'Study notes & guides'} value={data?.studyNotes ?? (preview ? 9 : notes.data?.length ?? 0)} icon={FileText} /><Metric label={lang === 'am' ? 'የመጽሐፍ ምድቦች' : 'Book categories'} value={totalCategories} icon={FolderOpen} /></>}</div><div className="mt-8 grid gap-6 xl:grid-cols-[1.25fr_.75fr]"><section className="rounded-2xl border border-border bg-card p-6"><div className="flex items-center justify-between"><div><div className="text-xs font-bold uppercase tracking-[.2em] text-accent">{t('featured', lang)}</div><h2 className="mt-1 font-serif text-2xl font-bold">Begin with a good question.</h2></div>{preview ? <span className="text-sm font-semibold text-muted-foreground">Sample shelf</span> : <Link href="/member/books" data-testid="link-dashboard-books" className="text-sm font-bold text-primary">See all</Link>}</div>{!preview && books.isLoading ? <div className="mt-6 grid gap-3">{[1,2,3].map(i => <Skeleton key={i} className="h-20" />)}</div> : latest.length ? <div className="mt-6 grid gap-3">{latest.map(book => {
-    const content = <><div className="h-16 w-12 shrink-0 overflow-hidden rounded-md"><BookCover book={book} className="h-full w-full" /></div><div className="min-w-0 flex-1"><h3 className="truncate font-serif font-bold">{book.title}</h3><p className="truncate text-xs text-muted-foreground">{book.author} · {book.category}</p></div>{!preview && <ArrowUpRight size={17} className="text-muted-foreground" />}</>;
-    return preview
-      ? <div key={book.id} data-testid={`row-preview-book-${Math.abs(book.id)}`} className="flex items-center gap-4 rounded-xl border border-border/70 p-3">{content}</div>
-      : <Link key={book.id} href={`/member/books/${book.id}`} data-testid={`row-dashboard-book-${book.id}`} className="flex items-center gap-4 rounded-xl border border-border/70 p-3 hover:border-primary/40 hover:bg-secondary/40">{content}</Link>;
-  })}</div> : <div className="mt-6"><EmptyState icon={BookOpen} title="The shelves are quiet" detail="Newly added books will appear here." /></div>}</section><section className="relative overflow-hidden rounded-2xl bg-sidebar p-7 text-sidebar-foreground"><div className="absolute -right-14 -top-14 h-44 w-44 rounded-full border border-sidebar-primary/20" /><div className="absolute -right-4 -top-4 h-24 w-24 rounded-full border border-sidebar-primary/20" /><div className="relative"><div className="font-mono text-[10px] uppercase tracking-[.2em] text-sidebar-primary">A verse for the week</div><p className="mt-12 font-serif text-2xl font-bold leading-relaxed">“Trust in the Lord with all your heart and lean not on your own understanding.”</p><p className="mt-5 text-xs text-sidebar-foreground/55">Proverbs 3:5</p><div className="mt-14 flex justify-end"><span className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-full border border-sidebar-border bg-white"><img src={logo} alt="" className="block h-full w-full origin-center scale-125 object-contain object-center grayscale contrast-200" /></span></div></div></section></div></AuthenticatedLayout>;
+
+  return (
+    <AuthenticatedLayout preview={preview}>
+      <PageHeading
+        eyebrow={t('overview', lang)}
+        title={`${t('welcome', lang)}.`}
+        detail="The HU Fellowship Library brings books, Bible-study resources, and a growing community of learners into one welcoming home."
+        action={action}
+      />
+
+      <div className="mb-8 rounded-2xl border border-border bg-card p-5 sm:p-6 shadow-sm">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div className="max-w-3xl">
+            <div className="text-[11px] font-bold uppercase tracking-[.2em] text-accent mb-2">About the Fellowship Library</div>
+            <p className="font-serif text-lg sm:text-xl font-bold leading-relaxed text-foreground">
+              “The HU Fellowship Library brings books, Bible-study resources, and a growing community of learners into one welcoming home.”
+            </p>
+            <p className="mt-2 text-xs sm:text-sm text-muted-foreground leading-relaxed">
+              Explore physical and digital collections across Christology, Bible commentary, theology, and Christian living. Download vetted study notes, ask spiritual questions directly to fellowship stewards, and grow together in the Word.
+            </p>
+          </div>
+          <Link
+            href="/member/books"
+            className="shrink-0 inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-xs sm:text-sm font-bold text-primary-foreground shadow-sm hover:opacity-95 transition"
+          >
+            Explore all books <ArrowRight size={15} />
+          </Link>
+        </div>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {!preview && summary.isLoading ? (
+          [1, 2, 3].map(i => <Skeleton key={i} className="h-36" />)
+        ) : (
+          <>
+            <Metric label={lang === 'am' ? 'በስብስቡ ውስጥ መጻሕፍት' : 'Books in collection'} value={data?.books ?? 0} icon={BookOpen} />
+            <Metric label={lang === 'am' ? 'የጥናት ማስታወሻዎች' : 'Study notes & guides'} value={data?.studyNotes ?? (preview ? 9 : notes.data?.length ?? 0)} icon={FileText} />
+            <Metric label={lang === 'am' ? 'የመጽሐፍ ምድቦች' : 'Book categories'} value={totalCategories} icon={FolderOpen} />
+          </>
+        )}
+      </div>
+
+      <div className="mt-8 grid gap-6 xl:grid-cols-[1.35fr_.65fr]">
+        <section className="rounded-2xl border border-border bg-card p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-xs font-bold uppercase tracking-[.2em] text-accent">Diverse Categories</div>
+              <h2 className="mt-1 font-serif text-2xl font-bold">Popular books</h2>
+            </div>
+            {preview ? (
+              <span className="text-sm font-semibold text-muted-foreground">Sample shelf</span>
+            ) : (
+              <Link href="/member/books" data-testid="link-dashboard-books" className="text-sm font-bold text-primary hover:underline">
+                See all books
+              </Link>
+            )}
+          </div>
+          {!preview && books.isLoading ? (
+            <div className="mt-6 grid gap-3 sm:grid-cols-2">
+              {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-24" />)}
+            </div>
+          ) : latest.length ? (
+            <div className="mt-6 grid gap-3 sm:grid-cols-2">
+              {latest.map(book => {
+                const content = (
+                  <>
+                    <div className="h-16 w-12 shrink-0 overflow-hidden rounded-md bg-secondary">
+                      <BookCover book={book} className="h-full w-full" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <h3 className="truncate font-serif font-bold text-sm sm:text-base">{book.title}</h3>
+                      <p className="truncate text-xs text-muted-foreground mt-0.5">{book.author}</p>
+                      <span className="inline-block mt-1 text-[10px] font-mono font-semibold uppercase text-primary bg-primary/10 rounded px-1.5 py-0.5">
+                        {book.category}
+                      </span>
+                    </div>
+                    {!preview && <ArrowUpRight size={16} className="text-muted-foreground shrink-0" />}
+                  </>
+                );
+                return preview ? (
+                  <div key={book.id} data-testid={`row-preview-book-${Math.abs(book.id)}`} className="flex items-center gap-3.5 rounded-xl border border-border/70 p-3 bg-secondary/20">
+                    {content}
+                  </div>
+                ) : (
+                  <Link key={book.id} href={`/member/books/${book.id}`} data-testid={`row-dashboard-book-${book.id}`} className="flex items-center gap-3.5 rounded-xl border border-border/70 p-3 hover:border-primary/40 hover:bg-secondary/40 transition">
+                    {content}
+                  </Link>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="mt-6">
+              <EmptyState icon={BookOpen} title="The shelves are quiet" detail="Newly added books will appear here." />
+            </div>
+          )}
+        </section>
+
+        <section className="relative overflow-hidden rounded-2xl bg-sidebar p-7 text-sidebar-foreground flex flex-col justify-between">
+          <div className="absolute -right-14 -top-14 h-44 w-44 rounded-full border border-sidebar-primary/20" />
+          <div className="absolute -right-4 -top-4 h-24 w-24 rounded-full border border-sidebar-primary/20" />
+          <div className="relative">
+            <div className="font-mono text-[10px] uppercase tracking-[.2em] text-sidebar-primary">A verse for the week</div>
+            <p className="mt-8 font-serif text-2xl font-bold leading-relaxed">“Trust in the Lord with all your heart and lean not on your own understanding.”</p>
+            <p className="mt-4 text-xs text-sidebar-foreground/55">Proverbs 3:5</p>
+          </div>
+          <div className="mt-10 flex justify-end">
+            <span className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-full border border-sidebar-border bg-white">
+              <img src={logo} alt="" className="block h-full w-full origin-center scale-125 object-contain object-center grayscale contrast-200" />
+            </span>
+          </div>
+        </section>
+      </div>
+    </AuthenticatedLayout>
+  );
 }
 
 function MemberBooks() {
