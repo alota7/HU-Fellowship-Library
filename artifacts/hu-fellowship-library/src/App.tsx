@@ -1072,26 +1072,6 @@ function MemberDashboard({ preview = false }: { preview?: boolean }) {
         action={action}
       />
 
-      <div className="mb-8 rounded-2xl border border-border bg-card p-5 sm:p-6 shadow-sm">
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-          <div className="max-w-3xl">
-            <div className="text-[11px] font-bold uppercase tracking-[.2em] text-accent mb-2">About the Fellowship Library</div>
-            <p className="font-serif text-lg sm:text-xl font-bold leading-relaxed text-foreground">
-              “The HU Fellowship Library brings books, Bible-study resources, and a growing community of learners into one welcoming home.”
-            </p>
-            <p className="mt-2 text-xs sm:text-sm text-muted-foreground leading-relaxed">
-              Explore physical and digital collections across Christology, Bible commentary, theology, and Christian living. Download vetted study notes, ask spiritual questions directly to fellowship stewards, and grow together in the Word.
-            </p>
-          </div>
-          <Link
-            href="/member/books"
-            className="shrink-0 inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-xs sm:text-sm font-bold text-primary-foreground shadow-sm hover:opacity-95 transition"
-          >
-            Explore all books <ArrowRight size={15} />
-          </Link>
-        </div>
-      </div>
-
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {!preview && summary.isLoading ? (
           [1, 2, 3].map(i => <Skeleton key={i} className="h-36" />)
