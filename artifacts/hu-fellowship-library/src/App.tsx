@@ -615,7 +615,6 @@ function ForgotPassword() {
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
   const [password, setPassword] = useState('');
-  const [generatedCode, setGeneratedCode] = useState('');
   const [stage, setStage] = useState<'email' | 'code' | 'done'>('email');
   const requestReset = useRequestPasswordReset();
   const resetPassword = useResetPassword();
@@ -626,11 +625,7 @@ function ForgotPassword() {
     requestReset.mutate(
       { data: { email: cleanEmail } },
       {
-        onSuccess: (res: any) => {
-          if (res?.recoveryCode) {
-            setGeneratedCode(res.recoveryCode);
-            setCode(res.recoveryCode);
-          }
+        onSuccess: () => {
           setStage('code');
         },
       }
@@ -659,9 +654,9 @@ function ForgotPassword() {
       title="Find your way back in."
       detail={
         stage === 'email'
-          ? 'Enter your account email to receive your six-digit recovery code.'
+          ? 'Enter your account email to receive your six-digit verification code.'
           : stage === 'code'
-          ? 'Enter the 6-digit code and set your new password.'
+          ? 'Enter the 6-digit code sent to your email and set your new password.'
           : 'Your password has been updated successfully.'
       }
     >
@@ -686,38 +681,22 @@ function ForgotPassword() {
             )}
             <Button type="submit" disabled={requestReset.isPending} className="h-12 w-full touch-target" data-testid="button-send-recovery">
               {requestReset.isPending ? <LoaderCircle size={18} className="animate-spin" /> : null}
-              {requestReset.isPending ? 'Generating recovery code…' : 'Send recovery code'}
+              {requestReset.isPending ? 'Sending recovery code…' : 'Send recovery code to my email'}
             </Button>
           </>
         )}
         {stage === 'code' && (
           <>
-            {generatedCode ? (
-              <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-4 text-sm text-foreground space-y-2">
-                <div className="flex items-center gap-2 font-bold text-emerald-600 dark:text-emerald-400">
-                  <Check size={18} /> Recovery Code Ready
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Your 6-digit recovery code is generated below for <span className="font-semibold text-foreground">{email}</span>:
-                </p>
-                <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-card p-3">
-                  <span className="font-mono text-2xl font-bold tracking-widest text-primary">{generatedCode}</span>
-                  <button
-                    type="button"
-                    onClick={() => setCode(generatedCode)}
-                    className="rounded-md bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary/20 transition"
-                  >
-                    Auto-fill code
-                  </button>
-                </div>
+            <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 text-sm leading-6 text-foreground space-y-1.5" data-testid="status-recovery-sent">
+              <div className="flex items-center gap-2 font-bold text-primary">
+                <Mail size={18} /> Verification code sent
               </div>
-            ) : (
-              <div className="rounded-lg bg-emerald-100 dark:bg-emerald-950/60 p-4 text-sm leading-6 text-emerald-800 dark:text-emerald-200" data-testid="status-recovery-sent">
-                A six-digit recovery code was sent to {email}.
-              </div>
-            )}
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                We sent a 6-digit recovery code to your registered account email: <span className="font-semibold text-foreground">{email}</span>. Please check your inbox and enter the code below.
+              </p>
+            </div>
             <Field
-              label="Recovery code"
+              label="6-Digit Verification Code"
               inputMode="numeric"
               pattern="[0-9]{6}"
               maxLength={6}
@@ -725,6 +704,7 @@ function ForgotPassword() {
               onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
               placeholder="123456"
               required
+              autoFocus
               data-testid="input-recovery-code"
             />
             <PasswordField
@@ -747,6 +727,16 @@ function ForgotPassword() {
               {resetPassword.isPending ? <LoaderCircle size={18} className="animate-spin" /> : null}
               {resetPassword.isPending ? 'Updating password…' : 'Reset password'}
             </Button>
+            <button
+              type="button"
+              onClick={() => {
+                setStage('email');
+                setCode('');
+              }}
+              className="text-xs text-muted-foreground hover:text-foreground text-center transition underline-offset-2 hover:underline"
+            >
+              Didn&apos;t get the code? Change email or try again
+            </button>
           </>
         )}
         {stage === 'done' && (
@@ -755,10 +745,10 @@ function ForgotPassword() {
               <Check size={20} /> Password Reset Successfully
             </div>
             <p className="text-muted-foreground text-xs leading-relaxed">
-              Your account password has been updated. You can now sign in to your LOGOS Library account.
+              Your account password has been updated. You can now sign in to your LOGOS Library account with your new password.
             </p>
             <Link href="/login" className="inline-flex w-full items-center justify-center rounded-lg bg-primary py-2.5 font-bold text-primary-foreground text-sm hover:opacity-90 transition">
-              Proceed to Sign In
+              Sign in now
             </Link>
           </div>
         )}

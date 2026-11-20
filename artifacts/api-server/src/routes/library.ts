@@ -2,8 +2,8 @@ import { Router, type IRouter, type Request } from "express";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
-import { ReplitConnectors } from "@replit/connectors-sdk";
 import { eq, and, gt } from "drizzle-orm";
+import { sendPasswordResetEmail } from "../email.js";
 import {
   db,
   pool,
@@ -50,7 +50,6 @@ type Book = {
 const router: IRouter = Router();
 const sessions = new Map<string, User>();
 const passwordResetRequests = new Map<string, { codeHash: string; expiresAt: number }>();
-const connectors = new ReplitConnectors();
 const runtimeAvailability = new Map<number, number>();
 const requests: Array<{
   id: number;
@@ -351,6 +350,7 @@ router.post("/auth/request-password-reset", async (req, res) => {
   const email = typeof req.body?.email === "string" ? req.body.email.trim().toLowerCase() : "";
   if (!email || !email.includes("@")) return res.status(400).json({ error: "Enter a valid email address." });
 
+  // Strictly lookup the original email that the account was registered with
   const [user] = await db
     .select({ id: libraryUsers.id, name: libraryUsers.name, email: libraryUsers.email })
     .from(libraryUsers)
@@ -358,42 +358,27 @@ router.post("/auth/request-password-reset", async (req, res) => {
     .limit(1);
 
   if (!user) {
+    // For privacy and security, do not disclose whether the email exists
     return res.status(200).json({
-      message: "If an account exists for this email, a six-digit recovery code is on its way.",
+      message: "If an account exists with this email address, a six-digit verification code has been sent to your inbox.",
+      expiresInMinutes: 15,
     });
   }
 
   const code = crypto.randomInt(100000, 1000000).toString();
   const expiresAt = Date.now() + 15 * 60 * 1000;
-  passwordResetRequests.set(email, { codeHash: hashResetCode(code), expiresAt });
+  passwordResetRequests.set(user.email, { codeHash: hashResetCode(code), expiresAt });
 
-  let emailDelivered = false;
-  if (process.env.RESEND_API_KEY) {
-    try {
-      const emailResponse = await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
-        },
-        body: JSON.stringify({
-          from: process.env.RESEND_FROM_EMAIL ?? "LOGOS Library <onboarding@resend.dev>",
-          to: [email],
-          subject: "Your LOGOS Library Recovery Code",
-          html: `<div style="font-family:Arial,sans-serif;line-height:1.6;color:#111"><h2>LOGOS Library</h2><p>Hello ${user.name || "Member"},</p><p>Use this six-digit code to reset your password:</p><p style="font-size:32px;font-weight:700;letter-spacing:6px;background:#f4f4f5;padding:12px;border-radius:8px;display:inline-block">${code}</p><p>This code expires in 15 minutes. If you did not request it, you can ignore this email.</p></div>`,
-        }),
-      });
-      emailDelivered = emailResponse.ok;
-    } catch (e) {
-      console.warn("Failed sending email via Resend:", e);
-    }
-  }
+  // Send the verification code directly to their registered account email
+  await sendPasswordResetEmail({
+    to: user.email,
+    name: user.name,
+    code,
+  });
 
+  // Never return the recovery code in the response body!
   return res.status(200).json({
-    message: emailDelivered
-      ? `A six-digit recovery code was sent to ${email}.`
-      : `Recovery code generated for ${email}.`,
-    recoveryCode: code,
+    message: `A six-digit verification code has been sent to your account email (${user.email}). Check your inbox.`,
     expiresInMinutes: 15,
   });
 });
