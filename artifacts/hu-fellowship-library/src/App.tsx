@@ -799,21 +799,18 @@ function BookCover({ book, large = false, className = '' }: { book: Book; large?
 
 function ModernBookCard({ book, publicCard = false }: { book: Book; publicCard?: boolean }) {
   const detailLink = publicCard ? '/login' : `/member/books/${book.id}`;
-  const cleanFileUrl = book.fileUrl?.replace(/^\/api\/storage\/api\/storage\//, '/api/storage/');
   const [imgError, setImgError] = useState(false);
   const normalizedCoverUrl = book.coverUrl
     ? book.coverUrl.replace(/^\/api\/storage\/api\/storage\//, '/api/storage/')
     : null;
 
   return (
-    <div
-      className="group relative flex flex-col justify-between rounded-xl sm:rounded-2xl bg-card border border-border p-1.5 sm:p-2.5 md:p-3 shadow-xs hover:shadow-lg transition duration-200"
+    <Link
+      href={detailLink}
+      className="group relative flex flex-col justify-between rounded-xl sm:rounded-2xl bg-card border border-border p-1.5 sm:p-2.5 md:p-3 shadow-xs hover:shadow-lg hover:border-primary/40 transition duration-200 cursor-pointer"
       data-testid={`card-book-${book.id}`}
     >
-      <Link
-        href={detailLink}
-        className="relative flex items-center justify-center aspect-[2/3] max-h-36 min-[440px]:max-h-40 sm:max-h-64 w-full overflow-hidden rounded-lg sm:rounded-xl bg-neutral-950/80 dark:bg-black/90 p-0.5 shadow-xs"
-      >
+      <div className="relative flex items-center justify-center aspect-[2/3] max-h-36 min-[440px]:max-h-40 sm:max-h-64 w-full overflow-hidden rounded-lg sm:rounded-xl bg-neutral-950/80 dark:bg-black/90 p-0.5 shadow-xs">
         {normalizedCoverUrl && !imgError ? (
           <img
             src={normalizedCoverUrl}
@@ -837,47 +834,20 @@ function ModernBookCard({ book, publicCard = false }: { book: Book; publicCard?:
             {book.type === 'softcopy' ? 'Softcopy' : 'Hardcopy'}
           </span>
         </div>
-      </Link>
-
-      <div className="mt-1 sm:mt-2 mb-1 sm:mb-1.5 text-center text-[9px] sm:text-[11px] font-semibold text-foreground/80 tracking-wide truncate">
-        {book.type === 'softcopy' ? 'Digital Edition' : (book.available > 0 ? 'Free' : 'On loan')}
       </div>
 
-      <div className="w-full">
-        <Link
-          href={detailLink}
-          className="w-full rounded-lg sm:rounded-xl bg-foreground text-background hover:opacity-90 active:opacity-80 py-1 sm:py-2 px-1.5 text-[10px] sm:text-xs font-bold text-center block transition shadow-xs touch-target flex items-center justify-center"
-        >
-          View details
-        </Link>
-        {book.type === 'softcopy' && cleanFileUrl && !publicCard && (
-          <div className="mt-1 flex items-center justify-center gap-1 sm:gap-2 text-[9px] sm:text-[11px] text-muted-foreground">
-            <a
-              href={cleanFileUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-0.5 hover:text-foreground transition underline-offset-2 hover:underline"
-              data-testid={`shelf-open-${book.id}`}
-              title="Open online"
-            >
-              <Eye size={10} /> Open
-            </a>
-            <span className="text-border">·</span>
-            <a
-              href={`${cleanFileUrl}?download=1`}
-              target="_blank"
-              rel="noreferrer"
-              download
-              className="inline-flex items-center gap-0.5 hover:text-foreground transition underline-offset-2 hover:underline"
-              data-testid={`shelf-download-${book.id}`}
-              title="Download"
-            >
-              <Download size={10} /> Download
-            </a>
-          </div>
-        )}
+      <div className="mt-2 text-center">
+        <h4 className="font-serif font-bold text-[11px] sm:text-xs leading-tight line-clamp-1 group-hover:text-primary transition-colors text-foreground">
+          {book.title}
+        </h4>
+        <p className="text-[9px] sm:text-[10px] text-muted-foreground truncate mt-0.5">
+          {book.author}
+        </p>
+        <div className="mt-1 text-[8px] sm:text-[10px] font-semibold text-foreground/80 tracking-wide truncate">
+          {book.type === 'softcopy' ? 'Digital Edition' : (book.available > 0 ? `${book.available} available` : 'On loan')}
+        </div>
       </div>
-    </div>
+    </Link>
   );
 }
 
@@ -889,17 +859,14 @@ function StudyNoteStoreCard({
   onSelect: (note: StudyNote) => void;
 }) {
   const isSummer = note.type === 'summer';
-  const cleanFileUrl = note.fileUrl?.replace(/^\/api\/storage\/api\/storage\//, '/api/storage/');
 
   return (
     <div
-      className="group relative flex flex-col justify-between rounded-xl sm:rounded-2xl bg-card border border-border p-1.5 sm:p-2.5 md:p-3 shadow-xs hover:shadow-lg transition duration-200"
+      onClick={() => onSelect(note)}
+      className="group relative flex flex-col justify-between rounded-xl sm:rounded-2xl bg-card border border-border p-1.5 sm:p-2.5 md:p-3 shadow-xs hover:shadow-lg hover:border-primary/40 transition duration-200 cursor-pointer"
       data-testid={`card-note-${note.id}`}
     >
-      <div
-        onClick={() => onSelect(note)}
-        className="relative flex items-center justify-center aspect-[2/3] max-h-36 min-[440px]:max-h-40 sm:max-h-64 w-full overflow-hidden rounded-lg sm:rounded-xl cursor-pointer bg-neutral-950/80 dark:bg-black/90 p-0.5 shadow-xs transition duration-300 group-hover:scale-[1.02]"
-      >
+      <div className="relative flex items-center justify-center aspect-[2/3] max-h-36 min-[440px]:max-h-40 sm:max-h-64 w-full overflow-hidden rounded-lg sm:rounded-xl bg-neutral-950/80 dark:bg-black/90 p-0.5 shadow-xs transition duration-300 group-hover:scale-[1.02]">
         <div className="relative h-full w-full flex flex-col justify-between p-2 sm:p-3 text-white bg-gradient-to-br from-neutral-800 via-neutral-900 to-black rounded-md sm:rounded-lg">
           <div className="book-crease-overlay" />
 
@@ -925,45 +892,16 @@ function StudyNoteStoreCard({
         </div>
       </div>
 
-      <div className="mt-1 sm:mt-2 mb-1 sm:mb-1.5 text-center text-[9px] sm:text-[11px] font-semibold text-foreground/80 tracking-wide truncate">
-        Free Guide
-      </div>
-
-      <div className="w-full">
-        <button
-          type="button"
-          onClick={() => onSelect(note)}
-          data-testid={`btn-view-note-${note.id}`}
-          className="w-full rounded-lg sm:rounded-xl bg-foreground text-background hover:opacity-90 active:opacity-80 py-1 sm:py-2 px-1.5 text-[10px] sm:text-xs font-bold text-center block transition shadow-xs touch-target flex items-center justify-center"
-        >
-          View details
-        </button>
-        {cleanFileUrl && (
-          <div className="mt-1 flex items-center justify-center gap-1 sm:gap-2 text-[9px] sm:text-[11px] text-muted-foreground">
-            <a
-              href={cleanFileUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-0.5 hover:text-foreground transition underline-offset-2 hover:underline"
-              data-testid={`link-note-open-${note.id}`}
-              title="Open online"
-            >
-              <Eye size={10} /> Open
-            </a>
-            <span className="text-border">·</span>
-            <a
-              href={`${cleanFileUrl}?download=1`}
-              target="_blank"
-              rel="noreferrer"
-              download
-              className="inline-flex items-center gap-0.5 hover:text-foreground transition underline-offset-2 hover:underline"
-              data-testid={`link-note-file-${note.id}`}
-              title="Download file"
-            >
-              <Download size={10} /> Download
-            </a>
-          </div>
-        )}
+      <div className="mt-2 text-center">
+        <h4 className="font-serif font-bold text-[11px] sm:text-xs leading-tight line-clamp-1 group-hover:text-primary transition-colors text-foreground">
+          {note.title}
+        </h4>
+        <p className="text-[9px] sm:text-[10px] text-muted-foreground truncate mt-0.5">
+          by {note.author}
+        </p>
+        <div className="mt-1 text-[8px] sm:text-[10px] font-semibold text-foreground/80 tracking-wide truncate">
+          Free Guide
+        </div>
       </div>
     </div>
   );
@@ -989,37 +927,9 @@ function ShelfBookCard({ book, publicCard = false }: { book: Book; publicCard?: 
             <div className="text-white text-xs font-serif font-bold line-clamp-2 mb-1">{book.title}</div>
             <div className="text-white/75 text-[11px] truncate mb-2.5">by {book.author}</div>
             <div className="flex gap-1.5 flex-wrap items-center">
-              {book.type === 'softcopy' && cleanFileUrl && !publicCard ? (
-                <>
-                  <a
-                    href={cleanFileUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    onClick={(e) => e.stopPropagation()}
-                    className="inline-flex items-center gap-1 rounded bg-primary px-2.5 py-1 text-[11px] font-bold text-white hover:bg-primary/90 shadow-sm"
-                    title="Open online"
-                    data-testid={`shelf-open-${book.id}`}
-                  >
-                    <Eye size={12} /> Open
-                  </a>
-                  <a
-                    href={`${cleanFileUrl}?download=1`}
-                    target="_blank"
-                    rel="noreferrer"
-                    download
-                    onClick={(e) => e.stopPropagation()}
-                    className="inline-flex items-center gap-1 rounded bg-white/20 backdrop-blur px-2.5 py-1 text-[11px] font-bold text-white hover:bg-white/30 shadow-sm"
-                    title="Download"
-                    data-testid={`shelf-download-${book.id}`}
-                  >
-                    <Download size={12} /> Download
-                  </a>
-                </>
-              ) : (
-                <span className="inline-flex items-center gap-1 rounded bg-primary/90 px-2.5 py-1 text-[11px] font-bold text-white shadow-sm">
-                  View book <ArrowRight size={12} />
-                </span>
-              )}
+              <span className="inline-flex items-center gap-1 rounded bg-primary/90 px-2.5 py-1 text-[11px] font-bold text-white shadow-sm">
+                View book <ArrowRight size={12} />
+              </span>
             </div>
           </div>
         </div>
@@ -1304,107 +1214,98 @@ function ProfileModal({ user, open, onOpenChange }: { user?: User; open: boolean
   );
 }
 
-function Sidebar({ admin, user, close, preview = false, onOpenProfile }: { admin: boolean; user?: User; close?: () => void; preview?: boolean; onOpenProfile?: () => void }) {
-  const [, setLocation] = useLocation(); const logout = useLogout();
+function BottomTabBar({ admin, preview = false }: { admin: boolean; preview?: boolean }) {
+  const [location] = useLocation();
   const links = preview
-    ? [{ href: admin ? '/__preview/admin' : '/__preview/member', key: 'dashboard', icon: HomeIcon }]
-    : admin ? adminLinks : memberLinks;
+    ? [{ href: admin ? '/__preview/admin' : '/__preview/member', key: 'dashboard', icon: HomeIcon, label: 'Home' }]
+    : admin
+    ? [
+        { href: '/admin/dashboard', key: 'dashboard', icon: HomeIcon, label: 'Home' },
+        { href: '/admin/books', key: 'books', icon: BookOpen, label: 'Books' },
+        { href: '/admin/requests', key: 'requests', icon: Clock3, label: 'Requests' },
+        { href: '/admin/notes', key: 'notes', icon: FileText, label: 'Notes' },
+        { href: '/admin/questions', key: 'adminQuestions', icon: HelpCircle, label: 'Q&A' },
+        { href: '/admin/members', key: 'members', icon: Users, label: 'Members' },
+        { href: '/admin/settings', key: 'settings', icon: Settings, label: 'Settings' },
+      ]
+    : [
+        { href: '/member/dashboard', key: 'dashboard', icon: HomeIcon, label: 'Home' },
+        { href: '/member/books', key: 'books', icon: BookOpen, label: 'Books' },
+        { href: '/member/notes', key: 'notes', icon: FileText, label: 'Notes' },
+        { href: '/member/questions', key: 'questions', icon: HelpCircle, label: 'Q&A' },
+        { href: '/member/borrowings', key: 'borrowings', icon: Bookmark, label: 'My Loans' },
+      ];
+
   return (
-    <aside className="flex h-full w-72 flex-col bg-sidebar px-4 py-6 text-sidebar-foreground">
-      <div className="mb-9 px-3"><Logo dark /></div>
-      <div className="mb-3 px-3 text-[10px] font-bold uppercase tracking-[.2em] text-sidebar-foreground/40">{admin ? 'Steward desk' : 'Your library'}</div>
-      <nav className="grid gap-1">
-        {links.map(({ href, key, icon: Icon }) => (
-          <Link
-            key={href}
-            href={href}
-            onClick={close}
-            data-testid={`link-${key}`}
-            className={`flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-semibold text-sidebar-foreground/65 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition ${location.pathname === href ? 'bg-sidebar-primary text-sidebar-primary-foreground shadow-md shadow-black/10' : ''}`}
-          >
-            <Icon size={18} />{t(key)}
-          </Link>
-        ))}
-        {preview && (
-          <Link
-            href={admin ? '/__preview/member' : '/__preview/admin'}
-            onClick={close}
-            className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-semibold text-sidebar-foreground/65 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-          >
-            {admin ? 'Member preview' : 'Admin preview'}
-          </Link>
-        )}
-      </nav>
-      <div className="mt-auto grid gap-3">
-        <div className="flex items-center justify-between rounded-xl bg-sidebar-accent/50 px-3 py-2 text-sm text-sidebar-foreground/80 border border-sidebar-border/40">
-          <span className="text-xs font-semibold uppercase tracking-wider text-sidebar-foreground/60">Theme</span>
-          <ThemeToggle />
-        </div>
-        <div className="flex items-center gap-3 border-t border-sidebar-border px-3 pb-2 pt-4">
-          <button
-            type="button"
-            onClick={() => {
-              close?.();
-              onOpenProfile?.();
-            }}
-            className="flex items-center gap-3 min-w-0 flex-1 text-left rounded-xl p-1.5 -ml-1.5 hover:bg-sidebar-accent/60 transition group cursor-pointer"
-            title="Click to view about my profile"
-            data-testid="button-sidebar-profile"
-          >
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sidebar-primary font-bold text-sidebar-primary-foreground group-hover:scale-105 transition-transform">
-              {user?.name?.slice(0, 1) ?? 'H'}
-            </span>
-            <div className="min-w-0 flex-1">
-              <div className="truncate text-sm font-bold group-hover:text-sidebar-accent-foreground transition-colors">{user?.name ?? 'Fellowship member'}</div>
-              <div className="truncate text-xs text-sidebar-foreground/50">{user?.email ?? 'Signed in'}</div>
-            </div>
-          </button>
-          {!preview && (
-            <button
-              onClick={() => logout.mutate(undefined, { onSuccess: () => setLocation('/login') })}
-              title={t('signOut')}
-              data-testid="button-sign-out"
-              className="text-sidebar-foreground/45 hover:text-sidebar-foreground p-1.5 rounded-md transition hover:bg-sidebar-accent/50"
+    <nav
+      className="fixed bottom-0 inset-x-0 z-40 bg-background/95 dark:bg-black/95 backdrop-blur-lg border-t border-border shadow-[0_-4px_24px_rgba(0,0,0,0.18)] safe-bottom"
+      data-testid="bottom-tab-bar"
+    >
+      <div className="mx-auto flex max-w-xl items-center justify-around px-1 py-1 sm:py-1.5">
+        {links.map(({ href, key, icon: Icon, label }) => {
+          const isActive = location === href || (href !== '/member/dashboard' && href !== '/admin/dashboard' && location.startsWith(href));
+          return (
+            <Link
+              key={href}
+              href={href}
+              data-testid={`tab-${key}`}
+              className={`flex flex-1 flex-col items-center justify-center py-1 sm:py-1.5 px-0.5 rounded-xl transition-all touch-target ${
+                isActive
+                  ? 'text-primary font-bold'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
             >
-              <LogOut size={17} />
-            </button>
-          )}
-        </div>
+              <div
+                className={`relative flex items-center justify-center p-1 sm:p-1.5 rounded-full transition-transform ${
+                  isActive ? 'scale-110 bg-primary/10 text-primary ring-1 ring-primary/20' : ''
+                }`}
+              >
+                <Icon size={18} className="sm:w-5 sm:h-5 shrink-0" />
+              </div>
+              <span
+                className={`text-[9px] min-[400px]:text-[10px] sm:text-[11px] truncate tracking-tight transition-colors ${
+                  isActive ? 'font-bold text-foreground' : 'font-medium'
+                }`}
+              >
+                {label}
+              </span>
+            </Link>
+          );
+        })}
       </div>
-    </aside>
+    </nav>
   );
 }
 
 function AuthenticatedLayout({ children, admin = false, preview = false }: { children: ReactNode; admin?: boolean; preview?: boolean }) {
-  const [open, setOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const path = window.location.pathname;
   const current = useGetCurrentUser({ query: { enabled: !preview && (path.startsWith('/member') || path.startsWith('/admin')), queryKey: getGetCurrentUserQueryKey() } });
   const user = preview ? (admin ? previewAdmin : previewMember) : current.data;
+  const logout = useLogout();
+  const [, setLocation] = useLocation();
+
   return (
     <div className="min-h-[100dvh] bg-background">
       <ProfileModal user={user} open={profileOpen} onOpenChange={setProfileOpen} />
-      <div className={`fixed inset-y-0 left-0 z-40 hidden lg:block ${admin ? 'shadow-2xl shadow-primary/10' : ''}`}>
-        <Sidebar admin={admin} user={user} preview={preview} onOpenProfile={() => setProfileOpen(true)} />
-      </div>
-      {open && (
-        <>
-          <button aria-label="Close menu" onClick={() => setOpen(false)} className="fixed inset-0 z-40 bg-sidebar/35 backdrop-blur-sm lg:hidden" data-testid="button-close-menu" />
-          <div className="fixed inset-y-0 left-0 z-50 lg:hidden">
-            <Sidebar admin={admin} user={user} preview={preview} close={() => setOpen(false)} onOpenProfile={() => setProfileOpen(true)} />
-          </div>
-        </>
-      )}
-      <div className="lg:pl-72 flex min-h-[100dvh] flex-col">
+
+      <div className="flex min-h-[100dvh] flex-col">
         <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-background/90 px-4 sm:px-6 lg:px-9 backdrop-blur">
-          <button onClick={() => setOpen(true)} className="rounded-lg p-2 hover:bg-secondary lg:hidden touch-target" data-testid="button-open-menu" aria-label="Open sidebar menu">
-            <Menu size={20} />
-          </button>
-          <div className="hidden items-center gap-2 text-sm text-muted-foreground sm:flex">
-            <span className="font-mono text-[10px] uppercase tracking-[.18em] text-accent">{admin ? 'Steward desk' : 'Library'}</span>
+          <div className="flex items-center gap-3">
+            <Logo />
+            <div className="hidden sm:flex items-center gap-2 pl-3 border-l border-border/60">
+              <span className="font-mono text-[10px] uppercase tracking-[.18em] text-accent">
+                {admin ? 'Steward desk' : 'Library'}
+              </span>
+            </div>
           </div>
+
           <div className="ml-auto flex items-center gap-2 sm:gap-3">
-            {preview && <span data-testid="badge-sample-preview" className="rounded-full border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-800">Sample preview</span>}
+            {preview && (
+              <span data-testid="badge-sample-preview" className="rounded-full border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-800">
+                Sample preview
+              </span>
+            )}
             <ThemeToggle />
             <button
               type="button"
@@ -1413,17 +1314,37 @@ function AuthenticatedLayout({ children, admin = false, preview = false }: { chi
               title="Click to view about my profile"
               data-testid="button-header-profile"
             >
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary font-bold text-primary-foreground text-[10px]">
+              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary font-bold text-primary-foreground text-[10px]">
                 {user?.name?.slice(0, 1) ?? 'H'}
               </span>
               <span className="hidden sm:inline font-medium">{user?.name ?? 'Fellowship member'}</span>
             </button>
+            {!preview && (
+              <button
+                type="button"
+                onClick={() => logout.mutate(undefined, { onSuccess: () => setLocation('/login') })}
+                title="Sign out"
+                data-testid="button-sign-out"
+                className="text-muted-foreground hover:text-foreground p-2 rounded-lg transition hover:bg-secondary touch-target"
+              >
+                <LogOut size={16} />
+              </button>
+            )}
             {!preview && <span className="h-2 w-2 rounded-full bg-emerald-500" title="Connected" />}
           </div>
         </header>
-        {preview && <div className="border-b border-amber-200 bg-amber-50 px-5 py-2 text-center text-xs font-medium text-amber-900 lg:px-9">Development sample data only. Preview controls are disabled and nothing is saved.</div>}
-        <main className="mx-auto w-full max-w-[1500px] flex-1 px-4 py-6 sm:px-6 sm:py-8 lg:px-9 lg:py-10">{children}</main>
-        <footer className="mt-auto border-t border-border/80 bg-card/60 px-4 py-5 sm:px-6 lg:px-9 safe-bottom">
+
+        {preview && (
+          <div className="border-b border-amber-200 bg-amber-50 px-5 py-2 text-center text-xs font-medium text-amber-900 lg:px-9">
+            Development sample data only. Preview controls are disabled and nothing is saved.
+          </div>
+        )}
+
+        <main className="mx-auto w-full max-w-[1500px] flex-1 px-4 py-6 pb-28 sm:px-6 sm:py-8 sm:pb-32 lg:px-9 lg:py-10 lg:pb-32">
+          {children}
+        </main>
+
+        <footer className="mt-auto border-t border-border/80 bg-card/60 px-4 py-5 mb-14 sm:mb-16 lg:px-9 safe-bottom">
           <div className="mx-auto flex max-w-[1500px] flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground">
             <div className="flex items-center gap-2">
               <span className="font-serif font-bold text-foreground">LOGOS Library</span>
@@ -1452,6 +1373,9 @@ function AuthenticatedLayout({ children, admin = false, preview = false }: { chi
             </div>
           </div>
         </footer>
+
+        {/* Bottom Tab Bar */}
+        <BottomTabBar admin={admin} preview={preview} />
       </div>
     </div>
   );
