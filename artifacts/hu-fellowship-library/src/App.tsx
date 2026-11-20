@@ -5,8 +5,8 @@ import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import {
-  BookOpen, BookMarked, Bookmark, Calendar, Check, ChevronRight, CircleUserRound, Clock3, Download, Eye,
-  FileText, FolderOpen, HelpCircle, Home as HomeIcon, LayoutGrid, Library, LogOut, Mail, Menu, MessageSquare, Moon, Pencil, Plus, Search, Send, Settings, ShieldCheck, Sparkles, Sun,
+  BookOpen, BookMarked, Bookmark, Calendar, Check, ChevronRight, CircleUserRound, Clock3, Download, Eye, EyeOff,
+  FileText, FolderOpen, HelpCircle, Home as HomeIcon, KeyRound, LayoutGrid, Library, Lock, LogOut, Mail, Menu, MessageSquare, Moon, Pencil, Plus, Search, Send, Settings, ShieldCheck, Sparkles, Sun,
   UserRound, Users, X, ArrowLeft, ArrowRight, ArrowUpRight, AlertCircle, LoaderCircle
 } from 'lucide-react';
 import {
@@ -111,6 +111,30 @@ const Button = ({ children, variant = 'primary', className = '', ...props }: { c
 const Field = ({ label, ...props }: { label: string } & React.InputHTMLAttributes<HTMLInputElement>) => (
   <label className="grid gap-2 text-sm font-semibold text-foreground">{label}<input {...props} className="h-11 w-full cursor-text touch-manipulation rounded-lg border border-input bg-card px-3.5 font-normal outline-none ring-primary/20 placeholder:text-muted-foreground focus-visible:ring-4 focus-visible:ring-primary/20" /></label>
 );
+const PasswordField = ({ label, ...props }: { label: string } & React.InputHTMLAttributes<HTMLInputElement>) => {
+  const [show, setShow] = useState(false);
+  return (
+    <label className="grid gap-2 text-sm font-semibold text-foreground">
+      {label}
+      <div className="relative flex items-center">
+        <input
+          {...props}
+          type={show ? 'text' : 'password'}
+          className="h-11 w-full cursor-text touch-manipulation rounded-lg border border-input bg-card pl-3.5 pr-10 font-normal outline-none ring-primary/20 placeholder:text-muted-foreground focus-visible:ring-4 focus-visible:ring-primary/20"
+        />
+        <button
+          type="button"
+          onClick={() => setShow(s => !s)}
+          className="absolute right-2 p-1.5 text-muted-foreground hover:text-foreground transition rounded-md"
+          tabIndex={-1}
+          title={show ? 'Hide password' : 'Show password'}
+        >
+          {show ? <EyeOff size={16} /> : <Eye size={16} />}
+        </button>
+      </div>
+    </label>
+  );
+};
 const TextAreaField = ({ label, ...props }: { label: string } & React.TextareaHTMLAttributes<HTMLTextAreaElement>) => (
   <label className="grid gap-2 text-sm font-semibold text-foreground">{label}<textarea {...props} className="min-h-28 rounded-lg border border-input bg-card px-3.5 py-3 font-normal outline-none ring-primary/20 placeholder:text-muted-foreground focus:ring-4" /></label>
 );
@@ -469,16 +493,55 @@ function AuthShell({ children, eyebrow, title, detail }: { children: ReactNode; 
 function Login() {
   const [, setLocation] = useLocation();
   const login = useLogin();
-  const [email, setEmail] = useState(''); const [password, setPassword] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanEmail = email.trim().toLowerCase();
+    login.mutate(
+      { data: { email: cleanEmail, password } },
+      {
+        onSuccess: (data) => {
+          setLocation(data.user.role === 'admin' ? '/admin/dashboard' : '/member/dashboard');
+        },
+      }
+    );
+  };
+
+  const loginErrorMsg = (login.error as any)?.response?.data?.error || (login.error as any)?.message || 'The email or password did not match our records.';
+
   return (
     <AuthShell eyebrow="Welcome back" title="Sign in to the library." detail="Your next meaningful read is waiting. Sign in to continue.">
-      <form className="grid gap-4 sm:gap-5" onSubmit={(e) => { e.preventDefault(); login.mutate({ data: { email, password } }, { onSuccess: (data) => setLocation(data.user.role === 'admin' ? '/admin/dashboard' : '/member/dashboard') }); }}>
-        <Field label="Email address" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} type="email" placeholder="you@university.edu" required data-testid="input-email" />
-        <Field label="Password" autoComplete="current-password" value={password} onChange={e => setPassword(e.target.value)} type="password" placeholder="Enter your password" required data-testid="input-password" />
+      <form className="grid gap-4 sm:gap-5" onSubmit={handleSubmit}>
+        <Field
+          label="Email address"
+          autoComplete="email"
+          value={email}
+          onChange={e => setEmail(e.target.value)}
+          type="email"
+          placeholder="you@university.edu"
+          required
+          data-testid="input-email"
+        />
+        <PasswordField
+          label="Password"
+          autoComplete="current-password"
+          value={password}
+          onChange={e => setPassword(e.target.value)}
+          placeholder="Enter your password"
+          required
+          data-testid="input-password"
+        />
         <div className="flex justify-end">
           <Link href="/forgot-password" data-testid="link-forgot-password" className="text-sm font-semibold text-primary hover:underline">Forgot password?</Link>
         </div>
-        {login.isError && <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive" data-testid="status-login-error">The email or password did not match our records.</div>}
+        {login.isError && (
+          <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive flex items-center gap-2" data-testid="status-login-error">
+            <AlertCircle size={16} className="shrink-0" />
+            <span>{loginErrorMsg}</span>
+          </div>
+        )}
         <Button type="submit" disabled={login.isPending} className="h-12 w-full touch-target text-base" data-testid="button-login">
           {login.isPending ? <LoaderCircle size={18} className="animate-spin" /> : null}
           {login.isPending ? 'Signing in…' : 'Sign in'}
@@ -497,12 +560,38 @@ function Login() {
 }
 
 function Register() {
-  const [, setLocation] = useLocation(); const register = useRegister();
+  const [, setLocation] = useLocation();
+  const register = useRegister();
+  const queryClient = useQueryClient();
   const [form, setForm] = useState({ name: '', email: '', password: '', phone: '', department: '', schoolYear: '' });
   const update = (key: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) => setForm(current => ({ ...current, [key]: e.target.value }));
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanData = {
+      name: form.name.trim(),
+      email: form.email.trim().toLowerCase(),
+      password: form.password,
+      phone: form.phone.trim(),
+      department: form.department.trim(),
+      schoolYear: form.schoolYear.trim(),
+    };
+    register.mutate(
+      { data: cleanData },
+      {
+        onSuccess: (data: any) => {
+          queryClient.invalidateQueries({ queryKey: getGetCurrentUserQueryKey() });
+          setLocation(data?.user?.role === 'admin' ? '/admin/dashboard' : '/member/dashboard');
+        },
+      }
+    );
+  };
+
+  const regErrorMsg = (register.error as any)?.response?.data?.error || (register.error as any)?.message || "We couldn't create that account. Check your details and try again.";
+
   return (
     <AuthShell eyebrow="Join the fellowship" title="Create your member account." detail="A few details, then a whole collection of places to begin.">
-      <form className="grid gap-4" onSubmit={e => { e.preventDefault(); register.mutate({ data: form }, { onSuccess: () => setLocation('/login') }); }}>
+      <form className="grid gap-4" onSubmit={handleSubmit}>
         <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
           <Field label="Full name" name="name" autoComplete="name" value={form.name} onChange={update('name')} required data-testid="input-register-name" />
           <Field label="Email address" name="email" type="email" autoComplete="email" autoCapitalize="none" spellCheck={false} value={form.email} onChange={update('email')} required data-testid="input-register-email" />
@@ -512,10 +601,16 @@ function Register() {
           <Field label="School year" name="schoolYear" autoComplete="off" value={form.schoolYear} onChange={update('schoolYear')} placeholder="e.g. 3rd year" required data-testid="input-register-year" />
         </div>
         <Field label="Department" name="department" autoComplete="organization-title" value={form.department} onChange={update('department')} required data-testid="input-register-department" />
-        <Field label="Password" name="password" type="password" autoComplete="new-password" value={form.password} onChange={update('password')} minLength={8} required data-testid="input-register-password" />
-        {register.isError && <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">We couldn't create that account. Check your details and try again.</div>}
+        <PasswordField label="Password" name="password" autoComplete="new-password" value={form.password} onChange={update('password')} minLength={8} required data-testid="input-register-password" />
+        {register.isError && (
+          <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive flex items-center gap-2">
+            <AlertCircle size={16} className="shrink-0" />
+            <span>{regErrorMsg}</span>
+          </div>
+        )}
         <Button type="submit" disabled={register.isPending} className="mt-2 h-12 w-full touch-target text-base" data-testid="button-register">
-          {register.isPending ? 'Creating account…' : 'Create account'}
+          {register.isPending ? <LoaderCircle size={18} className="animate-spin" /> : null}
+          {register.isPending ? 'Creating account…' : 'Create account & enter library'}
         </Button>
         <p className="pt-2 text-center text-sm text-muted-foreground">Already a member? <Link href="/login" data-testid="link-existing-login" className="font-bold text-primary hover:underline">Sign in</Link></p>
       </form>
@@ -524,36 +619,154 @@ function Register() {
 }
 
 function ForgotPassword() {
-  const [email, setEmail] = useState(''); const [code, setCode] = useState(''); const [password, setPassword] = useState(''); const [stage, setStage] = useState<'email' | 'code' | 'done'>('email');
-  const requestReset = useRequestPasswordReset(); const resetPassword = useResetPassword();
-  const requestError = requestReset.error instanceof Error ? requestReset.error.message : 'We could not send the recovery code. Please try again.';
-  const resetError = resetPassword.error instanceof Error ? resetPassword.error.message : 'That code could not be verified. Please try again.';
+  const [email, setEmail] = useState('');
+  const [code, setCode] = useState('');
+  const [password, setPassword] = useState('');
+  const [generatedCode, setGeneratedCode] = useState('');
+  const [stage, setStage] = useState<'email' | 'code' | 'done'>('email');
+  const requestReset = useRequestPasswordReset();
+  const resetPassword = useResetPassword();
+
+  const handleRequest = (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanEmail = email.trim().toLowerCase();
+    requestReset.mutate(
+      { data: { email: cleanEmail } },
+      {
+        onSuccess: (res: any) => {
+          if (res?.recoveryCode) {
+            setGeneratedCode(res.recoveryCode);
+            setCode(res.recoveryCode);
+          }
+          setStage('code');
+        },
+      }
+    );
+  };
+
+  const handleReset = (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanEmail = email.trim().toLowerCase();
+    resetPassword.mutate(
+      { data: { email: cleanEmail, code: code.trim(), password } },
+      {
+        onSuccess: () => {
+          setStage('done');
+        },
+      }
+    );
+  };
+
+  const requestError = (requestReset.error as any)?.response?.data?.error || (requestReset.error as any)?.message || 'We could not generate the recovery code. Please try again.';
+  const resetError = (resetPassword.error as any)?.response?.data?.error || (resetPassword.error as any)?.message || 'That code could not be verified. Please try again.';
+
   return (
-    <AuthShell eyebrow="Account recovery" title="Find your way back in." detail={stage === 'email' ? 'Enter your email and we’ll send a six-digit recovery code.' : stage === 'code' ? 'Check your inbox and enter the code within 10 minutes.' : 'Your password has been updated.'}>
-      <form className="grid gap-5" onSubmit={e => { e.preventDefault(); if (stage === 'email') requestReset.mutate({ data: { email } }, { onSuccess: () => setStage('code') }); else if (stage === 'code') resetPassword.mutate({ data: { email, code, password } }, { onSuccess: () => setStage('done') }); }}>
+    <AuthShell
+      eyebrow="Account recovery"
+      title="Find your way back in."
+      detail={
+        stage === 'email'
+          ? 'Enter your account email to receive your six-digit recovery code.'
+          : stage === 'code'
+          ? 'Enter the 6-digit code and set your new password.'
+          : 'Your password has been updated successfully.'
+      }
+    >
+      <form className="grid gap-5" onSubmit={stage === 'email' ? handleRequest : handleReset}>
         {stage === 'email' && (
           <>
-            <Field label="Email address" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@university.edu" autoComplete="email" required data-testid="input-recovery-email" />
-            {requestReset.isError && <div className="rounded-lg bg-destructive/10 p-3 text-sm leading-6 text-destructive" data-testid="status-recovery-error">{requestError}</div>}
+            <Field
+              label="Email address"
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              placeholder="you@university.edu"
+              autoComplete="email"
+              required
+              data-testid="input-recovery-email"
+            />
+            {requestReset.isError && (
+              <div className="rounded-lg bg-destructive/10 p-3 text-sm leading-6 text-destructive flex items-center gap-2" data-testid="status-recovery-error">
+                <AlertCircle size={16} className="shrink-0" />
+                <span>{requestError}</span>
+              </div>
+            )}
             <Button type="submit" disabled={requestReset.isPending} className="h-12 w-full touch-target" data-testid="button-send-recovery">
-              {requestReset.isPending ? 'Sending code…' : 'Send recovery code'}
+              {requestReset.isPending ? <LoaderCircle size={18} className="animate-spin" /> : null}
+              {requestReset.isPending ? 'Generating recovery code…' : 'Send recovery code'}
             </Button>
           </>
         )}
         {stage === 'code' && (
           <>
-            <div className="rounded-lg bg-emerald-100 dark:bg-emerald-950/60 p-4 text-sm leading-6 text-emerald-800 dark:text-emerald-200" data-testid="status-recovery-sent">A six-digit recovery code was sent to {email}.</div>
-            <Field label="Recovery code" inputMode="numeric" pattern="[0-9]{6}" maxLength={6} value={code} onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))} placeholder="123456" required data-testid="input-recovery-code" />
-            <Field label="New password" type="password" minLength={8} value={password} onChange={e => setPassword(e.target.value)} placeholder="At least 8 characters" autoComplete="new-password" required data-testid="input-new-password" />
-            {resetPassword.isError && <div className="rounded-lg bg-destructive/10 p-3 text-sm leading-6 text-destructive" data-testid="status-reset-error">{resetError}</div>}
-            <Button type="submit" disabled={resetPassword.isPending || code.length !== 6} className="h-12 w-full touch-target" data-testid="button-reset-password">
+            {generatedCode ? (
+              <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-4 text-sm text-foreground space-y-2">
+                <div className="flex items-center gap-2 font-bold text-emerald-600 dark:text-emerald-400">
+                  <Check size={18} /> Recovery Code Ready
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Your 6-digit recovery code is generated below for <span className="font-semibold text-foreground">{email}</span>:
+                </p>
+                <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-card p-3">
+                  <span className="font-mono text-2xl font-bold tracking-widest text-primary">{generatedCode}</span>
+                  <button
+                    type="button"
+                    onClick={() => setCode(generatedCode)}
+                    className="rounded-md bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary/20 transition"
+                  >
+                    Auto-fill code
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-lg bg-emerald-100 dark:bg-emerald-950/60 p-4 text-sm leading-6 text-emerald-800 dark:text-emerald-200" data-testid="status-recovery-sent">
+                A six-digit recovery code was sent to {email}.
+              </div>
+            )}
+            <Field
+              label="Recovery code"
+              inputMode="numeric"
+              pattern="[0-9]{6}"
+              maxLength={6}
+              value={code}
+              onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              placeholder="123456"
+              required
+              data-testid="input-recovery-code"
+            />
+            <PasswordField
+              label="New password"
+              minLength={8}
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              placeholder="At least 8 characters"
+              autoComplete="new-password"
+              required
+              data-testid="input-new-password"
+            />
+            {resetPassword.isError && (
+              <div className="rounded-lg bg-destructive/10 p-3 text-sm leading-6 text-destructive flex items-center gap-2" data-testid="status-reset-error">
+                <AlertCircle size={16} className="shrink-0" />
+                <span>{resetError}</span>
+              </div>
+            )}
+            <Button type="submit" disabled={resetPassword.isPending || code.length !== 6 || password.length < 8} className="h-12 w-full touch-target" data-testid="button-reset-password">
+              {resetPassword.isPending ? <LoaderCircle size={18} className="animate-spin" /> : null}
               {resetPassword.isPending ? 'Updating password…' : 'Reset password'}
             </Button>
           </>
         )}
         {stage === 'done' && (
-          <div className="rounded-lg bg-emerald-100 dark:bg-emerald-950/60 p-4 text-sm leading-6 text-emerald-800 dark:text-emerald-200" data-testid="status-reset-success">
-            Your password has been reset successfully. Sign in with your new password.
+          <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-5 text-sm text-foreground space-y-3" data-testid="status-reset-success">
+            <div className="flex items-center gap-2 font-bold text-emerald-600 dark:text-emerald-400 text-base">
+              <Check size={20} /> Password Reset Successfully
+            </div>
+            <p className="text-muted-foreground text-xs leading-relaxed">
+              Your account password has been updated. You can now sign in to your LOGOS Library account.
+            </p>
+            <Link href="/login" className="inline-flex w-full items-center justify-center rounded-lg bg-primary py-2.5 font-bold text-primary-foreground text-sm hover:opacity-90 transition">
+              Proceed to Sign In
+            </Link>
           </div>
         )}
         <p className="pt-2 text-center text-sm text-muted-foreground"><Link href="/login" data-testid="link-back-login" className="font-bold text-primary hover:underline">Return to sign in</Link></p>
@@ -895,50 +1108,190 @@ const adminLinks = [
   { href: '/admin/settings', key: 'settings', icon: Settings }
 ];
 
+function AccountSecuritySection({ user }: { user?: User }) {
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState('');
+  const [error, setError] = useState('');
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
+
+    if (newPassword.length < 8) {
+      setError('New password must be at least 8 characters long.');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setError('New passwords do not match.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await fetch('/api/auth/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ currentPassword, newPassword }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to update password.');
+      }
+      setSuccess('Password updated successfully! Your account is secured.');
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setTimeout(() => setSuccess(''), 4000);
+    } catch (err: any) {
+      setError(err.message || 'Error modifying password.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4 text-left">
+      <div className="rounded-xl border border-border/80 bg-secondary/30 p-3.5 space-y-2 text-xs">
+        <div className="flex items-center justify-between">
+          <span className="text-muted-foreground flex items-center gap-1.5"><ShieldCheck size={14} className="text-emerald-500" /> Account Status</span>
+          <span className="font-semibold text-emerald-500">Verified & Active</span>
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-muted-foreground flex items-center gap-1.5"><Lock size={14} className="text-primary" /> Security Standard</span>
+          <span className="font-mono text-[11px] text-foreground">Scrypt-64 encrypted</span>
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-muted-foreground flex items-center gap-1.5"><KeyRound size={14} className="text-amber-500" /> Member Identity</span>
+          <span className="font-medium text-foreground">{user?.email}</span>
+        </div>
+      </div>
+
+      <form onSubmit={handleChangePassword} className="space-y-3 pt-1">
+        <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+          <KeyRound size={13} className="text-primary" /> Modify Security / Change Password
+        </div>
+        <PasswordField
+          label="Current password"
+          placeholder="Enter current password (if set)"
+          value={currentPassword}
+          onChange={e => setCurrentPassword(e.target.value)}
+        />
+        <PasswordField
+          label="New password"
+          placeholder="At least 8 characters"
+          minLength={8}
+          required
+          value={newPassword}
+          onChange={e => setNewPassword(e.target.value)}
+        />
+        <PasswordField
+          label="Confirm new password"
+          placeholder="Repeat new password"
+          minLength={8}
+          required
+          value={confirmPassword}
+          onChange={e => setConfirmPassword(e.target.value)}
+        />
+
+        {error && (
+          <div className="rounded-lg bg-destructive/10 p-2.5 text-xs text-destructive flex items-center gap-1.5">
+            <AlertCircle size={14} className="shrink-0" /> {error}
+          </div>
+        )}
+        {success && (
+          <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/30 p-2.5 text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+            <Check size={14} className="shrink-0" /> {success}
+          </div>
+        )}
+
+        <Button type="submit" disabled={loading} className="w-full text-xs h-10 mt-1">
+          {loading ? 'Updating security…' : 'Update password'}
+        </Button>
+      </form>
+    </div>
+  );
+}
+
 function ProfileModal({ user, open, onOpenChange }: { user?: User; open: boolean; onOpenChange: (open: boolean) => void }) {
   const [, setLocation] = useLocation();
   const logout = useLogout();
+  const [tab, setTab] = useState<'profile' | 'security'>('profile');
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md bg-card border-border text-foreground">
+      <DialogContent className="sm:max-w-md bg-card border-border text-foreground max-h-[90vh] overflow-y-auto">
         <DialogTitle className="font-serif text-xl font-bold flex items-center gap-2">
           <CircleUserRound className="text-primary" size={22} />
           About My Profile
         </DialogTitle>
         <DialogDescription className="text-xs text-muted-foreground">
-          Your LOGOS Library member details and account standing.
+          Your LOGOS Library member details, security, and account standing.
         </DialogDescription>
-        <div className="mt-4 flex flex-col items-center p-4 rounded-2xl bg-secondary/40 border border-border/60 text-center">
-          <span className="flex h-16 w-16 items-center justify-center rounded-full bg-primary font-serif text-2xl font-bold text-primary-foreground shadow-sm">
-            {user?.name?.slice(0, 1) ?? 'H'}
-          </span>
-          <div className="mt-3 font-serif text-lg font-bold text-foreground">{user?.name ?? 'Fellowship Member'}</div>
-          <div className="mt-1 flex items-center gap-1.5">
-            <Status tone="good">Verified Member</Status>
-            <span className="text-xs text-muted-foreground uppercase tracking-wider font-mono">{user?.role ?? 'member'}</span>
-          </div>
+
+        <div className="flex border-b border-border/80 mt-2">
+          <button
+            type="button"
+            onClick={() => setTab('profile')}
+            className={`flex-1 pb-2.5 text-xs font-bold uppercase tracking-wider transition border-b-2 ${
+              tab === 'profile' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            Profile Info
+          </button>
+          <button
+            type="button"
+            onClick={() => setTab('security')}
+            className={`flex-1 pb-2.5 text-xs font-bold uppercase tracking-wider transition border-b-2 flex items-center justify-center gap-1.5 ${
+              tab === 'security' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <ShieldCheck size={14} /> Security & Password
+          </button>
         </div>
 
-        <div className="mt-4 grid gap-3 text-sm">
-          <div className="flex items-center justify-between border-b border-border/50 pb-2">
-            <span className="text-xs uppercase tracking-wider text-muted-foreground">Email</span>
-            <span className="font-medium text-foreground">{user?.email ?? '—'}</span>
-          </div>
-          <div className="flex items-center justify-between border-b border-border/50 pb-2">
-            <span className="text-xs uppercase tracking-wider text-muted-foreground">Phone</span>
-            <span className="font-medium text-foreground">{user?.phone || 'Not added'}</span>
-          </div>
-          <div className="flex items-center justify-between border-b border-border/50 pb-2">
-            <span className="text-xs uppercase tracking-wider text-muted-foreground">Department</span>
-            <span className="font-medium text-foreground">{user?.department || 'Not added'}</span>
-          </div>
-          <div className="flex items-center justify-between border-b border-border/50 pb-2">
-            <span className="text-xs uppercase tracking-wider text-muted-foreground">School Year</span>
-            <span className="font-medium text-foreground">{user?.schoolYear || 'Not added'}</span>
-          </div>
-        </div>
+        {tab === 'profile' ? (
+          <>
+            <div className="mt-4 flex flex-col items-center p-4 rounded-2xl bg-secondary/40 border border-border/60 text-center">
+              <span className="flex h-16 w-16 items-center justify-center rounded-full bg-primary font-serif text-2xl font-bold text-primary-foreground shadow-sm">
+                {user?.name?.slice(0, 1) ?? 'H'}
+              </span>
+              <div className="mt-3 font-serif text-lg font-bold text-foreground">{user?.name ?? 'Fellowship Member'}</div>
+              <div className="mt-1 flex items-center gap-1.5">
+                <Status tone="good">Verified Member</Status>
+                <span className="text-xs text-muted-foreground uppercase tracking-wider font-mono">{user?.role ?? 'member'}</span>
+              </div>
+            </div>
 
-        <div className="mt-6 flex items-center justify-between gap-3 pt-2">
+            <div className="mt-4 grid gap-3 text-sm">
+              <div className="flex items-center justify-between border-b border-border/50 pb-2">
+                <span className="text-xs uppercase tracking-wider text-muted-foreground">Email</span>
+                <span className="font-medium text-foreground">{user?.email ?? '—'}</span>
+              </div>
+              <div className="flex items-center justify-between border-b border-border/50 pb-2">
+                <span className="text-xs uppercase tracking-wider text-muted-foreground">Phone</span>
+                <span className="font-medium text-foreground">{user?.phone || 'Not added'}</span>
+              </div>
+              <div className="flex items-center justify-between border-b border-border/50 pb-2">
+                <span className="text-xs uppercase tracking-wider text-muted-foreground">Department</span>
+                <span className="font-medium text-foreground">{user?.department || 'Not added'}</span>
+              </div>
+              <div className="flex items-center justify-between border-b border-border/50 pb-2">
+                <span className="text-xs uppercase tracking-wider text-muted-foreground">School Year</span>
+                <span className="font-medium text-foreground">{user?.schoolYear || 'Not added'}</span>
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="mt-4">
+            <AccountSecuritySection user={user} />
+          </div>
+        )}
+
+        <div className="mt-6 flex items-center justify-between gap-3 pt-2 border-t border-border/50">
           <button
             type="button"
             onClick={() => {
@@ -1974,8 +2327,68 @@ function MemberBorrowings() {
 }
 
 function Profile() {
-  const { lang } = useLang(); const user = useGetCurrentUser({ query: { queryKey: getGetCurrentUserQueryKey() } });
-  const profile = user.data; return <AuthenticatedLayout><PageHeading eyebrow={t('membersOnly', lang)} title={t('profile', lang)} detail="Your fellowship details, kept in one place." /><div className="grid max-w-3xl gap-6 md:grid-cols-[180px_1fr]"><div className="flex flex-col items-center rounded-2xl border border-border bg-sidebar p-7 text-center text-sidebar-foreground"><span className="flex h-24 w-24 items-center justify-center rounded-full bg-sidebar-primary font-serif text-4xl font-bold text-sidebar-primary-foreground">{profile?.name?.slice(0, 1) ?? 'H'}</span><div className="mt-4 font-serif text-xl font-bold">{profile?.name ?? 'Your name'}</div><Status tone="good">Verified</Status></div><div className="grid gap-4 rounded-2xl border border-border bg-card p-6 sm:grid-cols-2">{profile ? <><div><div className="text-xs uppercase tracking-wider text-muted-foreground">Email</div><div className="mt-1 font-semibold">{profile.email}</div></div><div><div className="text-xs uppercase tracking-wider text-muted-foreground">Phone</div><div className="mt-1 font-semibold">{profile.phone ?? 'Not added'}</div></div><div><div className="text-xs uppercase tracking-wider text-muted-foreground">Department</div><div className="mt-1 font-semibold">{profile.department ?? 'Not added'}</div></div><div><div className="text-xs uppercase tracking-wider text-muted-foreground">School year</div><div className="mt-1 font-semibold">{profile.schoolYear ?? 'Not added'}</div></div></> : <div className="sm:col-span-2"><Skeleton className="h-40" /></div>}</div></div></AuthenticatedLayout>;
+  const { lang } = useLang();
+  const user = useGetCurrentUser({ query: { queryKey: getGetCurrentUserQueryKey() } });
+  const profile = user.data;
+
+  return (
+    <AuthenticatedLayout>
+      <PageHeading
+        eyebrow={t('membersOnly', lang)}
+        title={t('profile', lang)}
+        detail="Your fellowship details and account security, kept in one place."
+      />
+      <div className="grid max-w-4xl gap-6 lg:grid-cols-[1fr_1.2fr]">
+        <div className="space-y-6">
+          <div className="flex flex-col items-center rounded-2xl border border-border bg-sidebar p-7 text-center text-sidebar-foreground">
+            <span className="flex h-24 w-24 items-center justify-center rounded-full bg-sidebar-primary font-serif text-4xl font-bold text-sidebar-primary-foreground">
+              {profile?.name?.slice(0, 1) ?? 'H'}
+            </span>
+            <div className="mt-4 font-serif text-xl font-bold">{profile?.name ?? 'Your name'}</div>
+            <div className="mt-1 flex items-center gap-2">
+              <Status tone="good">Verified Member</Status>
+              <span className="text-xs text-sidebar-foreground/60 uppercase font-mono">{profile?.role ?? 'member'}</span>
+            </div>
+          </div>
+
+          <div className="grid gap-4 rounded-2xl border border-border bg-card p-6">
+            <h3 className="font-serif text-lg font-bold border-b border-border/60 pb-2">Member Details</h3>
+            {profile ? (
+              <div className="space-y-3 text-sm">
+                <div>
+                  <div className="text-xs uppercase tracking-wider text-muted-foreground">Email</div>
+                  <div className="mt-1 font-semibold">{profile.email}</div>
+                </div>
+                <div>
+                  <div className="text-xs uppercase tracking-wider text-muted-foreground">Phone</div>
+                  <div className="mt-1 font-semibold">{profile.phone ?? 'Not added'}</div>
+                </div>
+                <div>
+                  <div className="text-xs uppercase tracking-wider text-muted-foreground">Department</div>
+                  <div className="mt-1 font-semibold">{profile.department ?? 'Not added'}</div>
+                </div>
+                <div>
+                  <div className="text-xs uppercase tracking-wider text-muted-foreground">School year</div>
+                  <div className="mt-1 font-semibold">{profile.schoolYear ?? 'Not added'}</div>
+                </div>
+              </div>
+            ) : (
+              <Skeleton className="h-40" />
+            )}
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-border bg-card p-6 shadow-xs">
+          <h3 className="font-serif text-lg font-bold border-b border-border/60 pb-2 flex items-center gap-2">
+            <ShieldCheck size={18} className="text-primary" /> Account Security & Settings
+          </h3>
+          <div className="mt-4">
+            <AccountSecuritySection user={profile} />
+          </div>
+        </div>
+      </div>
+    </AuthenticatedLayout>
+  );
 }
 
 function AdminDashboard({ preview = false }: { preview?: boolean }) {

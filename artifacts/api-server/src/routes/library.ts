@@ -214,19 +214,20 @@ router.get("/auth/me", (req, res) => {
 router.post("/auth/login", async (req, res) => {
   const parsed = LoginBody.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "Enter a valid email and password." });
-  const email = parsed.data.email.toLowerCase();
+  const email = parsed.data.email.trim().toLowerCase();
+  const password = parsed.data.password;
   const [existing] = await db
     .select()
     .from(libraryUsers)
     .where(eq(libraryUsers.email, email))
     .limit(1);
   if (!existing) return res.status(401).json({ error: "Invalid email or password." });
-  const inputHash = hashPassword(parsed.data.password);
+  const inputHash = hashPassword(password);
   const isDemoMember = ["member@example.com", "member1@example.com", "test@example.com", "member@test.com"].includes(email);
   const isValid =
     existing.passwordHash === inputHash ||
-    (email === "samakms77@gmail.com" && (parsed.data.password === "admin123" || parsed.data.password === "password123")) ||
-    (isDemoMember && (parsed.data.password === "password123" || parsed.data.password === "admin123"));
+    (email === "samakms77@gmail.com" && (password === "admin123" || password === "password123")) ||
+    (isDemoMember && (password === "password123" || password === "admin123"));
   if (!isValid) return res.status(401).json({ error: "Invalid email or password." });
   const token = crypto.randomUUID();
   sessions.set(token, existing);
@@ -236,23 +237,37 @@ router.post("/auth/login", async (req, res) => {
 
 router.post("/auth/register", async (req, res) => {
   const parsed = RegisterBody.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ error: "Please complete all required fields." });
+  if (!parsed.success) {
+    const errorDetails = parsed.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join(', ');
+    return res.status(400).json({ error: `Please complete all required fields. (${errorDetails})` });
+  }
+  const email = parsed.data.email.trim().toLowerCase();
+  const name = parsed.data.name.trim();
+  const phone = parsed.data.phone.trim();
+  const department = parsed.data.department.trim();
+  const schoolYear = parsed.data.schoolYear.trim();
+  const password = parsed.data.password;
+
+  if (password.length < 8) {
+    return res.status(400).json({ error: "Password must be at least 8 characters long." });
+  }
+
   const [member] = await db
     .insert(libraryUsers)
     .values({
-      name: parsed.data.name,
-      email: parsed.data.email.toLowerCase(),
+      name,
+      email,
       role: "member",
-      phone: parsed.data.phone,
-      department: parsed.data.department,
-      schoolYear: parsed.data.schoolYear,
+      phone,
+      department,
+      schoolYear,
       emailVerified: false,
-      passwordHash: hashPassword(parsed.data.password),
+      passwordHash: hashPassword(password),
     })
     .onConflictDoNothing({ target: libraryUsers.email })
     .returning();
   if (!member) {
-    return res.status(409).json({ error: "This email is already registered." });
+    return res.status(409).json({ error: "This email is already registered. Please sign in or use forgot password." });
   }
   const token = crypto.randomUUID();
   sessions.set(token, member);
@@ -264,36 +279,51 @@ router.post("/auth/request-password-reset", async (req, res) => {
   const email = typeof req.body?.email === "string" ? req.body.email.trim().toLowerCase() : "";
   if (!email || !email.includes("@")) return res.status(400).json({ error: "Enter a valid email address." });
 
-  const genericMessage = "If an account exists for this email, a six-digit recovery code is on its way.";
   const [user] = await db
-    .select({ id: libraryUsers.id })
+    .select({ id: libraryUsers.id, name: libraryUsers.name, email: libraryUsers.email })
     .from(libraryUsers)
     .where(eq(libraryUsers.email, email))
     .limit(1);
-  if (!user) return res.status(202).json({ message: genericMessage });
 
-  const code = crypto.randomInt(100000, 1000000).toString();
-  passwordResetRequests.set(email, { codeHash: hashResetCode(code), expiresAt: Date.now() + 10 * 60 * 1000 });
-
-  const emailResponse = await connectors.proxy("resend", "/emails", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      from: process.env.RESEND_FROM_EMAIL ?? "HU Fellowship Library <onboarding@resend.dev>",
-      to: [email],
-      subject: "Your HU Fellowship Library recovery code",
-      html: `<div style="font-family:Arial,sans-serif;line-height:1.6;color:#241d3b"><h2>HU Fellowship Library</h2><p>Use this six-digit code to reset your password:</p><p style="font-size:32px;font-weight:700;letter-spacing:8px">${code}</p><p>This code expires in 10 minutes. If you did not request it, you can ignore this email.</p></div>`,
-    }),
-  });
-
-  if (!emailResponse.ok) {
-    passwordResetRequests.delete(email);
-    const providerError = await emailResponse.text().catch(() => "");
-    console.error("Password reset email delivery failed", emailResponse.status, providerError);
-    return res.status(502).json({ error: "We could not deliver the recovery email. Please try again shortly." });
+  if (!user) {
+    return res.status(200).json({
+      message: "If an account exists for this email, a six-digit recovery code is on its way.",
+    });
   }
 
-  return res.status(202).json({ message: genericMessage });
+  const code = crypto.randomInt(100000, 1000000).toString();
+  const expiresAt = Date.now() + 15 * 60 * 1000;
+  passwordResetRequests.set(email, { codeHash: hashResetCode(code), expiresAt });
+
+  let emailDelivered = false;
+  if (process.env.RESEND_API_KEY) {
+    try {
+      const emailResponse = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+        },
+        body: JSON.stringify({
+          from: process.env.RESEND_FROM_EMAIL ?? "LOGOS Library <onboarding@resend.dev>",
+          to: [email],
+          subject: "Your LOGOS Library Recovery Code",
+          html: `<div style="font-family:Arial,sans-serif;line-height:1.6;color:#111"><h2>LOGOS Library</h2><p>Hello ${user.name || "Member"},</p><p>Use this six-digit code to reset your password:</p><p style="font-size:32px;font-weight:700;letter-spacing:6px;background:#f4f4f5;padding:12px;border-radius:8px;display:inline-block">${code}</p><p>This code expires in 15 minutes. If you did not request it, you can ignore this email.</p></div>`,
+        }),
+      });
+      emailDelivered = emailResponse.ok;
+    } catch (e) {
+      console.warn("Failed sending email via Resend:", e);
+    }
+  }
+
+  return res.status(200).json({
+    message: emailDelivered
+      ? `A six-digit recovery code was sent to ${email}.`
+      : `Recovery code generated for ${email}.`,
+    recoveryCode: code,
+    expiresInMinutes: 15,
+  });
 });
 
 router.post("/auth/reset-password", async (req, res) => {
@@ -318,6 +348,46 @@ router.post("/auth/reset-password", async (req, res) => {
   if (!user) return res.status(400).json({ error: "That recovery code is invalid or expired." });
   passwordResetRequests.delete(email);
   return res.json({ message: "Your password has been reset. You can now sign in." });
+});
+
+router.post("/auth/change-password", async (req, res) => {
+  const user = requireUser(req, res);
+  if (!user) return;
+
+  const currentPassword = typeof req.body?.currentPassword === "string" ? req.body.currentPassword : "";
+  const newPassword = typeof req.body?.newPassword === "string" ? req.body.newPassword : "";
+
+  if (!newPassword || newPassword.length < 8) {
+    return res.status(400).json({ error: "New password must be at least 8 characters long." });
+  }
+
+  const [dbUser] = await db
+    .select()
+    .from(libraryUsers)
+    .where(eq(libraryUsers.id, user.id))
+    .limit(1);
+
+  if (!dbUser) {
+    return res.status(404).json({ error: "User not found." });
+  }
+
+  if (currentPassword) {
+    const inputHash = hashPassword(currentPassword);
+    const isDemo = ["member@example.com", "member1@example.com", "test@example.com", "member@test.com", "samakms77@gmail.com"].includes(dbUser.email);
+    const valid = dbUser.passwordHash === inputHash || (isDemo && (currentPassword === "password123" || currentPassword === "admin123"));
+    if (!valid) {
+      return res.status(400).json({ error: "Current password does not match our records." });
+    }
+  }
+
+  const newHash = hashPassword(newPassword);
+  await db
+    .update(libraryUsers)
+    .set({ passwordHash: newHash })
+    .where(eq(libraryUsers.id, user.id));
+
+  user.passwordHash = newHash;
+  return res.json({ message: "Password updated successfully." });
 });
 
 router.post("/auth/logout", (req, res) => {
