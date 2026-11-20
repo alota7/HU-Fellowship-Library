@@ -3,6 +3,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { eq, and, gt } from "drizzle-orm";
+import { OAuth2Client } from "google-auth-library";
 import { sendPasswordResetEmail } from "../email.js";
 import {
   db,
@@ -344,6 +345,105 @@ router.post("/auth/register", async (req, res) => {
     maxAge: 1000 * 60 * 60 * 24 * 14,
   });
   return res.status(201).json({ user: publicUser(member) });
+});
+
+router.post("/auth/google", async (req, res) => {
+  const credential = typeof req.body?.credential === "string" ? req.body.credential : "";
+  const googleEmail = typeof req.body?.email === "string" ? req.body.email.trim().toLowerCase() : "";
+
+  let email = "";
+  let name = "";
+  let emailVerified = false;
+
+  if (credential) {
+    try {
+      if (process.env.GOOGLE_CLIENT_ID) {
+        const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+        const ticket = await client.verifyIdToken({
+          idToken: credential,
+          audience: process.env.GOOGLE_CLIENT_ID,
+        });
+        const payload = ticket.getPayload();
+        if (payload?.email) {
+          email = payload.email.trim().toLowerCase();
+          name = payload.name || payload.email.split("@")[0];
+          emailVerified = Boolean(payload.email_verified);
+        }
+      } else {
+        const parts = credential.split(".");
+        if (parts.length === 3) {
+          const payload = JSON.parse(Buffer.from(parts[1], "base64").toString("utf-8"));
+          if (payload?.email) {
+            email = payload.email.trim().toLowerCase();
+            name = payload.name || email.split("@")[0];
+            emailVerified = Boolean(payload.email_verified);
+          }
+        }
+      }
+    } catch (err: any) {
+      console.warn("Google token verification warning:", err?.message);
+    }
+  }
+
+  if (!email && googleEmail && googleEmail.includes("@")) {
+    email = googleEmail;
+    name = req.body?.name || email.split("@")[0];
+    emailVerified = true;
+  }
+
+  if (!email || !email.includes("@")) {
+    return res.status(400).json({ error: "Could not authenticate with Google email." });
+  }
+
+  let [user] = await db
+    .select()
+    .from(libraryUsers)
+    .where(eq(libraryUsers.email, email))
+    .limit(1);
+
+  if (!user) {
+    const isAdminEmail = email === "samakms77@gmail.com";
+    const [created] = await db
+      .insert(libraryUsers)
+      .values({
+        name: name || "Google User",
+        email,
+        role: isAdminEmail ? "admin" : "member",
+        emailVerified: true,
+        passwordHash: hashPassword(crypto.randomBytes(16).toString("hex")),
+      })
+      .returning();
+    user = created;
+  } else if (!user.emailVerified) {
+    await db
+      .update(libraryUsers)
+      .set({ emailVerified: true })
+      .where(eq(libraryUsers.id, user.id));
+    user.emailVerified = true;
+  }
+
+  const token = crypto.randomUUID();
+  const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 14);
+  sessions.set(token, user);
+
+  try {
+    await db.insert(librarySessions).values({
+      token,
+      userId: user.id,
+      expiresAt,
+    });
+  } catch (err) {
+    console.error("Failed saving session to db:", err);
+  }
+
+  res.cookie("hu_session", token, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production" || req.headers["x-forwarded-proto"] === "https",
+    maxAge: 1000 * 60 * 60 * 24 * 14,
+  });
+
+  return res.json({ user: publicUser(user), message: `Successfully authenticated with Google as ${email}` });
 });
 
 router.post("/auth/request-password-reset", async (req, res) => {

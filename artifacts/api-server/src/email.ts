@@ -63,7 +63,37 @@ ${code}
 This code will expire in 15 minutes.
 If you did not request this, please ignore this email.`;
 
-  // 1. Try Resend if RESEND_API_KEY is configured
+  // 1. Try Gmail (Google Mail) directly if GMAIL_USER and GMAIL_APP_PASSWORD are provided
+  const gmailUser = process.env.GMAIL_USER || (process.env.SMTP_USER?.includes("@gmail.com") ? process.env.SMTP_USER : undefined);
+  const gmailPass = process.env.GMAIL_APP_PASSWORD || process.env.SMTP_PASS;
+
+  if (gmailUser && gmailPass) {
+    try {
+      const transporter = nodemailer.createTransport({
+        service: "gmail",
+        auth: {
+          user: gmailUser,
+          pass: gmailPass.replace(/\s+/g, ""), // clean any spaces from 16-character app password
+        },
+      });
+
+      const fromAddress = `LOGOS Library <${gmailUser}>`;
+      await transporter.sendMail({
+        from: fromAddress,
+        to,
+        subject,
+        html,
+        text,
+      });
+
+      console.log(`[AUTH-EMAIL] Verification code successfully delivered via Google Mail to ${to}`);
+      return { sent: true, provider: "gmail" };
+    } catch (err: any) {
+      console.warn("[AUTH-EMAIL] Google Mail (Gmail SMTP) error:", err?.message);
+    }
+  }
+
+  // 2. Try Resend if RESEND_API_KEY is configured
   if (process.env.RESEND_API_KEY) {
     try {
       const fromEmail = process.env.RESEND_FROM_EMAIL || "LOGOS Library <onboarding@resend.dev>";
@@ -93,11 +123,11 @@ If you did not request this, please ignore this email.`;
     }
   }
 
-  // 2. Try SMTP if SMTP_HOST or SMTP_USER is configured
-  if (process.env.SMTP_HOST || process.env.SMTP_USER) {
+  // 3. Try standard custom SMTP (host/port)
+  if (process.env.SMTP_HOST) {
     try {
       const transporter = nodemailer.createTransport({
-        host: process.env.SMTP_HOST || "smtp.gmail.com",
+        host: process.env.SMTP_HOST,
         port: Number(process.env.SMTP_PORT || (process.env.SMTP_SECURE === "true" ? 465 : 587)),
         secure: process.env.SMTP_SECURE === "true" || process.env.SMTP_PORT === "465",
         auth: process.env.SMTP_USER && process.env.SMTP_PASS ? {
@@ -118,7 +148,7 @@ If you did not request this, please ignore this email.`;
       console.log(`[AUTH-EMAIL] Password recovery code dispatched via SMTP to ${to}`);
       return { sent: true, provider: "smtp" };
     } catch (err: any) {
-      console.warn("[AUTH-EMAIL] SMTP error:", err?.message);
+      console.warn("[AUTH-EMAIL] Custom SMTP error:", err?.message);
       return { sent: false, provider: "smtp", error: err?.message };
     }
   }
