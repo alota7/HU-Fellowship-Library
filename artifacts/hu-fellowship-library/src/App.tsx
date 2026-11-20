@@ -542,17 +542,10 @@ function Login() {
             <span>{loginErrorMsg}</span>
           </div>
         )}
-        <Button type="submit" disabled={login.isPending} className="h-12 w-full touch-target text-base" data-testid="button-login">
+        <Button type="submit" disabled={login.isPending} className="h-12 w-full touch-target text-base shadow-md shadow-primary/20" data-testid="button-login">
           {login.isPending ? <LoaderCircle size={18} className="animate-spin" /> : null}
           {login.isPending ? 'Signing in…' : 'Sign in'}
         </Button>
-        <div className="rounded-xl border border-border/80 bg-secondary/40 p-3 text-xs">
-          <div className="font-semibold text-muted-foreground mb-2">Quick sign-in credentials:</div>
-          <div className="flex flex-col sm:flex-row flex-wrap gap-2">
-            <button type="button" onClick={() => { setEmail('member@example.com'); setPassword('password123'); }} className="rounded-lg border border-border bg-card px-2.5 py-1.5 font-medium hover:bg-primary hover:text-primary-foreground text-left sm:text-center text-[11px] sm:text-xs transition touch-target sm:touch-auto">👤 Member: member@example.com</button>
-            <button type="button" onClick={() => { setEmail('samakms77@gmail.com'); setPassword('admin123'); }} className="rounded-lg border border-border bg-card px-2.5 py-1.5 font-medium hover:bg-primary hover:text-primary-foreground text-left sm:text-center text-[11px] sm:text-xs transition touch-target sm:touch-auto">👑 Admin: samakms77@gmail.com</button>
-          </div>
-        </div>
         <p className="pt-2 text-center text-sm text-muted-foreground">New to the fellowship? <Link href="/register" data-testid="link-register" className="font-bold text-primary hover:underline">Create a member account</Link></p>
       </form>
     </AuthShell>

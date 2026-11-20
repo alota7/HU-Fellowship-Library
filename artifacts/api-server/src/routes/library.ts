@@ -3,7 +3,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { ReplitConnectors } from "@replit/connectors-sdk";
-import { eq } from "drizzle-orm";
+import { eq, and, gt } from "drizzle-orm";
 import {
   db,
   pool,
@@ -14,6 +14,7 @@ import {
   libraryQuestions,
   libraryBorrowings,
   libraryBorrowingRequests,
+  librarySessions,
 } from "@workspace/db";
 import {
   CreateBookBody,
@@ -173,7 +174,45 @@ function hashResetCode(code: string) {
   return crypto.createHash("sha256").update(code).digest("hex");
 }
 
-function currentUser(req: Request) {
+router.use(async (req: any, _res, next) => {
+  const token = req.cookies?.hu_session ?? req.headers.authorization?.replace("Bearer ", "");
+  if (!token) {
+    req.user = undefined;
+    return next();
+  }
+
+  const cached = sessions.get(token);
+  if (cached) {
+    req.user = cached;
+    return next();
+  }
+
+  try {
+    const [row] = await db
+      .select({
+        user: libraryUsers,
+        session: librarySessions,
+      })
+      .from(librarySessions)
+      .innerJoin(libraryUsers, eq(libraryUsers.id, librarySessions.userId))
+      .where(and(eq(librarySessions.token, token), gt(librarySessions.expiresAt, new Date())))
+      .limit(1);
+
+    if (row?.user) {
+      sessions.set(token, row.user);
+      req.user = row.user;
+    } else {
+      req.user = undefined;
+    }
+  } catch (err) {
+    console.error("Session lookup error:", err);
+    req.user = undefined;
+  }
+  next();
+});
+
+function currentUser(req: any) {
+  if (req.user) return req.user;
   const token = req.cookies?.hu_session ?? req.headers.authorization?.replace("Bearer ", "");
   return token ? sessions.get(token) : undefined;
 }
@@ -223,15 +262,30 @@ router.post("/auth/login", async (req, res) => {
     .limit(1);
   if (!existing) return res.status(401).json({ error: "Invalid email or password." });
   const inputHash = hashPassword(password);
-  const isDemoMember = ["member@example.com", "member1@example.com", "test@example.com", "member@test.com"].includes(email);
-  const isValid =
-    existing.passwordHash === inputHash ||
-    (email === "samakms77@gmail.com" && (password === "admin123" || password === "password123")) ||
-    (isDemoMember && (password === "password123" || password === "admin123"));
-  if (!isValid) return res.status(401).json({ error: "Invalid email or password." });
+  if (existing.passwordHash !== inputHash) {
+    return res.status(401).json({ error: "Invalid email or password." });
+  }
+
   const token = crypto.randomUUID();
+  const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 14); // 14 days
   sessions.set(token, existing);
-  res.cookie("hu_session", token, { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", maxAge: 1000 * 60 * 60 * 24 * 7 });
+
+  try {
+    await db.insert(librarySessions).values({
+      token,
+      userId: existing.id,
+      expiresAt,
+    });
+  } catch (err) {
+    console.error("Failed saving session to db:", err);
+  }
+
+  res.cookie("hu_session", token, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production" || req.headers["x-forwarded-proto"] === "https",
+    maxAge: 1000 * 60 * 60 * 24 * 14,
+  });
   return res.json({ user: publicUser(existing) });
 });
 
@@ -269,9 +323,27 @@ router.post("/auth/register", async (req, res) => {
   if (!member) {
     return res.status(409).json({ error: "This email is already registered. Please sign in or use forgot password." });
   }
+
   const token = crypto.randomUUID();
+  const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 14); // 14 days
   sessions.set(token, member);
-  res.cookie("hu_session", token, { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", maxAge: 1000 * 60 * 60 * 24 * 7 });
+
+  try {
+    await db.insert(librarySessions).values({
+      token,
+      userId: member.id,
+      expiresAt,
+    });
+  } catch (err) {
+    console.error("Failed saving session to db:", err);
+  }
+
+  res.cookie("hu_session", token, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production" || req.headers["x-forwarded-proto"] === "https",
+    maxAge: 1000 * 60 * 60 * 24 * 14,
+  });
   return res.status(201).json({ user: publicUser(member) });
 });
 
@@ -390,9 +462,14 @@ router.post("/auth/change-password", async (req, res) => {
   return res.json({ message: "Password updated successfully." });
 });
 
-router.post("/auth/logout", (req, res) => {
+router.post("/auth/logout", async (req, res) => {
   const token = req.cookies?.hu_session;
-  if (token) sessions.delete(token);
+  if (token) {
+    sessions.delete(token);
+    try {
+      await db.delete(librarySessions).where(eq(librarySessions.token, token));
+    } catch (err) {}
+  }
   res.clearCookie("hu_session");
   return res.status(204).send();
 });

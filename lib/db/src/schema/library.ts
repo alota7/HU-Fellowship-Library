@@ -19,6 +19,23 @@ export const libraryUsers = pgTable("library_users", {
   passwordHash: text("password_hash").notNull(),
 });
 
+export const librarySessions = pgTable("library_sessions", {
+  token: text("token").primaryKey(),
+  userId: integer("user_id")
+    .references(() => libraryUsers.id, { onDelete: "cascade" })
+    .notNull(),
+  expiresAt: timestamp("expires_at", {
+    withTimezone: true,
+    mode: "date",
+  }).notNull(),
+  createdAt: timestamp("created_at", {
+    withTimezone: true,
+    mode: "date",
+  })
+    .notNull()
+    .defaultNow(),
+});
+
 export const libraryCategories = pgTable("library_categories", {
   id: serial("id").primaryKey(),
   name: text("name").notNull().unique(),
