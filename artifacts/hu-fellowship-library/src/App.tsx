@@ -1214,9 +1214,8 @@ function ProfileModal({ user, open, onOpenChange }: { user?: User; open: boolean
   );
 }
 
-function BottomTabBar({ admin, preview = false }: { admin: boolean; preview?: boolean }) {
-  const [location] = useLocation();
-  const links = preview
+const getNavLinks = (admin: boolean, preview: boolean) => (
+  preview
     ? [{ href: admin ? '/__preview/admin' : '/__preview/member', key: 'dashboard', icon: HomeIcon, label: 'Home' }]
     : admin
     ? [
@@ -1234,11 +1233,16 @@ function BottomTabBar({ admin, preview = false }: { admin: boolean; preview?: bo
         { href: '/member/notes', key: 'notes', icon: FileText, label: 'Notes' },
         { href: '/member/questions', key: 'questions', icon: HelpCircle, label: 'Q&A' },
         { href: '/member/borrowings', key: 'borrowings', icon: Bookmark, label: 'My Loans' },
-      ];
+      ]
+);
+
+function BottomTabBar({ admin, preview = false }: { admin: boolean; preview?: boolean }) {
+  const [location] = useLocation();
+  const links = getNavLinks(admin, preview);
 
   return (
     <nav
-      className="fixed bottom-0 inset-x-0 z-40 bg-background/95 dark:bg-black/95 backdrop-blur-lg border-t border-border shadow-[0_-4px_24px_rgba(0,0,0,0.18)] safe-bottom"
+      className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-background/95 dark:bg-black/95 backdrop-blur-lg border-t border-border shadow-[0_-4px_24px_rgba(0,0,0,0.18)] safe-bottom"
       data-testid="bottom-tab-bar"
     >
       <div className="mx-auto flex max-w-xl items-center justify-around px-1 py-1 sm:py-1.5">
@@ -1283,7 +1287,8 @@ function AuthenticatedLayout({ children, admin = false, preview = false }: { chi
   const current = useGetCurrentUser({ query: { enabled: !preview && (path.startsWith('/member') || path.startsWith('/admin')), queryKey: getGetCurrentUserQueryKey() } });
   const user = preview ? (admin ? previewAdmin : previewMember) : current.data;
   const logout = useLogout();
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
+  const links = getNavLinks(admin, preview);
 
   return (
     <div className="min-h-[100dvh] bg-background">
@@ -1293,11 +1298,33 @@ function AuthenticatedLayout({ children, admin = false, preview = false }: { chi
         <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-background/90 px-4 sm:px-6 lg:px-9 backdrop-blur">
           <div className="flex items-center gap-3">
             <Logo />
-            <div className="hidden sm:flex items-center gap-2 pl-3 border-l border-border/60">
+            <div className="hidden lg:flex items-center gap-2 pl-3 border-l border-border/60">
               <span className="font-mono text-[10px] uppercase tracking-[.18em] text-accent">
                 {admin ? 'Steward desk' : 'Library'}
               </span>
             </div>
+
+            {/* Desktop Navigation Bar (Only on md: and above) */}
+            <nav className="hidden md:flex items-center gap-1 lg:gap-1.5 ml-2 lg:ml-5">
+              {links.map(({ href, key, icon: Icon, label }) => {
+                const isActive = location === href || (href !== '/member/dashboard' && href !== '/admin/dashboard' && location.startsWith(href));
+                return (
+                  <Link
+                    key={href}
+                    href={href}
+                    data-testid={`desktop-nav-${key}`}
+                    className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs lg:text-sm font-semibold transition ${
+                      isActive
+                        ? 'bg-primary text-primary-foreground shadow-xs'
+                        : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+                    }`}
+                  >
+                    <Icon size={15} className="shrink-0" />
+                    <span>{label}</span>
+                  </Link>
+                );
+              })}
+            </nav>
           </div>
 
           <div className="ml-auto flex items-center gap-2 sm:gap-3">
@@ -1340,11 +1367,11 @@ function AuthenticatedLayout({ children, admin = false, preview = false }: { chi
           </div>
         )}
 
-        <main className="mx-auto w-full max-w-[1500px] flex-1 px-4 py-6 pb-28 sm:px-6 sm:py-8 sm:pb-32 lg:px-9 lg:py-10 lg:pb-32">
+        <main className="mx-auto w-full max-w-[1500px] flex-1 px-4 py-6 pb-24 md:pb-10 sm:px-6 sm:py-8 lg:px-9 lg:py-10">
           {children}
         </main>
 
-        <footer className="mt-auto border-t border-border/80 bg-card/60 px-4 py-5 mb-14 sm:mb-16 lg:px-9 safe-bottom">
+        <footer className="mt-auto border-t border-border/80 bg-card/60 px-4 py-5 mb-16 md:mb-0 lg:px-9 safe-bottom">
           <div className="mx-auto flex max-w-[1500px] flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground">
             <div className="flex items-center gap-2">
               <span className="font-serif font-bold text-foreground">LOGOS Library</span>
@@ -1374,7 +1401,7 @@ function AuthenticatedLayout({ children, admin = false, preview = false }: { chi
           </div>
         </footer>
 
-        {/* Bottom Tab Bar */}
+        {/* Bottom Tab Bar (Only on mobile users) */}
         <BottomTabBar admin={admin} preview={preview} />
       </div>
     </div>
