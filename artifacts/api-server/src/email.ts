@@ -63,18 +63,33 @@ ${code}
 This code will expire in 15 minutes.
 If you did not request this, please ignore this email.`;
 
-  // 1. Try Gmail (Google Mail) directly if GMAIL_USER and GMAIL_APP_PASSWORD are provided
+  // 1. Try Gmail (Google Mail) directly if GMAIL_USER and credentials are provided
   const gmailUser = process.env.GMAIL_USER || (process.env.SMTP_USER?.includes("@gmail.com") ? process.env.SMTP_USER : undefined);
   const gmailPass = process.env.GMAIL_APP_PASSWORD || process.env.SMTP_PASS;
+  const googleClientId = process.env.GOOGLE_CLIENT_ID;
+  const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
+  const googleRefreshToken = process.env.GOOGLE_REFRESH_TOKEN;
 
-  if (gmailUser && gmailPass) {
+  if (gmailUser && (gmailPass || (googleClientId && googleClientSecret && googleRefreshToken))) {
     try {
+      const authConfig = (googleClientId && googleClientSecret && googleRefreshToken)
+        ? {
+            type: "OAuth2" as const,
+            user: gmailUser,
+            clientId: googleClientId,
+            clientSecret: googleClientSecret,
+            refreshToken: googleRefreshToken,
+          }
+        : {
+            user: gmailUser,
+            pass: (gmailPass || "").replace(/\s+/g, ""), // clean any spaces from 16-character app password
+          };
+
       const transporter = nodemailer.createTransport({
-        service: "gmail",
-        auth: {
-          user: gmailUser,
-          pass: gmailPass.replace(/\s+/g, ""), // clean any spaces from 16-character app password
-        },
+        host: "smtp.gmail.com",
+        port: 465,
+        secure: true,
+        auth: authConfig,
       });
 
       const fromAddress = `LOGOS Library <${gmailUser}>`;
@@ -89,7 +104,7 @@ If you did not request this, please ignore this email.`;
       console.log(`[AUTH-EMAIL] Verification code successfully delivered via Google Mail to ${to}`);
       return { sent: true, provider: "gmail" };
     } catch (err: any) {
-      console.warn("[AUTH-EMAIL] Google Mail (Gmail SMTP) error:", err?.message);
+      console.warn("[AUTH-EMAIL] Google Mail error:", err?.message);
     }
   }
 

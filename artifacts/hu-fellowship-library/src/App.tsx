@@ -160,17 +160,33 @@ async function uploadLibraryFile(file: File, purpose: UploadPurpose) {
   if (!uploaded.ok) throw new Error('The file could not be uploaded. Please try again.');
   return objectPath.startsWith('/api/storage') ? objectPath : `/api/storage${objectPath.startsWith('/') ? '' : '/'}${objectPath}`;
 }
-const Logo = ({ dark = false }: { dark?: boolean }) => (
-  <Link href="/" data-testid="link-brand" className="flex items-center gap-3">
-    <span className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl border border-border bg-black shadow-xs p-1">
-      <img src={logo} alt="LOGOS Library" className="block h-full w-full object-contain" />
-    </span>
-    <span className={`font-serif text-sm font-bold leading-tight ${dark ? 'text-sidebar-foreground' : 'text-foreground'}`}>
-      LOGOS<br />
-      <span className="font-sans text-[10px] font-medium uppercase tracking-[.2em] opacity-70">Library</span>
-    </span>
-  </Link>
-);
+const Logo = ({ dark = false, href }: { dark?: boolean; href?: string }) => {
+  const current = useGetCurrentUser({
+    query: {
+      queryKey: getGetCurrentUserQueryKey(),
+      retry: false,
+      refetchOnWindowFocus: false,
+    },
+  });
+
+  const targetHref = href || (
+    current.data
+      ? (current.data.role === 'admin' ? '/admin/dashboard' : '/member/dashboard')
+      : '/'
+  );
+
+  return (
+    <Link href={targetHref} data-testid="link-brand" className="flex items-center gap-3">
+      <span className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl border border-border bg-black shadow-xs p-1">
+        <img src={logo} alt="LOGOS Library" className="block h-full w-full object-contain" />
+      </span>
+      <span className={`font-serif text-sm font-bold leading-tight ${dark ? 'text-sidebar-foreground' : 'text-foreground'}`}>
+        LOGOS<br />
+        <span className="font-sans text-[10px] font-medium uppercase tracking-[.2em] opacity-70">Library</span>
+      </span>
+    </Link>
+  );
+};
 const Status = ({ children, tone = 'neutral' }: { children: ReactNode; tone?: 'neutral' | 'good' | 'warn' | 'bad' }) => (
   <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider ${
     tone === 'good'
@@ -490,98 +506,7 @@ function AuthShell({ children, eyebrow, title, detail }: { children: ReactNode; 
   );
 }
 
-function GoogleAuthButton({ prefillEmail }: { prefillEmail?: string }) {
-  const [, setLocation] = useLocation();
-  const [showInput, setShowInput] = useState(false);
-  const [googleEmail, setGoogleEmail] = useState(prefillEmail || '');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
 
-  const submitGoogleAuth = async (targetEmail: string) => {
-    const clean = targetEmail.trim().toLowerCase();
-    if (!clean || !clean.includes('@')) {
-      setError('Please enter a valid Google email address.');
-      return;
-    }
-
-    setLoading(true);
-    setError('');
-    try {
-      const res = await fetch('/api/auth/google', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: clean }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to authenticate with Google.');
-      setLocation(data.user.role === 'admin' ? '/admin/dashboard' : '/member/dashboard');
-    } catch (err: any) {
-      setError(err.message || 'Failed to authenticate with Google.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleButtonClick = () => {
-    if (prefillEmail && prefillEmail.includes('@')) {
-      submitGoogleAuth(prefillEmail);
-    } else {
-      setShowInput(prev => !prev);
-    }
-  };
-
-  return (
-    <div className="space-y-2">
-      <button
-        type="button"
-        onClick={handleButtonClick}
-        disabled={loading}
-        className="w-full h-11 flex items-center justify-center gap-2.5 rounded-xl border border-border bg-card hover:bg-secondary/70 active:scale-[0.99] transition font-medium text-xs sm:text-sm text-foreground shadow-xs touch-target cursor-pointer"
-        data-testid="button-google-auth"
-      >
-        <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
-          <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-          <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-          <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
-          <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
-        </svg>
-        {loading ? 'Connecting Google Account…' : 'Continue with Google'}
-      </button>
-
-      {showInput && (
-        <div className="rounded-xl border border-primary/30 bg-secondary/40 p-3 space-y-2 animate-in fade-in duration-200">
-          <label className="text-xs font-semibold text-muted-foreground block">
-            Enter your Google email address:
-          </label>
-          <div className="flex gap-2">
-            <input
-              type="email"
-              value={googleEmail}
-              onChange={e => setGoogleEmail(e.target.value)}
-              placeholder="e.g. samakms77@gmail.com"
-              className="flex-1 rounded-lg border border-border bg-background px-3 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-              autoFocus
-            />
-            <button
-              type="button"
-              onClick={() => submitGoogleAuth(googleEmail)}
-              disabled={loading || !googleEmail.includes('@')}
-              className="rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground hover:opacity-90 disabled:opacity-50"
-            >
-              Sign in
-            </button>
-          </div>
-        </div>
-      )}
-
-      {error && (
-        <div className="rounded-lg bg-destructive/10 p-2.5 text-xs text-destructive text-center">
-          {error}
-        </div>
-      )}
-    </div>
-  );
-}
 
 function Login() {
   const [, setLocation] = useLocation();
@@ -639,11 +564,6 @@ function Login() {
           {login.isPending ? <LoaderCircle size={18} className="animate-spin" /> : null}
           {login.isPending ? 'Signing in…' : 'Sign in'}
         </Button>
-        <div className="relative my-1">
-          <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border" /></div>
-          <div className="relative flex justify-center text-xs uppercase"><span className="bg-card px-2 text-muted-foreground font-semibold">Or</span></div>
-        </div>
-        <GoogleAuthButton />
         <p className="pt-2 text-center text-sm text-muted-foreground">New to the fellowship? <Link href="/register" data-testid="link-register" className="font-bold text-primary hover:underline">Create a member account</Link></p>
       </form>
     </AuthShell>
@@ -746,11 +666,6 @@ function Register() {
           {register.isPending ? <LoaderCircle size={18} className="animate-spin" /> : null}
           {register.isPending ? 'Creating account…' : 'Create account & enter library'}
         </Button>
-        <div className="relative my-1">
-          <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border" /></div>
-          <div className="relative flex justify-center text-xs uppercase"><span className="bg-card px-2 text-muted-foreground font-semibold">Or</span></div>
-        </div>
-        <GoogleAuthButton prefillEmail={form.email} />
         <p className="pt-2 text-center text-sm text-muted-foreground">Already a member? <Link href="/login" data-testid="link-existing-login" className="font-bold text-primary hover:underline">Sign in</Link></p>
       </form>
     </AuthShell>
@@ -761,6 +676,7 @@ function ForgotPassword() {
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [devCode, setDevCode] = useState('');
   const [emailDelivered, setEmailDelivered] = useState(true);
   const [stage, setStage] = useState<'email' | 'code' | 'done'>('email');
@@ -788,6 +704,7 @@ function ForgotPassword() {
 
   const handleReset = (e: React.FormEvent) => {
     e.preventDefault();
+    if (password !== confirmPassword) return;
     const cleanEmail = email.trim().toLowerCase();
     resetPassword.mutate(
       { data: { email: cleanEmail, code: code.trim(), password } },
@@ -833,15 +750,10 @@ function ForgotPassword() {
                 <span>{requestError}</span>
               </div>
             )}
-            <Button type="submit" disabled={requestReset.isPending} className="h-12 w-full touch-target" data-testid="button-send-recovery">
+            <Button type="submit" disabled={requestReset.isPending} className="h-12 w-full touch-target text-base shadow-md shadow-primary/20" data-testid="button-send-recovery">
               {requestReset.isPending ? <LoaderCircle size={18} className="animate-spin" /> : null}
-              {requestReset.isPending ? 'Sending recovery code…' : 'Send recovery code to my email'}
+              {requestReset.isPending ? 'Sending recovery code…' : 'Send verification code to my email'}
             </Button>
-            <div className="relative my-1">
-              <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border" /></div>
-              <div className="relative flex justify-center text-xs uppercase"><span className="bg-card px-2 text-muted-foreground font-semibold">Or sign in directly</span></div>
-            </div>
-            <GoogleAuthButton prefillEmail={email} />
           </>
         )}
         {stage === 'code' && (
@@ -897,15 +809,36 @@ function ForgotPassword() {
               required
               data-testid="input-new-password"
             />
+            <PasswordField
+              label="Confirm new password"
+              minLength={8}
+              value={confirmPassword}
+              onChange={e => setConfirmPassword(e.target.value)}
+              placeholder="Re-enter your new password"
+              autoComplete="new-password"
+              required
+              data-testid="input-confirm-password"
+            />
+            {password && confirmPassword && password !== confirmPassword && (
+              <div className="rounded-lg bg-destructive/10 p-2.5 text-xs text-destructive flex items-center gap-2">
+                <AlertCircle size={14} className="shrink-0" />
+                <span>Passwords do not match. Please re-enter your password to match.</span>
+              </div>
+            )}
             {resetPassword.isError && (
               <div className="rounded-lg bg-destructive/10 p-3 text-sm leading-6 text-destructive flex items-center gap-2" data-testid="status-reset-error">
                 <AlertCircle size={16} className="shrink-0" />
                 <span>{resetError}</span>
               </div>
             )}
-            <Button type="submit" disabled={resetPassword.isPending || code.length !== 6 || password.length < 8} className="h-12 w-full touch-target" data-testid="button-reset-password">
+            <Button
+              type="submit"
+              disabled={resetPassword.isPending || code.length !== 6 || password.length < 8 || password !== confirmPassword}
+              className="h-12 w-full touch-target text-base shadow-md shadow-primary/20"
+              data-testid="button-reset-password"
+            >
               {resetPassword.isPending ? <LoaderCircle size={18} className="animate-spin" /> : null}
-              {resetPassword.isPending ? 'Updating password…' : 'Reset password'}
+              {resetPassword.isPending ? 'Updating password…' : 'Reset password & sign in'}
             </Button>
             <button
               type="button"
@@ -1467,7 +1400,7 @@ function AuthenticatedLayout({ children, admin = false, preview = false }: { chi
       <div className="flex min-h-[100dvh] flex-col">
         <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-background/90 px-4 sm:px-6 lg:px-9 backdrop-blur">
           <div className="flex items-center gap-3">
-            <Logo />
+            <Logo href={admin ? (preview ? '/__preview/admin' : '/admin/dashboard') : (preview ? '/__preview/member' : '/member/dashboard')} />
             <div className="hidden lg:flex items-center gap-2 pl-3 border-l border-border/60">
               <span className="font-mono text-[10px] uppercase tracking-[.18em] text-accent">
                 {admin ? 'Steward desk' : 'Library'}
