@@ -574,8 +574,8 @@ function Register() {
   const [, setLocation] = useLocation();
   const register = useRegister();
   const queryClient = useQueryClient();
-  const [form, setForm] = useState({ name: '', email: '', password: '', phone: '', department: '', schoolYear: '' });
-  const update = (key: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) => setForm(current => ({ ...current, [key]: e.target.value }));
+  const [form, setForm] = useState({ name: '', email: '', password: '', phone: '', department: '', schoolYear: 'Year 1' });
+  const update = (key: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setForm(current => ({ ...current, [key]: e.target.value }));
 
   const [validationError, setValidationError] = useState('');
 
@@ -591,8 +591,23 @@ function Register() {
       schoolYear: form.schoolYear.trim(),
     };
 
-    if (!/^\d{10}$/.test(cleanData.phone)) {
-      setValidationError('Phone number must be exactly 10 digits (e.g. 0987654321).');
+    // Google email validation: must end in @gmail.com
+    if (!/^[a-zA-Z0-9._%+-]+@gmail\.com$/i.test(cleanData.email)) {
+      setValidationError('Please use a valid Google account email (@gmail.com, e.g. adam@gmail.com).');
+      return;
+    }
+
+    // Phone number validation: starts with 09 and exactly 10 digits
+    if (!/^09\d{8}$/.test(cleanData.phone)) {
+      setValidationError('Phone number must start with 09 and be exactly 10 digits (e.g. 0987654321).');
+      return;
+    }
+
+    // School year validation: range 1-8
+    const yearMatch = cleanData.schoolYear.match(/\b([1-8])\b/);
+    const yearNum = yearMatch ? parseInt(yearMatch[1], 10) : parseInt(cleanData.schoolYear, 10);
+    if (isNaN(yearNum) || yearNum < 1 || yearNum > 8) {
+      setValidationError('School year must be between Year 1 and Year 8.');
       return;
     }
 
@@ -619,16 +634,30 @@ function Register() {
       <form className="grid gap-4" onSubmit={handleSubmit}>
         <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
           <Field label="Full name" name="name" autoComplete="name" value={form.name} onChange={update('name')} required data-testid="input-register-name" />
-          <Field label="Email address" name="email" type="email" autoComplete="email" autoCapitalize="none" spellCheck={false} value={form.email} onChange={update('email')} required data-testid="input-register-email" />
+          <Field
+            label="Google email address"
+            name="email"
+            type="email"
+            autoComplete="email"
+            autoCapitalize="none"
+            spellCheck={false}
+            value={form.email}
+            onChange={update('email')}
+            placeholder="adam@gmail.com"
+            pattern="^[a-zA-Z0-9._%+-]+@gmail\.com$"
+            title="Please enter a valid Google email address ending in @gmail.com"
+            required
+            data-testid="input-register-email"
+          />
         </div>
         <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
           <Field
-            label="Phone number (10 digits)"
+            label="Phone number (starts with 09)"
             name="phone"
             type="tel"
             autoComplete="tel"
             inputMode="numeric"
-            pattern="[0-9]{10}"
+            pattern="09[0-9]{8}"
             maxLength={10}
             value={form.phone}
             onChange={e => {
@@ -636,10 +665,30 @@ function Register() {
               setForm(current => ({ ...current, phone: val }));
             }}
             placeholder="0987654321"
+            title="10-digit phone number starting with 09 (e.g. 0987654321)"
             required
             data-testid="input-register-phone"
           />
-          <Field label="School year" name="schoolYear" autoComplete="off" value={form.schoolYear} onChange={update('schoolYear')} placeholder="e.g. 3rd year" required data-testid="input-register-year" />
+          <label className="grid gap-2 text-sm font-semibold text-foreground">
+            School year (Year 1 - 8)
+            <select
+              name="schoolYear"
+              value={form.schoolYear}
+              onChange={update('schoolYear')}
+              required
+              data-testid="select-register-year"
+              className="h-11 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none ring-primary/20 focus-visible:ring-4 focus-visible:ring-primary/20"
+            >
+              <option value="Year 1">Year 1</option>
+              <option value="Year 2">Year 2</option>
+              <option value="Year 3">Year 3</option>
+              <option value="Year 4">Year 4</option>
+              <option value="Year 5">Year 5</option>
+              <option value="Year 6">Year 6</option>
+              <option value="Year 7">Year 7</option>
+              <option value="Year 8">Year 8</option>
+            </select>
+          </label>
         </div>
         <Field
           label="Department (max 30 characters)"

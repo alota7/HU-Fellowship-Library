@@ -302,9 +302,21 @@ router.post("/auth/register", async (req, res) => {
   const schoolYear = parsed.data.schoolYear.trim();
   const password = parsed.data.password;
 
-  // Phone number validation: exactly 10 digits
-  if (!/^\d{10}$/.test(phone)) {
-    return res.status(400).json({ error: "Phone number must be exactly 10 digits (e.g. 0987654321)." });
+  // Google email validation: must be a valid @gmail.com address
+  if (!/^[a-zA-Z0-9._%+-]+@gmail\.com$/i.test(email)) {
+    return res.status(400).json({ error: "Please use a valid Google account email (@gmail.com, e.g. adam@gmail.com)." });
+  }
+
+  // Phone number validation: starts with 09 and exactly 10 digits
+  if (!/^09\d{8}$/.test(phone)) {
+    return res.status(400).json({ error: "Phone number must start with 09 and be exactly 10 digits (e.g. 0987654321)." });
+  }
+
+  // School year validation: range 1 to 8
+  const yearMatch = schoolYear.match(/\b([1-8])\b/);
+  const yearNum = yearMatch ? parseInt(yearMatch[1], 10) : parseInt(schoolYear, 10);
+  if (isNaN(yearNum) || yearNum < 1 || yearNum > 8) {
+    return res.status(400).json({ error: "School year must be in the range of 1 to 8 (e.g. Year 1 - Year 8)." });
   }
 
   // Department validation: at most 30 characters
