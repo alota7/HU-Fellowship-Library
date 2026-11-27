@@ -303,7 +303,14 @@ router.post("/auth/register", async (req, res) => {
   const password = parsed.data.password;
 
   // Google email validation: must be a valid @gmail.com address
-  if (!/^[a-zA-Z0-9._%+-]+@gmail\.com$/i.test(email)) {
+  const gmailLocal = email.split("@")[0];
+  if (
+    !/^[a-z0-9._+-]+@gmail\.com$/.test(email) ||
+    !gmailLocal ||
+    gmailLocal.startsWith(".") ||
+    gmailLocal.endsWith(".") ||
+    gmailLocal.includes("..")
+  ) {
     return res.status(400).json({ error: "Please use a valid Google account email (@gmail.com, e.g. adam@gmail.com)." });
   }
 
@@ -313,8 +320,8 @@ router.post("/auth/register", async (req, res) => {
   }
 
   // School year validation: range 1 to 8
-  const yearMatch = schoolYear.match(/\b([1-8])\b/);
-  const yearNum = yearMatch ? parseInt(yearMatch[1], 10) : parseInt(schoolYear, 10);
+  const yearNumbers = schoolYear.match(/\d+/g);
+  const yearNum = yearNumbers && yearNumbers.length === 1 ? Number(yearNumbers[0]) : NaN;
   if (isNaN(yearNum) || yearNum < 1 || yearNum > 8) {
     return res.status(400).json({ error: "School year must be in the range of 1 to 8 (e.g. Year 1 - Year 8)." });
   }

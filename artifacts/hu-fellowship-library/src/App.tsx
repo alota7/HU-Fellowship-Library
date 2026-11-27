@@ -511,6 +511,7 @@ function AuthShell({ children, eyebrow, title, detail }: { children: ReactNode; 
 function Login() {
   const [, setLocation] = useLocation();
   const login = useLogin();
+  const qc = useQueryClient();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
@@ -521,6 +522,8 @@ function Login() {
       { data: { email: cleanEmail, password } },
       {
         onSuccess: (data) => {
+          qc.clear();
+          qc.setQueryData(getGetCurrentUserQueryKey(), data.user);
           setLocation(data.user.role === 'admin' ? '/admin/dashboard' : '/member/dashboard');
         },
       }
@@ -538,7 +541,7 @@ function Login() {
           value={email}
           onChange={e => setEmail(e.target.value)}
           type="email"
-          placeholder="you@university.edu"
+          placeholder="adam@gmail.com"
           required
           data-testid="input-email"
         />
@@ -591,8 +594,15 @@ function Register() {
       schoolYear: form.schoolYear.trim(),
     };
 
-    // Google email validation: must end in @gmail.com
-    if (!/^[a-zA-Z0-9._%+-]+@gmail\.com$/i.test(cleanData.email)) {
+    // Google email validation: must be a valid @gmail.com address
+    const gmailLocal = cleanData.email.split('@')[0];
+    if (
+      !/^[a-z0-9._+-]+@gmail\.com$/.test(cleanData.email) ||
+      !gmailLocal ||
+      gmailLocal.startsWith('.') ||
+      gmailLocal.endsWith('.') ||
+      gmailLocal.includes('..')
+    ) {
       setValidationError('Please use a valid Google account email (@gmail.com, e.g. adam@gmail.com).');
       return;
     }
@@ -604,8 +614,8 @@ function Register() {
     }
 
     // School year validation: range 1-8
-    const yearMatch = cleanData.schoolYear.match(/\b([1-8])\b/);
-    const yearNum = yearMatch ? parseInt(yearMatch[1], 10) : parseInt(cleanData.schoolYear, 10);
+    const yearNumbers = cleanData.schoolYear.match(/\d+/g);
+    const yearNum = yearNumbers && yearNumbers.length === 1 ? Number(yearNumbers[0]) : NaN;
     if (isNaN(yearNum) || yearNum < 1 || yearNum > 8) {
       setValidationError('School year must be between Year 1 and Year 8.');
       return;
@@ -620,7 +630,8 @@ function Register() {
       { data: cleanData },
       {
         onSuccess: (data: any) => {
-          queryClient.invalidateQueries({ queryKey: getGetCurrentUserQueryKey() });
+          queryClient.clear();
+          queryClient.setQueryData(getGetCurrentUserQueryKey(), data?.user);
           setLocation(data?.user?.role === 'admin' ? '/admin/dashboard' : '/member/dashboard');
         },
       }
@@ -644,8 +655,8 @@ function Register() {
             value={form.email}
             onChange={update('email')}
             placeholder="adam@gmail.com"
-            pattern="^[a-zA-Z0-9._%+-]+@gmail\.com$"
-            title="Please enter a valid Google email address ending in @gmail.com"
+            pattern="[a-zA-Z0-9._+-]+@[gG][mM][aA][iI][lL]\.[cC][oO][mM]"
+            title="Please enter a valid Google email address ending in @gmail.com (e.g. adam@gmail.com)"
             required
             data-testid="input-register-email"
           />
@@ -784,11 +795,11 @@ function ForgotPassword() {
         {stage === 'email' && (
           <>
             <Field
-              label="Email address"
+              label="Account email address"
               type="email"
               value={email}
               onChange={e => setEmail(e.target.value)}
-              placeholder="you@university.edu"
+              placeholder="adam@gmail.com"
               autoComplete="email"
               required
               data-testid="input-recovery-email"
@@ -813,7 +824,7 @@ function ForgotPassword() {
                   <Mail size={18} /> Verification code sent to inbox
                 </div>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  We sent a 6-digit recovery code to your registered account email: <span className="font-semibold text-foreground">{email}</span>. Please check your inbox and spam folder.
+                  If an account is registered for <span className="font-semibold text-foreground">{email}</span>, a 6-digit recovery code has been sent to its inbox. Please check your inbox and spam folder.
                 </p>
               </div>
             ) : (
@@ -822,18 +833,20 @@ function ForgotPassword() {
                   <AlertCircle size={18} /> Outgoing Email Not Connected Yet
                 </div>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  Google/Gmail SMTP is not yet configured in <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-[11px]">.env</code> with an App Password. For testing right now, your code is:
+                  Google/Gmail SMTP is not yet configured in <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-[11px]">.env</code> with an App Password. {devCode ? 'For testing right now, your code is:' : ''}
                 </p>
-                <div className="flex items-center justify-between rounded-lg border border-border bg-card p-2.5">
-                  <span className="font-mono text-xl font-bold tracking-widest text-primary">{devCode}</span>
-                  <button
-                    type="button"
-                    onClick={() => setCode(devCode)}
-                    className="rounded-md bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary hover:bg-primary/20"
-                  >
-                    Auto-fill
-                  </button>
-                </div>
+                {devCode && (
+                  <div className="flex items-center justify-between rounded-lg border border-border bg-card p-2.5">
+                    <span className="font-mono text-xl font-bold tracking-widest text-primary">{devCode}</span>
+                    <button
+                      type="button"
+                      onClick={() => setCode(devCode)}
+                      className="rounded-md bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary hover:bg-primary/20"
+                    >
+                      Auto-fill
+                    </button>
+                  </div>
+                )}
               </div>
             )}
             <Field
@@ -1274,6 +1287,7 @@ function AccountSecuritySection({ user }: { user?: User }) {
 function ProfileModal({ user, open, onOpenChange }: { user?: User; open: boolean; onOpenChange: (open: boolean) => void }) {
   const [, setLocation] = useLocation();
   const logout = useLogout();
+  const qc = useQueryClient();
   const [tab, setTab] = useState<'profile' | 'security'>('profile');
 
   return (
@@ -1351,7 +1365,13 @@ function ProfileModal({ user, open, onOpenChange }: { user?: User; open: boolean
             type="button"
             onClick={() => {
               onOpenChange(false);
-              logout.mutate(undefined, { onSuccess: () => setLocation('/login') });
+              logout.mutate(undefined, {
+                onSuccess: () => {
+                  qc.clear();
+                  qc.setQueryData(getGetCurrentUserQueryKey(), null);
+                  setLocation('/login');
+                },
+              });
             }}
             className="inline-flex items-center gap-1.5 text-xs font-bold text-destructive hover:underline py-2 px-3 rounded-lg hover:bg-destructive/10 transition"
           >
@@ -1439,6 +1459,7 @@ function AuthenticatedLayout({ children, admin = false, preview = false }: { chi
   const current = useGetCurrentUser({ query: { enabled: !preview && (path.startsWith('/member') || path.startsWith('/admin')), queryKey: getGetCurrentUserQueryKey() } });
   const user = preview ? (admin ? previewAdmin : previewMember) : current.data;
   const logout = useLogout();
+  const qc = useQueryClient();
   const [location, setLocation] = useLocation();
   const links = getNavLinks(admin, preview);
 
@@ -1501,7 +1522,15 @@ function AuthenticatedLayout({ children, admin = false, preview = false }: { chi
             {!preview && (
               <button
                 type="button"
-                onClick={() => logout.mutate(undefined, { onSuccess: () => setLocation('/login') })}
+                onClick={() =>
+                  logout.mutate(undefined, {
+                    onSuccess: () => {
+                      qc.clear();
+                      qc.setQueryData(getGetCurrentUserQueryKey(), null);
+                      setLocation('/login');
+                    },
+                  })
+                }
                 title="Sign out"
                 data-testid="button-sign-out"
                 className="text-muted-foreground hover:text-foreground p-2 rounded-lg transition hover:bg-secondary touch-target"
