@@ -490,14 +490,19 @@ function AuthShell({ children, eyebrow, title, detail }: { children: ReactNode; 
   );
 }
 
-function GoogleAuthButton() {
+function GoogleAuthButton({ prefillEmail }: { prefillEmail?: string }) {
   const [, setLocation] = useLocation();
+  const [showInput, setShowInput] = useState(false);
+  const [googleEmail, setGoogleEmail] = useState(prefillEmail || '');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleGoogleClick = async () => {
-    const email = window.prompt('Enter your Google Account email address (e.g. yourname@gmail.com):');
-    if (!email || !email.includes('@')) return;
+  const submitGoogleAuth = async (targetEmail: string) => {
+    const clean = targetEmail.trim().toLowerCase();
+    if (!clean || !clean.includes('@')) {
+      setError('Please enter a valid Google email address.');
+      return;
+    }
 
     setLoading(true);
     setError('');
@@ -505,15 +510,23 @@ function GoogleAuthButton() {
       const res = await fetch('/api/auth/google', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.trim().toLowerCase() }),
+        body: JSON.stringify({ email: clean }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to sign in with Google.');
+      if (!res.ok) throw new Error(data.error || 'Failed to authenticate with Google.');
       setLocation(data.user.role === 'admin' ? '/admin/dashboard' : '/member/dashboard');
     } catch (err: any) {
-      setError(err.message || 'Failed to sign in with Google.');
+      setError(err.message || 'Failed to authenticate with Google.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleButtonClick = () => {
+    if (prefillEmail && prefillEmail.includes('@')) {
+      submitGoogleAuth(prefillEmail);
+    } else {
+      setShowInput(prev => !prev);
     }
   };
 
@@ -521,9 +534,9 @@ function GoogleAuthButton() {
     <div className="space-y-2">
       <button
         type="button"
-        onClick={handleGoogleClick}
+        onClick={handleButtonClick}
         disabled={loading}
-        className="w-full h-11 flex items-center justify-center gap-2.5 rounded-xl border border-border bg-card hover:bg-secondary/70 transition font-medium text-xs sm:text-sm text-foreground shadow-xs touch-target cursor-pointer"
+        className="w-full h-11 flex items-center justify-center gap-2.5 rounded-xl border border-border bg-card hover:bg-secondary/70 active:scale-[0.99] transition font-medium text-xs sm:text-sm text-foreground shadow-xs touch-target cursor-pointer"
         data-testid="button-google-auth"
       >
         <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
@@ -534,8 +547,35 @@ function GoogleAuthButton() {
         </svg>
         {loading ? 'Connecting Google Account…' : 'Continue with Google'}
       </button>
+
+      {showInput && (
+        <div className="rounded-xl border border-primary/30 bg-secondary/40 p-3 space-y-2 animate-in fade-in duration-200">
+          <label className="text-xs font-semibold text-muted-foreground block">
+            Enter your Google email address:
+          </label>
+          <div className="flex gap-2">
+            <input
+              type="email"
+              value={googleEmail}
+              onChange={e => setGoogleEmail(e.target.value)}
+              placeholder="e.g. samakms77@gmail.com"
+              className="flex-1 rounded-lg border border-border bg-background px-3 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+              autoFocus
+            />
+            <button
+              type="button"
+              onClick={() => submitGoogleAuth(googleEmail)}
+              disabled={loading || !googleEmail.includes('@')}
+              className="rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground hover:opacity-90 disabled:opacity-50"
+            >
+              Sign in
+            </button>
+          </div>
+        </div>
+      )}
+
       {error && (
-        <div className="rounded-lg bg-destructive/10 p-2 text-xs text-destructive text-center">
+        <div className="rounded-lg bg-destructive/10 p-2.5 text-xs text-destructive text-center">
           {error}
         </div>
       )}
@@ -617,8 +657,11 @@ function Register() {
   const [form, setForm] = useState({ name: '', email: '', password: '', phone: '', department: '', schoolYear: '' });
   const update = (key: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) => setForm(current => ({ ...current, [key]: e.target.value }));
 
+  const [validationError, setValidationError] = useState('');
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setValidationError('');
     const cleanData = {
       name: form.name.trim(),
       email: form.email.trim().toLowerCase(),
@@ -627,6 +670,17 @@ function Register() {
       department: form.department.trim(),
       schoolYear: form.schoolYear.trim(),
     };
+
+    if (!/^\d{10}$/.test(cleanData.phone)) {
+      setValidationError('Phone number must be exactly 10 digits (e.g. 0987654321).');
+      return;
+    }
+
+    if (cleanData.department.length > 30) {
+      setValidationError('Department must be at most 30 characters.');
+      return;
+    }
+
     register.mutate(
       { data: cleanData },
       {
@@ -638,7 +692,7 @@ function Register() {
     );
   };
 
-  const regErrorMsg = (register.error as any)?.response?.data?.error || (register.error as any)?.message || "We couldn't create that account. Check your details and try again.";
+  const regErrorMsg = validationError || (register.error as any)?.response?.data?.error || (register.error as any)?.message || "We couldn't create that account. Check your details and try again.";
 
   return (
     <AuthShell eyebrow="Join the fellowship" title="Create your member account." detail="A few details, then a whole collection of places to begin.">
@@ -648,12 +702,41 @@ function Register() {
           <Field label="Email address" name="email" type="email" autoComplete="email" autoCapitalize="none" spellCheck={false} value={form.email} onChange={update('email')} required data-testid="input-register-email" />
         </div>
         <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
-          <Field label="Phone number" name="phone" type="tel" autoComplete="tel" inputMode="tel" value={form.phone} onChange={update('phone')} required data-testid="input-register-phone" />
+          <Field
+            label="Phone number (10 digits)"
+            name="phone"
+            type="tel"
+            autoComplete="tel"
+            inputMode="numeric"
+            pattern="[0-9]{10}"
+            maxLength={10}
+            value={form.phone}
+            onChange={e => {
+              const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+              setForm(current => ({ ...current, phone: val }));
+            }}
+            placeholder="0987654321"
+            required
+            data-testid="input-register-phone"
+          />
           <Field label="School year" name="schoolYear" autoComplete="off" value={form.schoolYear} onChange={update('schoolYear')} placeholder="e.g. 3rd year" required data-testid="input-register-year" />
         </div>
-        <Field label="Department" name="department" autoComplete="organization-title" value={form.department} onChange={update('department')} required data-testid="input-register-department" />
+        <Field
+          label="Department (max 30 characters)"
+          name="department"
+          autoComplete="organization-title"
+          maxLength={30}
+          value={form.department}
+          onChange={e => {
+            const val = e.target.value.slice(0, 30);
+            setForm(current => ({ ...current, department: val }));
+          }}
+          placeholder="e.g. Computer Science"
+          required
+          data-testid="input-register-department"
+        />
         <PasswordField label="Password" name="password" autoComplete="new-password" value={form.password} onChange={update('password')} minLength={8} required data-testid="input-register-password" />
-        {register.isError && (
+        {(register.isError || validationError) && (
           <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive flex items-center gap-2">
             <AlertCircle size={16} className="shrink-0" />
             <span>{regErrorMsg}</span>
@@ -667,7 +750,7 @@ function Register() {
           <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border" /></div>
           <div className="relative flex justify-center text-xs uppercase"><span className="bg-card px-2 text-muted-foreground font-semibold">Or</span></div>
         </div>
-        <GoogleAuthButton />
+        <GoogleAuthButton prefillEmail={form.email} />
         <p className="pt-2 text-center text-sm text-muted-foreground">Already a member? <Link href="/login" data-testid="link-existing-login" className="font-bold text-primary hover:underline">Sign in</Link></p>
       </form>
     </AuthShell>
@@ -678,6 +761,8 @@ function ForgotPassword() {
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
   const [password, setPassword] = useState('');
+  const [devCode, setDevCode] = useState('');
+  const [emailDelivered, setEmailDelivered] = useState(true);
   const [stage, setStage] = useState<'email' | 'code' | 'done'>('email');
   const requestReset = useRequestPasswordReset();
   const resetPassword = useResetPassword();
@@ -688,7 +773,13 @@ function ForgotPassword() {
     requestReset.mutate(
       { data: { email: cleanEmail } },
       {
-        onSuccess: () => {
+        onSuccess: (res: any) => {
+          if (res?.devCode) {
+            setDevCode(res.devCode);
+          }
+          if (res?.emailDelivered !== undefined) {
+            setEmailDelivered(res.emailDelivered);
+          }
           setStage('code');
         },
       }
@@ -750,19 +841,40 @@ function ForgotPassword() {
               <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border" /></div>
               <div className="relative flex justify-center text-xs uppercase"><span className="bg-card px-2 text-muted-foreground font-semibold">Or sign in directly</span></div>
             </div>
-            <GoogleAuthButton />
+            <GoogleAuthButton prefillEmail={email} />
           </>
         )}
         {stage === 'code' && (
           <>
-            <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 text-sm leading-6 text-foreground space-y-1.5" data-testid="status-recovery-sent">
-              <div className="flex items-center gap-2 font-bold text-primary">
-                <Mail size={18} /> Verification code sent
+            {emailDelivered ? (
+              <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 text-sm leading-6 text-foreground space-y-1.5" data-testid="status-recovery-sent">
+                <div className="flex items-center gap-2 font-bold text-primary">
+                  <Mail size={18} /> Verification code sent to inbox
+                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  We sent a 6-digit recovery code to your registered account email: <span className="font-semibold text-foreground">{email}</span>. Please check your inbox and spam folder.
+                </p>
               </div>
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                We sent a 6-digit recovery code to your registered account email: <span className="font-semibold text-foreground">{email}</span>. Please check your inbox and enter the code below.
-              </p>
-            </div>
+            ) : (
+              <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm leading-6 text-foreground space-y-2">
+                <div className="flex items-center gap-2 font-bold text-amber-600 dark:text-amber-400">
+                  <AlertCircle size={18} /> Outgoing Email Not Connected Yet
+                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Google/Gmail SMTP is not yet configured in <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-[11px]">.env</code> with an App Password. For testing right now, your code is:
+                </p>
+                <div className="flex items-center justify-between rounded-lg border border-border bg-card p-2.5">
+                  <span className="font-mono text-xl font-bold tracking-widest text-primary">{devCode}</span>
+                  <button
+                    type="button"
+                    onClick={() => setCode(devCode)}
+                    className="rounded-md bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary hover:bg-primary/20"
+                  >
+                    Auto-fill
+                  </button>
+                </div>
+              </div>
+            )}
             <Field
               label="6-Digit Verification Code"
               inputMode="numeric"
@@ -1624,6 +1736,11 @@ function MemberBooks() {
     },
     {
       query: {
+        queryKey: getListBooksQueryKey({
+          search: debouncedSearch.trim() || undefined,
+          category: category || undefined,
+          type: (type || undefined) as any,
+        }),
         placeholderData: (prev: any) => prev,
       },
     }
@@ -2141,7 +2258,7 @@ function MemberBorrowings() {
     : [];
 
   const allBorrowings = Array.isArray(borrowings.data) ? borrowings.data : [];
-  const activeBorrowings = allBorrowings.filter((b) => b.status === 'borrowed' || b.status === 'return_pending');
+  const activeBorrowings = allBorrowings.filter((b) => b.status === 'borrowed' || (b.status as string) === 'return_pending');
   const returnedBorrowings = allBorrowings.filter((b) => b.status === 'returned');
 
   const handleCancelRequest = async (requestId: number) => {
@@ -2260,7 +2377,7 @@ function MemberBorrowings() {
                       <Calendar size={13} className="text-primary" /> Due {item.dueDate}
                     </div>
                     <div className="mt-2 flex flex-wrap items-center gap-2">
-                      {item.status === 'return_pending' ? (
+                      {(item.status as string) === 'return_pending' ? (
                         <Status tone="warn">Return Pending Steward Confirmation</Status>
                       ) : (
                         <Button
@@ -2601,7 +2718,7 @@ function AdminRequests() {
   const [confirmingId, setConfirmingId] = useState<number | null>(null);
 
   const activeLoans = Array.isArray(borrowingsQuery.data)
-    ? borrowingsQuery.data.filter((b) => b.status === 'borrowed' || b.status === 'return_pending')
+    ? borrowingsQuery.data.filter((b) => b.status === 'borrowed' || (b.status as string) === 'return_pending')
     : [];
 
   const refresh = () => {
@@ -2853,13 +2970,13 @@ function AdminRequests() {
                 <div className="min-w-0 flex-1">
                   <h3 className="truncate font-serif font-bold text-base">{item.book.title}</h3>
                   <div className="text-xs text-muted-foreground mt-0.5">
-                    Borrower: <span className="font-medium text-foreground">{item.member.name}</span> ({item.member.email})
+                    Borrower: <span className="font-medium text-foreground">{(item as any).member?.name}</span> ({(item as any).member?.email})
                   </div>
                   <div className="text-xs font-mono text-muted-foreground mt-1 flex items-center gap-1.5">
                     <Clock3 size={13} className="text-primary" /> Due {item.dueDate}
                   </div>
                   <div className="mt-2.5 flex flex-wrap items-center gap-2">
-                    {item.status === 'return_pending' && (
+                    {(item.status as string) === 'return_pending' && (
                       <Status tone="warn">Member Reported Returned</Status>
                     )}
                     <Button
@@ -3472,8 +3589,8 @@ function AdminQuestions() {
                     {q.status === 'answered' ? 'Answered' : 'Needs Reply'}
                   </Status>
                   <Button
-                    size="sm"
                     variant={q.status === 'answered' ? 'outline' : 'primary'}
+                    className="text-xs py-1.5 px-3"
                     onClick={() => openReply(q)}
                     data-testid={`button-reply-question-${q.id}`}
                   >

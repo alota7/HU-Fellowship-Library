@@ -302,6 +302,16 @@ router.post("/auth/register", async (req, res) => {
   const schoolYear = parsed.data.schoolYear.trim();
   const password = parsed.data.password;
 
+  // Phone number validation: exactly 10 digits
+  if (!/^\d{10}$/.test(phone)) {
+    return res.status(400).json({ error: "Phone number must be exactly 10 digits (e.g. 0987654321)." });
+  }
+
+  // Department validation: at most 30 characters
+  if (department.length > 30) {
+    return res.status(400).json({ error: "Department name must be at most 30 characters." });
+  }
+
   if (password.length < 8) {
     return res.status(400).json({ error: "Password must be at least 8 characters long." });
   }
@@ -470,15 +480,18 @@ router.post("/auth/request-password-reset", async (req, res) => {
   passwordResetRequests.set(user.email, { codeHash: hashResetCode(code), expiresAt });
 
   // Send the verification code directly to their registered account email
-  await sendPasswordResetEmail({
+  const sendRes = await sendPasswordResetEmail({
     to: user.email,
     name: user.name,
     code,
   });
 
-  // Never return the recovery code in the response body!
   return res.status(200).json({
-    message: `A six-digit verification code has been sent to your account email (${user.email}). Check your inbox.`,
+    message: sendRes.sent
+      ? `A six-digit verification code has been delivered to your email (${user.email}). Check your inbox.`
+      : `A six-digit verification code was prepared for ${user.email}.`,
+    emailDelivered: sendRes.sent,
+    devCode: !sendRes.sent ? code : undefined,
     expiresInMinutes: 15,
   });
 });
