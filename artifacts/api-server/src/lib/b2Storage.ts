@@ -149,7 +149,7 @@ export function buildB2ObjectKey(purpose: StoragePurpose, fileId: string, filena
 /**
  * Checks whether a stored PostgreSQL reference is a Backblaze B2 object key.
  */
-export function isB2ObjectKey(value?: string | null): value is string {
+export function isB2ObjectKey(value?: string | null): boolean {
   if (!value || typeof value !== "string") return false;
   if (value.startsWith("/") || /^https?:\/\//i.test(value) || value.includes("..")) {
     return false;

@@ -257,6 +257,35 @@ router.get("/auth/me", (req, res) => {
   return res.json(publicUser(user));
 });
 
+function isHttpsRequest(req: Request): boolean {
+  if (req.secure) return true;
+  const forwarded = req.get("x-forwarded-proto");
+  return Boolean(forwarded && forwarded.split(",")[0]?.trim().toLowerCase() === "https");
+}
+
+async function createAndAttachSession(req: Request, res: Response, user: User): Promise<void> {
+  const token = crypto.randomUUID();
+  const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 14); // 14 days
+  sessions.set(token, user);
+
+  try {
+    await db.insert(librarySessions).values({
+      token,
+      userId: user.id,
+      expiresAt,
+    });
+  } catch (err) {
+    console.error("Failed saving session to db:", err);
+  }
+
+  res.cookie("hu_session", token, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: isHttpsRequest(req),
+    maxAge: 1000 * 60 * 60 * 24 * 14,
+  });
+}
+
 router.post("/auth/login", async (req, res) => {
   const parsed = LoginBody.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "Enter a valid email and password." });
@@ -273,26 +302,7 @@ router.post("/auth/login", async (req, res) => {
     return res.status(401).json({ error: "Invalid email or password." });
   }
 
-  const token = crypto.randomUUID();
-  const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 14); // 14 days
-  sessions.set(token, existing);
-
-  try {
-    await db.insert(librarySessions).values({
-      token,
-      userId: existing.id,
-      expiresAt,
-    });
-  } catch (err) {
-    console.error("Failed saving session to db:", err);
-  }
-
-  res.cookie("hu_session", token, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production" || req.headers["x-forwarded-proto"] === "https",
-    maxAge: 1000 * 60 * 60 * 24 * 14,
-  });
+  await createAndAttachSession(req, res, existing);
   return res.json({ user: publicUser(existing) });
 });
 
@@ -360,26 +370,7 @@ router.post("/auth/register", async (req, res) => {
     return res.status(409).json({ error: "This email is already registered. Please sign in or use forgot password." });
   }
 
-  const token = crypto.randomUUID();
-  const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 14); // 14 days
-  sessions.set(token, member);
-
-  try {
-    await db.insert(librarySessions).values({
-      token,
-      userId: member.id,
-      expiresAt,
-    });
-  } catch (err) {
-    console.error("Failed saving session to db:", err);
-  }
-
-  res.cookie("hu_session", token, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production" || req.headers["x-forwarded-proto"] === "https",
-    maxAge: 1000 * 60 * 60 * 24 * 14,
-  });
+  await createAndAttachSession(req, res, member);
   return res.status(201).json({ user: publicUser(member) });
 });
 
@@ -458,26 +449,7 @@ router.post("/auth/google", async (req, res) => {
     user.emailVerified = true;
   }
 
-  const token = crypto.randomUUID();
-  const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 14);
-  sessions.set(token, user);
-
-  try {
-    await db.insert(librarySessions).values({
-      token,
-      userId: user.id,
-      expiresAt,
-    });
-  } catch (err) {
-    console.error("Failed saving session to db:", err);
-  }
-
-  res.cookie("hu_session", token, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production" || req.headers["x-forwarded-proto"] === "https",
-    maxAge: 1000 * 60 * 60 * 24 * 14,
-  });
+  await createAndAttachSession(req, res, user);
 
   return res.json({ user: publicUser(user), message: `Successfully authenticated with Google as ${email}` });
 });
