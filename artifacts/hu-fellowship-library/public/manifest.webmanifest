@@ -1,8 +1,8 @@
 {
   "id": "./",
-  "name": "LOGOS Library — HU Fellowship",
-  "short_name": "LOGOS Library",
-  "description": "HU Fellowship Library — browse books, study notes, borrow hardcopies, and share resources.",
+  "name": "LOGOS Library",
+  "short_name": "LOGOS",
+  "description": "LOGOS Library — browse books, theological classics, and study notes, borrow hardcopies, and explore Bible Q&A.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
@@ -44,7 +44,7 @@
     },
     {
       "name": "My Loans",
-      "short_name": "My Loans",
+      "short_name": "Loans",
       "url": "./member/borrowings",
       "icons": [{ "src": "./pwa-192x192.png", "sizes": "192x192", "type": "image/png" }]
     }
