@@ -1468,41 +1468,41 @@ function AuthenticatedLayout({ children, admin = false, preview = false }: { chi
       <ProfileModal user={user} open={profileOpen} onOpenChange={setProfileOpen} />
 
       <div className="flex min-h-[100dvh] flex-col">
-        <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-background/90 px-4 sm:px-6 lg:px-9 backdrop-blur">
-          <div className="flex items-center gap-3">
+        <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-2 border-b border-border bg-background/90 px-4 sm:px-6 lg:px-9 backdrop-blur">
+          <div className="flex items-center gap-3 md:flex-1 md:basis-0 shrink-0">
             <Logo href={admin ? (preview ? '/__preview/admin' : '/admin/dashboard') : (preview ? '/__preview/member' : '/member/dashboard')} />
-            <div className="hidden lg:flex items-center gap-2 pl-3 border-l border-border/60">
+            <div className="hidden xl:flex items-center gap-2 pl-3 border-l border-border/60 shrink-0">
               <span className="font-mono text-[10px] uppercase tracking-[.18em] text-accent">
                 {admin ? 'Steward desk' : 'Library'}
               </span>
             </div>
-
-            {/* Desktop Navigation Bar (Only on md: and above) */}
-            <nav className="hidden md:flex items-center gap-1 lg:gap-1.5 ml-2 lg:ml-5">
-              {links.map(({ href, key, icon: Icon, label }) => {
-                const isActive = location === href || (href !== '/member/dashboard' && href !== '/admin/dashboard' && location.startsWith(href));
-                return (
-                  <Link
-                    key={href}
-                    href={href}
-                    data-testid={`desktop-nav-${key}`}
-                    className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs lg:text-sm font-semibold transition ${
-                      isActive
-                        ? 'bg-primary text-primary-foreground shadow-xs'
-                        : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
-                    }`}
-                  >
-                    <Icon size={15} className="shrink-0" />
-                    <span>{label}</span>
-                  </Link>
-                );
-              })}
-            </nav>
           </div>
 
-          <div className="ml-auto flex items-center gap-2 sm:gap-3">
+          {/* Centered Desktop Navigation Bar (Only on md: and above) */}
+          <nav className="hidden md:flex items-center justify-center gap-1 lg:gap-1.5 shrink-0" data-testid="desktop-nav">
+            {links.map(({ href, key, icon: Icon, label }) => {
+              const isActive = location === href || (href !== '/member/dashboard' && href !== '/admin/dashboard' && location.startsWith(href));
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  data-testid={`desktop-nav-${key}`}
+                  className={`inline-flex items-center gap-1.5 rounded-lg px-2 lg:px-2.5 py-1.5 text-xs lg:text-sm font-semibold whitespace-nowrap transition ${
+                    isActive
+                      ? 'bg-primary text-primary-foreground shadow-xs'
+                      : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+                  }`}
+                >
+                  <Icon size={15} className="shrink-0" />
+                  <span>{label}</span>
+                </Link>
+              );
+            })}
+          </nav>
+
+          <div className="ml-auto md:ml-0 flex items-center justify-end gap-2 sm:gap-3 md:flex-1 md:basis-0">
             {preview && (
-              <span data-testid="badge-sample-preview" className="rounded-full border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-800">
+              <span data-testid="badge-sample-preview" className="hidden lg:inline-flex rounded-full border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-800 whitespace-nowrap">
                 Sample preview
               </span>
             )}
@@ -1510,14 +1510,14 @@ function AuthenticatedLayout({ children, admin = false, preview = false }: { chi
             <button
               type="button"
               onClick={() => setProfileOpen(true)}
-              className="flex items-center gap-2 rounded-full bg-secondary hover:bg-secondary/80 px-2.5 sm:px-3 py-1.5 text-xs font-semibold text-secondary-foreground transition cursor-pointer shadow-xs border border-border/40 touch-target"
+              className="flex items-center gap-2 rounded-full bg-secondary hover:bg-secondary/80 px-2.5 sm:px-3 py-1.5 text-xs font-semibold text-secondary-foreground transition cursor-pointer shadow-xs border border-border/40 touch-target min-w-0"
               title="Click to view about my profile"
               data-testid="button-header-profile"
             >
-              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary font-bold text-primary-foreground text-[10px]">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary font-bold text-primary-foreground text-[10px]">
                 {user?.name?.slice(0, 1) ?? 'H'}
               </span>
-              <span className="hidden sm:inline font-medium">{user?.name ?? 'Fellowship member'}</span>
+              <span className="hidden sm:inline md:hidden lg:inline font-medium truncate max-w-[110px] xl:max-w-[160px]">{user?.name ?? 'Fellowship member'}</span>
             </button>
             {!preview && (
               <button
@@ -1533,12 +1533,12 @@ function AuthenticatedLayout({ children, admin = false, preview = false }: { chi
                 }
                 title="Sign out"
                 data-testid="button-sign-out"
-                className="text-muted-foreground hover:text-foreground p-2 rounded-lg transition hover:bg-secondary touch-target"
+                className="text-muted-foreground hover:text-foreground p-2 rounded-lg transition hover:bg-secondary touch-target shrink-0"
               >
                 <LogOut size={16} />
               </button>
             )}
-            {!preview && <span className="h-2 w-2 rounded-full bg-emerald-500" title="Connected" />}
+            {!preview && <span className="h-2 w-2 rounded-full bg-emerald-500 shrink-0" title="Connected" />}
           </div>
         </header>
 
