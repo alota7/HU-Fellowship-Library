@@ -34,6 +34,50 @@ const ThemeContext = createContext<{ theme: Theme; toggleTheme: () => void; setT
 });
 const useTheme = () => useContext(ThemeContext);
 
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
+}
+
+let deferredInstallPrompt: BeforeInstallPromptEvent | null = null;
+const installListeners = new Set<() => void>();
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredInstallPrompt = e as BeforeInstallPromptEvent;
+    installListeners.forEach((cb) => cb());
+  });
+  window.addEventListener('appinstalled', () => {
+    deferredInstallPrompt = null;
+    installListeners.forEach((cb) => cb());
+  });
+}
+
+function usePwaInstall() {
+  const [canInstall, setCanInstall] = useState(Boolean(deferredInstallPrompt));
+
+  useEffect(() => {
+    const sync = () => setCanInstall(Boolean(deferredInstallPrompt));
+    installListeners.add(sync);
+    return () => {
+      installListeners.delete(sync);
+    };
+  }, []);
+
+  const installApp = async () => {
+    if (!deferredInstallPrompt) return;
+    await deferredInstallPrompt.prompt();
+    const choice = await deferredInstallPrompt.userChoice;
+    if (choice.outcome === 'accepted') {
+      deferredInstallPrompt = null;
+      installListeners.forEach((cb) => cb());
+    }
+  };
+
+  return { canInstall, installApp };
+}
+
 function ThemeToggle({ className = '' }: { className?: string }) {
   const { theme, toggleTheme } = useTheme();
   return (
@@ -206,6 +250,7 @@ const ErrorState = ({ retry }: { retry?: () => void }) => <div className="rounde
 
 function PublicNav() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { canInstall, installApp } = usePwaInstall();
   return (
     <header className="relative mx-auto flex w-full max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-10">
       <Logo />
@@ -220,6 +265,16 @@ function PublicNav() {
             <Link href="/__preview/admin" data-testid="link-admin-preview" className="hover:text-foreground transition">Admin preview</Link>
           </>
         )}
+        {canInstall && (
+          <button
+            type="button"
+            onClick={installApp}
+            data-testid="button-install-pwa"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-xs font-bold text-foreground hover:bg-secondary transition touch-target"
+          >
+            <Download size={14} /> Install app
+          </button>
+        )}
         <ThemeToggle />
         <Link href="/login" data-testid="link-sign-in" className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground shadow hover:opacity-95 transition touch-target">
           Sign in <ArrowUpRight size={14} />
@@ -228,6 +283,16 @@ function PublicNav() {
 
       {/* Mobile Controls */}
       <div className="flex items-center gap-2 md:hidden">
+        {canInstall && (
+          <button
+            type="button"
+            onClick={installApp}
+            data-testid="button-install-pwa-mobile-top"
+            className="inline-flex items-center gap-1 rounded-xl border border-border/80 bg-card px-2.5 py-2 text-xs font-bold text-foreground hover:bg-secondary transition touch-target"
+          >
+            <Download size={14} /> Install
+          </button>
+        )}
         <ThemeToggle />
         <button
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -250,6 +315,19 @@ function PublicNav() {
                 <Link href="/__preview/member" onClick={() => setMobileMenuOpen(false)} className="rounded-xl px-3 py-2.5 hover:bg-secondary">Member preview</Link>
                 <Link href="/__preview/admin" onClick={() => setMobileMenuOpen(false)} className="rounded-xl px-3 py-2.5 hover:bg-secondary">Admin preview</Link>
               </>
+            )}
+            {canInstall && (
+              <button
+                type="button"
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  void installApp();
+                }}
+                data-testid="button-install-pwa-mobile"
+                className="flex items-center gap-2 rounded-xl border border-border bg-secondary/50 px-3 py-2.5 text-left font-bold text-foreground hover:bg-secondary touch-target"
+              >
+                <Download size={15} /> Install LOGOS Library app
+              </button>
             )}
             <Link href="/login" onClick={() => setMobileMenuOpen(false)} className="mt-2 flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-center font-bold text-primary-foreground touch-target">
               Sign in <ArrowUpRight size={15} />
@@ -1289,6 +1367,7 @@ function ProfileModal({ user, open, onOpenChange }: { user?: User; open: boolean
   const logout = useLogout();
   const qc = useQueryClient();
   const [tab, setTab] = useState<'profile' | 'security'>('profile');
+  const { canInstall, installApp } = usePwaInstall();
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -1361,22 +1440,34 @@ function ProfileModal({ user, open, onOpenChange }: { user?: User; open: boolean
         )}
 
         <div className="mt-6 flex items-center justify-between gap-3 pt-2 border-t border-border/50">
-          <button
-            type="button"
-            onClick={() => {
-              onOpenChange(false);
-              logout.mutate(undefined, {
-                onSuccess: () => {
-                  qc.clear();
-                  qc.setQueryData(getGetCurrentUserQueryKey(), null);
-                  setLocation('/login');
-                },
-              });
-            }}
-            className="inline-flex items-center gap-1.5 text-xs font-bold text-destructive hover:underline py-2 px-3 rounded-lg hover:bg-destructive/10 transition"
-          >
-            <LogOut size={14} /> Sign out
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                onOpenChange(false);
+                logout.mutate(undefined, {
+                  onSuccess: () => {
+                    qc.clear();
+                    qc.setQueryData(getGetCurrentUserQueryKey(), null);
+                    setLocation('/login');
+                  },
+                });
+              }}
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-destructive hover:underline py-2 px-3 rounded-lg hover:bg-destructive/10 transition"
+            >
+              <LogOut size={14} /> Sign out
+            </button>
+            {canInstall && (
+              <button
+                type="button"
+                onClick={installApp}
+                data-testid="button-install-pwa-profile"
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-foreground bg-secondary hover:bg-secondary/80 py-2 px-3 rounded-lg border border-border transition"
+              >
+                <Download size={14} /> Install App
+              </button>
+            )}
+          </div>
           <Button variant="primary" onClick={() => onOpenChange(false)}>
             Close
           </Button>
@@ -3722,6 +3813,10 @@ function App() {
       root.classList.add('dark');
     } else {
       root.classList.remove('dark');
+    }
+    const themeMeta = document.querySelector('meta[name="theme-color"]');
+    if (themeMeta) {
+      themeMeta.setAttribute('content', theme === 'dark' ? '#000000' : '#ffffff');
     }
     localStorage.setItem('hu_theme', theme);
   }, [theme]);

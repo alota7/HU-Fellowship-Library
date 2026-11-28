@@ -1,0 +1,52 @@
+{
+  "id": "./",
+  "name": "LOGOS Library — HU Fellowship",
+  "short_name": "LOGOS Library",
+  "description": "HU Fellowship Library — browse books, study notes, borrow hardcopies, and share resources.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "categories": ["education", "books"],
+  "icons": [
+    {
+      "src": "./pwa-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./pwa-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./pwa-maskable-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Books Catalog",
+      "short_name": "Books",
+      "url": "./member/books",
+      "icons": [{ "src": "./pwa-192x192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Study Notes",
+      "short_name": "Notes",
+      "url": "./member/notes",
+      "icons": [{ "src": "./pwa-192x192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "My Loans",
+      "short_name": "My Loans",
+      "url": "./member/borrowings",
+      "icons": [{ "src": "./pwa-192x192.png", "sizes": "192x192", "type": "image/png" }]
+    }
+  ]
+}
