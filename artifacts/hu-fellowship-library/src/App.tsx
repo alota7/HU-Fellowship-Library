@@ -195,14 +195,44 @@ async function uploadLibraryFile(file: File, purpose: UploadPurpose) {
   if (purpose === 'cover' && file.size > maxCoverSize) throw new Error('Cover images must be 50 MB or smaller.');
   const request = await fetch('/api/storage/uploads/request-url', {
     method: 'POST',
+    credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name: file.name, size: file.size, contentType, purpose }),
   });
   if (!request.ok) throw new Error((await request.json().catch(() => ({}))).error ?? 'Could not prepare the file upload.');
   const { uploadURL, objectPath } = await request.json();
-  const uploaded = await fetch(uploadURL, { method: 'PUT', body: file, headers: { 'Content-Type': contentType } });
-  if (!uploaded.ok) throw new Error('The file could not be uploaded. Please try again.');
-  return objectPath.startsWith('/api/storage') ? objectPath : `/api/storage${objectPath.startsWith('/') ? '' : '/'}${objectPath}`;
+  const parsedUploadUrl = new URL(uploadURL, window.location.origin);
+  const uploadTarget = parsedUploadUrl.pathname.startsWith('/api/storage/')
+    ? `${parsedUploadUrl.pathname}${parsedUploadUrl.search}`
+    : uploadURL;
+  const uploaded = await fetch(uploadTarget, {
+    method: 'PUT',
+    credentials: parsedUploadUrl.pathname.startsWith('/api/storage/') ? 'include' : 'omit',
+    body: file,
+    headers: { 'Content-Type': contentType },
+  });
+  if (!uploaded.ok) {
+    const errBody = await uploaded.json().catch(() => ({}));
+    throw new Error(errBody.error || 'The file could not be uploaded. Please try again.');
+  }
+  return objectPath;
+}
+
+function resolveCoverImageUrl(coverUrl?: string | null, bookId?: number): string | null {
+  if (!coverUrl) return null;
+  if (coverUrl.startsWith('http://') || coverUrl.startsWith('https://')) return coverUrl;
+  if (coverUrl.startsWith('/api/storage/')) return coverUrl.replace(/^\/api\/storage\/api\/storage\//, '/api/storage/');
+  if (coverUrl.startsWith('/uploads/')) return `/api/storage${coverUrl}`;
+  if (bookId && bookId > 0) return `/api/books/${bookId}/cover`;
+  return `/api/storage/b2/cover?key=${encodeURIComponent(coverUrl)}`;
+}
+
+function resolveBookFileUrl(bookId: number, download = false): string {
+  return `/api/books/${bookId}/file${download ? '?download=1' : ''}`;
+}
+
+function resolveStudyNoteFileUrl(noteId: number, download = false): string {
+  return `/api/study-notes/${noteId}/file${download ? '?download=1' : ''}`;
 }
 const Logo = ({ dark = false, href }: { dark?: boolean; href?: string }) => {
   const current = useGetCurrentUser({
@@ -1013,9 +1043,7 @@ function ForgotPassword() {
 
 function BookCover({ book, large = false, className = '' }: { book: Book; large?: boolean; className?: string }) {
   const [imgError, setImgError] = useState(false);
-  const normalizedCoverUrl = book.coverUrl
-    ? book.coverUrl.replace(/^\/api\/storage\/api\/storage\//, '/api/storage/')
-    : null;
+  const normalizedCoverUrl = resolveCoverImageUrl(book.coverUrl, book.id);
   const appliedClass = className || (large ? 'h-72 sm:h-96' : 'h-36 sm:h-48');
 
   return (
@@ -1043,9 +1071,7 @@ function BookCover({ book, large = false, className = '' }: { book: Book; large?
 function ModernBookCard({ book, publicCard = false }: { book: Book; publicCard?: boolean }) {
   const detailLink = publicCard ? '/login' : `/member/books/${book.id}`;
   const [imgError, setImgError] = useState(false);
-  const normalizedCoverUrl = book.coverUrl
-    ? book.coverUrl.replace(/^\/api\/storage\/api\/storage\//, '/api/storage/')
-    : null;
+  const normalizedCoverUrl = resolveCoverImageUrl(book.coverUrl, book.id);
 
   return (
     <Link
@@ -1152,7 +1178,6 @@ function StudyNoteStoreCard({
 
 function ShelfBookCard({ book, publicCard = false }: { book: Book; publicCard?: boolean }) {
   const detailLink = publicCard ? '/login' : `/member/books/${book.id}`;
-  const cleanFileUrl = book.fileUrl?.replace(/^\/api\/storage\/api\/storage\//, '/api/storage/');
 
   return (
     <div className="standing-book group flex flex-col justify-end w-44 sm:w-52 shrink-0 select-none pb-1" data-testid={`shelf-book-${book.id}`}>
@@ -2076,7 +2101,7 @@ function BookDetail() {
               item.fileUrl ? (
                 <>
                   <a
-                    href={item.fileUrl.replace(/^\/api\/storage\/api\/storage\//, '/api/storage/')}
+                    href={resolveBookFileUrl(item.id, false)}
                     target="_blank"
                     rel="noreferrer"
                     data-testid="link-read-online-book"
@@ -2085,10 +2110,9 @@ function BookDetail() {
                     <Eye size={17} />{lang === 'am' ? 'በመስመር ላይ ክፈት' : 'Open online'}
                   </a>
                   <a
-                    href={`${item.fileUrl.replace(/^\/api\/storage\/api\/storage\//, '/api/storage/')}?download=1`}
+                    href={resolveBookFileUrl(item.id, true)}
                     target="_blank"
                     rel="noreferrer"
-                    download
                     data-testid="link-download-book"
                     className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-5 py-3 text-sm font-bold text-foreground shadow-sm hover:bg-secondary"
                   >
@@ -2318,7 +2342,7 @@ function MemberNotes() {
               {selectedNote.fileUrl ? (
                 <div className="flex flex-col gap-2.5">
                   <a
-                    href={selectedNote.fileUrl.replace(/^\/api\/storage\/api\/storage\//, '/api/storage/')}
+                    href={resolveStudyNoteFileUrl(selectedNote.id, false)}
                     target="_blank"
                     rel="noreferrer"
                     className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-foreground text-background hover:opacity-90 py-3 text-sm font-bold shadow-md transition"
@@ -2326,10 +2350,9 @@ function MemberNotes() {
                     <Eye size={16} /> Open online (PDF/Doc)
                   </a>
                   <a
-                    href={`${selectedNote.fileUrl.replace(/^\/api\/storage\/api\/storage\//, '/api/storage/')}?download=1`}
+                    href={resolveStudyNoteFileUrl(selectedNote.id, true)}
                     target="_blank"
                     rel="noreferrer"
-                    download
                     className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-border bg-card hover:bg-secondary py-3 text-sm font-bold text-foreground shadow-sm transition"
                   >
                     <Download size={16} /> Download document
@@ -2742,7 +2765,7 @@ function AdminBooks() {
       <label className="grid gap-2 text-sm font-semibold">Cover image
         <input type="file" accept="image/png,image/jpeg,image/webp" onChange={e => setCoverFile(e.target.files?.[0] ?? null)} className="block h-11 rounded-lg border border-input bg-card px-3 py-2 text-sm font-normal" data-testid="input-book-cover-upload" />
         <span className="text-xs font-normal text-muted-foreground">{coverFile?.name ?? (form.coverUrl ? 'Current cover will be kept unless replaced.' : 'PNG, JPG, or WebP · up to 50 MB')}</span>
-        {(coverFile || form.coverUrl) && <div className="mt-1 flex items-center gap-3"><img src={coverFile ? URL.createObjectURL(coverFile) : form.coverUrl.replace(/^\/api\/storage\/api\/storage\//, '/api/storage/')} alt="Cover preview" className="h-16 w-12 rounded object-cover border border-border" /><span className="text-xs text-muted-foreground">Cover preview</span></div>}
+        {(coverFile || form.coverUrl) && <div className="mt-1 flex items-center gap-3"><img src={coverFile ? URL.createObjectURL(coverFile) : (resolveCoverImageUrl(form.coverUrl, editing?.id) || '')} alt="Cover preview" className="h-16 w-12 rounded object-cover border border-border" /><span className="text-xs text-muted-foreground">Cover preview</span></div>}
       </label>
       {form.type === 'softcopy' && <label className="grid gap-2 text-sm font-semibold">Book file
         <input type="file" accept=".pdf,application/pdf,.epub,application/epub+zip,.doc,application/msword,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" required={!form.fileUrl} onChange={e => setBookFile(e.target.files?.[0] ?? null)} className="block h-11 rounded-lg border border-input bg-card px-3 py-2 text-sm font-normal" data-testid="input-book-file-upload" />
@@ -2759,7 +2782,7 @@ function AdminBooks() {
       {query.data.map(book => <div key={book.id} className="grid gap-3 border-b border-border p-4 last:border-0 sm:grid-cols-[1fr_160px_130px_110px_90px] sm:items-center sm:gap-4 sm:px-5">
         <div className="flex items-center gap-3"><div className="h-12 w-9 shrink-0 overflow-hidden rounded"><BookCover book={book} className="h-full w-full" /></div><div className="min-w-0"><div className="truncate font-serif font-bold">{book.title}</div><div className="truncate text-xs text-muted-foreground">{book.author}</div></div></div>
         <span className="text-sm text-muted-foreground">{book.category}</span><span className="text-xs font-mono uppercase">{book.type}</span>{book.type === 'softcopy' ? <span className="text-xs font-mono text-muted-foreground">—</span> : <div className="flex items-center gap-1.5"><button type="button" onClick={() => handleUpdateAvailability(book.id, book.available - 1, book.total)} disabled={book.available <= 0} className="h-6 w-6 rounded border border-border bg-secondary hover:bg-secondary/80 text-xs font-bold disabled:opacity-30 flex items-center justify-center cursor-pointer shadow-xs" title="Decrease available copies (-1)">-</button><Status tone={book.available ? 'good' : 'bad'}>{book.available}/{book.total}</Status><button type="button" onClick={() => handleUpdateAvailability(book.id, book.available + 1, book.total)} disabled={book.available >= book.total} className="h-6 w-6 rounded border border-border bg-secondary hover:bg-secondary/80 text-xs font-bold disabled:opacity-30 flex items-center justify-center cursor-pointer shadow-xs" title="Increase available copies (+1)">+</button></div>}
-        <div className="flex gap-1">{book.type === 'softcopy' && book.fileUrl && <><a href={book.fileUrl.replace(/^\/api\/storage\/api\/storage\//, '/api/storage/')} target="_blank" rel="noreferrer" title="Open online" className="rounded p-2 text-primary hover:bg-primary/10" data-testid={`link-book-open-${book.id}`}><Eye size={16} /></a><a href={`${book.fileUrl.replace(/^\/api\/storage\/api\/storage\//, '/api/storage/')}?download=1`} target="_blank" rel="noreferrer" download title="Download file" className="rounded p-2 text-primary hover:bg-primary/10" data-testid={`link-book-file-${book.id}`}><Download size={16} /></a></>}<button onClick={() => openForm(book)} title="Edit book" data-testid={`button-edit-book-${book.id}`} className="rounded p-2 text-muted-foreground hover:bg-secondary hover:text-primary"><Pencil size={16} /></button><button onClick={() => { if (window.confirm('Remove this book from the collection?')) del.mutate({ id: book.id }, { onSuccess: () => client.invalidateQueries({ queryKey: getListBooksQueryKey() }) }); }} title="Delete book" data-testid={`button-delete-book-${book.id}`} className="rounded p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"><X size={16} /></button></div>
+        <div className="flex gap-1">{book.type === 'softcopy' && book.fileUrl && <><a href={resolveBookFileUrl(book.id, false)} target="_blank" rel="noreferrer" title="Open online" className="rounded p-2 text-primary hover:bg-primary/10" data-testid={`link-book-open-${book.id}`}><Eye size={16} /></a><a href={resolveBookFileUrl(book.id, true)} target="_blank" rel="noreferrer" title="Download file" className="rounded p-2 text-primary hover:bg-primary/10" data-testid={`link-book-file-${book.id}`}><Download size={16} /></a></>}<button onClick={() => openForm(book)} title="Edit book" data-testid={`button-edit-book-${book.id}`} className="rounded p-2 text-muted-foreground hover:bg-secondary hover:text-primary"><Pencil size={16} /></button><button onClick={() => { if (window.confirm('Remove this book from the collection?')) del.mutate({ id: book.id }, { onSuccess: () => client.invalidateQueries({ queryKey: getListBooksQueryKey() }) }); }} title="Delete book" data-testid={`button-delete-book-${book.id}`} className="rounded p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"><X size={16} /></button></div>
       </div>)}
     </div> : <EmptyState icon={BookOpen} title="Your collection is empty" detail="Add the first book to give members somewhere to begin." action={<Button onClick={() => openForm()} data-testid="button-empty-add-book"><Plus size={17} />Add a book</Button>} />}
   </AuthenticatedLayout>;
@@ -3200,7 +3223,7 @@ function AdminNotes() {
         <Button type="button" variant="ghost" onClick={() => setShowForm(false)} data-testid="button-cancel-admin-note">Cancel</Button>
       </div>
     </form>}
-    {query.isLoading ? <div className="grid gap-4 md:grid-cols-2">{[1,2,3,4].map(i => <Skeleton key={i} className="h-40" />)}</div> : query.data?.length ? <div className="grid gap-4 md:grid-cols-2">{query.data.map(note => <div key={note.id} className="rounded-xl border border-border bg-card p-5"><div className="flex items-center justify-between"><Status tone={note.status === 'approved' ? 'good' : note.status === 'pending' ? 'warn' : 'bad'}>{note.status}</Status><span className="text-xs text-muted-foreground">{new Date(note.submittedAt).toLocaleDateString()}</span></div><h3 className="mt-4 font-serif text-xl font-bold">{note.title}</h3><p className="mt-1 text-xs text-muted-foreground">submitted by {note.author} · <span className="uppercase font-mono">{note.type}</span></p><p className="mt-3 line-clamp-2 text-sm leading-6 text-muted-foreground">{note.description}</p>{note.fileUrl && <div className="mt-3"><a href={note.fileUrl.replace(/^\/api\/storage\/api\/storage\//, '/api/storage/')} target="_blank" rel="noreferrer" download className="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:underline" data-testid={`link-admin-note-file-${note.id}`}><FileText size={14} /> Review attached PDF / document <ArrowUpRight size={12} /></a></div>}<div className="mt-5 flex flex-wrap gap-2">{note.status === 'pending' && <><Button variant="soft" disabled={approve.isPending} onClick={() => approve.mutate({ id: note.id }, { onSuccess: refresh })} data-testid={`button-approve-note-${note.id}`}><Check size={15} />Approve</Button><Button variant="danger" disabled={reject.isPending} onClick={() => reject.mutate({ id: note.id, data: { reason: 'Needs another review before sharing.' } }, { onSuccess: refresh })} data-testid={`button-reject-note-${note.id}`}><X size={15} />Reject</Button></>}<Button variant="danger" disabled={deletingId === note.id} onClick={() => handleDeleteNote(note.id)} data-testid={`button-delete-note-${note.id}`}>{deletingId === note.id ? <LoaderCircle size={15} className="animate-spin" /> : <X size={15} />}Delete</Button></div></div>)}</div> : <EmptyState icon={FileText} title="No notes to review" detail="New member submissions and summer study materials will appear here." />}
+    {query.isLoading ? <div className="grid gap-4 md:grid-cols-2">{[1,2,3,4].map(i => <Skeleton key={i} className="h-40" />)}</div> : query.data?.length ? <div className="grid gap-4 md:grid-cols-2">{query.data.map(note => <div key={note.id} className="rounded-xl border border-border bg-card p-5"><div className="flex items-center justify-between"><Status tone={note.status === 'approved' ? 'good' : note.status === 'pending' ? 'warn' : 'bad'}>{note.status}</Status><span className="text-xs text-muted-foreground">{new Date(note.submittedAt).toLocaleDateString()}</span></div><h3 className="mt-4 font-serif text-xl font-bold">{note.title}</h3><p className="mt-1 text-xs text-muted-foreground">submitted by {note.author} · <span className="uppercase font-mono">{note.type}</span></p><p className="mt-3 line-clamp-2 text-sm leading-6 text-muted-foreground">{note.description}</p>{note.fileUrl && <div className="mt-3"><a href={resolveStudyNoteFileUrl(note.id, false)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:underline" data-testid={`link-admin-note-file-${note.id}`}><FileText size={14} /> Review attached PDF / document <ArrowUpRight size={12} /></a></div>}<div className="mt-5 flex flex-wrap gap-2">{note.status === 'pending' && <><Button variant="soft" disabled={approve.isPending} onClick={() => approve.mutate({ id: note.id }, { onSuccess: refresh })} data-testid={`button-approve-note-${note.id}`}><Check size={15} />Approve</Button><Button variant="danger" disabled={reject.isPending} onClick={() => reject.mutate({ id: note.id, data: { reason: 'Needs another review before sharing.' } }, { onSuccess: refresh })} data-testid={`button-reject-note-${note.id}`}><X size={15} />Reject</Button></>}<Button variant="danger" disabled={deletingId === note.id} onClick={() => handleDeleteNote(note.id)} data-testid={`button-delete-note-${note.id}`}>{deletingId === note.id ? <LoaderCircle size={15} className="animate-spin" /> : <X size={15} />}Delete</Button></div></div>)}</div> : <EmptyState icon={FileText} title="No notes to review" detail="New member submissions and summer study materials will appear here." />}
   </AuthenticatedLayout>;
 }
 

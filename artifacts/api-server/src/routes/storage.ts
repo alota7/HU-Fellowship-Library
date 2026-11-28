@@ -1,9 +1,19 @@
-import { Readable } from 'stream';
+import { Readable } from 'node:stream';
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { Router, type IRouter, type Request, type Response } from 'express';
 
+import {
+  buildB2ObjectKey,
+  createPresignedDownloadUrl,
+  getMissingB2EnvVars,
+  inferContentTypeFromKey,
+  isB2Configured,
+  isB2ObjectKey,
+  uploadObjectToB2,
+  type StoragePurpose,
+} from '../lib/b2Storage';
 import {
   ObjectNotFoundError,
   ObjectStorageService,
@@ -15,17 +25,48 @@ const router: IRouter = Router();
 const objectStorageService = new ObjectStorageService();
 
 const LOCAL_UPLOADS_DIR = path.resolve(process.cwd(), 'uploads');
-if (!fs.existsSync(LOCAL_UPLOADS_DIR)) {
-  fs.mkdirSync(LOCAL_UPLOADS_DIR, { recursive: true });
+const MAX_COVER_BYTES = 50 * 1024 * 1024; // 50 MB for cover images
+const MAX_DOCUMENT_BYTES = 2 * 1024 * 1024 * 1024; // 2 GB for books and study notes
+
+const ALLOWED_EXTENSIONS: Record<StoragePurpose, string[]> = {
+  cover: ['png', 'jpg', 'jpeg', 'webp'],
+  book: ['pdf', 'epub', 'doc', 'docx'],
+  'study-note': ['pdf', 'epub', 'doc', 'docx', 'txt'],
+};
+
+const VALID_PURPOSES = new Set<StoragePurpose>(['cover', 'book', 'study-note']);
+
+function validateUploadMetadata(purpose: StoragePurpose, filename: string, size?: number): string | null {
+  const extension = filename.toLowerCase().split('.').pop() ?? '';
+  if (!ALLOWED_EXTENSIONS[purpose].includes(extension)) {
+    return purpose === 'cover'
+      ? 'Cover images must be PNG, JPG, or WebP.'
+      : 'Unsupported file type. Choose a PDF, EPUB, Word document, or text file where allowed.';
+  }
+
+  const maxSize = purpose === 'cover' ? MAX_COVER_BYTES : MAX_DOCUMENT_BYTES;
+  if (typeof size === 'number' && size > maxSize) {
+    return purpose === 'cover'
+      ? 'Cover images must be 50 MB or smaller.'
+      : 'File exceeds maximum supported size (2 GB).';
+  }
+  return null;
+}
+
+function getRequestOrigin(req: Request): string {
+  const forwardedProto = req.get('x-forwarded-proto')?.split(',')[0]?.trim();
+  const forwardedHost = req.get('x-forwarded-host')?.split(',')[0]?.trim();
+  const protocol = forwardedProto || req.protocol || 'http';
+  const host = forwardedHost || req.get('host') || 'localhost:5173';
+  return `${protocol}://${host}`;
 }
 
 /**
  * POST /storage/uploads/request-url
  *
- * Request a presigned URL for file upload.
- * The client sends JSON metadata (name, size, contentType) — NOT the file.
- * Then uploads the file directly to the returned presigned URL.
- * Requires auth middleware so public callers cannot mint write-capable URLs.
+ * Prepares an authenticated upload target backed by private Backblaze B2 storage.
+ * Returns a backend streaming upload URL (avoiding browser-to-B2 CORS issues) and
+ * the clean B2 object key (`books/...`, `covers/...`, or `study-notes/...`) to store in PostgreSQL.
  */
 router.post(
   '/storage/uploads/request-url',
@@ -35,106 +76,167 @@ router.post(
       res.status(401).json({ error: 'Please log in first.' });
       return;
     }
+
     const parsed = RequestUploadUrlBody.safeParse(req.body);
     if (!parsed.success) {
       res.status(400).json({ error: parsed.error.message });
       return;
     }
+
     const { name, size, contentType, purpose } = parsed.data;
     if (purpose !== 'study-note' && user.role !== 'admin') {
       res.status(403).json({ error: 'Administrator access is required.' });
       return;
     }
 
-    const extension = name.toLowerCase().split('.').pop() ?? '';
-    const mimeByExtension: Record<string, string[]> = {
-      png: ['image/png'],
-      jpg: ['image/jpeg'],
-      jpeg: ['image/jpeg'],
-      webp: ['image/webp'],
-      pdf: ['application/pdf'],
-      epub: ['application/epub+zip'],
-      doc: ['application/msword'],
-      docx: ['application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
-      txt: ['text/plain'],
-    };
-    const allowedExtensions = purpose === 'cover'
-      ? ['png', 'jpg', 'jpeg', 'webp']
-      : purpose === 'book'
-        ? ['pdf', 'epub', 'doc', 'docx']
-        : ['pdf', 'epub', 'doc', 'docx', 'txt'];
-    const maxCoverSize = 50 * 1024 * 1024; // 50 MB for cover images
-    const maxBookSize = 2 * 1024 * 1024 * 1024; // 2 GB for book and study note files (no restrictive MB cap)
-    const maxSize = purpose === 'cover' ? maxCoverSize : maxBookSize;
-    if (!allowedExtensions.includes(extension)) {
-      res.status(400).json({ error: purpose === 'cover' ? 'Cover images must be PNG, JPG, or WebP.' : 'Unsupported file type. Choose a PDF, EPUB, Word document, or text file where allowed.' });
+    const validationError = validateUploadMetadata(purpose, name, size);
+    if (validationError) {
+      res.status(validationError.includes('50 MB') || validationError.includes('2 GB') ? 413 : 400).json({
+        error: validationError,
+      });
       return;
     }
-    if (size > maxSize) {
-      res.status(413).json({ error: purpose === 'cover' ? 'Cover images must be 50 MB or smaller.' : 'File exceeds maximum supported size (2 GB).' });
+
+    if (!isB2Configured()) {
+      const missing = getMissingB2EnvVars();
+      res.status(503).json({
+        error: `Backblaze B2 storage is not configured. Missing environment variable(s): ${missing.join(', ')}.`,
+      });
       return;
     }
 
     try {
-      let uploadURL: string;
-      let objectPath: string;
-      try {
-        uploadURL = await objectStorageService.getObjectEntityUploadURL(purpose);
-        objectPath = objectStorageService.normalizeObjectEntityPath(uploadURL);
-      } catch {
-        const fileId = crypto.randomUUID();
-        const safeName = encodeURIComponent(name);
-        const host = req.get('host') || 'localhost:5173';
-        const protocol = req.protocol || 'http';
-        uploadURL = `${protocol}://${host}/api/storage/uploads/file/${fileId}/${safeName}`;
-        objectPath = `/uploads/file/${fileId}/${safeName}`;
-      }
+      const fileId = crypto.randomUUID();
+      const objectKey = buildB2ObjectKey(purpose, fileId, name);
+      const safeFilename = objectKey.split('/').pop() || 'file';
+      const origin = getRequestOrigin(req);
+      const uploadURL = `${origin}/api/storage/uploads/b2/${purpose}/${fileId}/${encodeURIComponent(safeFilename)}`;
 
-      res.json(RequestUploadUrlResponse.parse({
-        uploadURL,
-        objectPath,
-        metadata: { name, size, contentType, purpose },
-      }));
+      res.json(
+        RequestUploadUrlResponse.parse({
+          uploadURL,
+          objectPath: objectKey,
+          metadata: { name, size, contentType, purpose },
+        }),
+      );
     } catch (error) {
-      req.log.error({ err: error }, 'Error generating upload URL');
-      res.status(500).json({ error: 'Failed to generate upload URL' });
+      req.log.error({ err: error }, 'Error preparing Backblaze B2 upload URL');
+      res.status(500).json({ error: 'Failed to prepare Backblaze B2 upload.' });
     }
   },
 );
 
-const handleFileUpload = (req: Request, res: Response): void => {
-  const { fileId, filename } = req.params;
-  const decoded = decodeURIComponent(filename);
-  const targetDir = path.join(LOCAL_UPLOADS_DIR, fileId);
-  fs.mkdirSync(targetDir, { recursive: true });
-  const targetPath = path.join(targetDir, decoded);
+/**
+ * PUT /storage/uploads/b2/:purpose/:fileId/:filename
+ *
+ * Authenticates the caller and streams the uploaded PDF/document/cover
+ * directly to the private Backblaze B2 bucket using AWS S3 SDK.
+ */
+router.put(
+  '/storage/uploads/b2/:purpose/:fileId/:filename',
+  async (req: Request, res: Response): Promise<void> => {
+    const user = getSessionUser(req);
+    if (!user) {
+      res.status(401).json({ error: 'Please log in first.' });
+      return;
+    }
 
-  const writeStream = fs.createWriteStream(targetPath);
-  req.pipe(writeStream);
+    const rawPurpose = String(req.params.purpose || '') as StoragePurpose;
+    if (!VALID_PURPOSES.has(rawPurpose)) {
+      res.status(400).json({ error: 'Invalid upload purpose.' });
+      return;
+    }
+    if (rawPurpose !== 'study-note' && user.role !== 'admin') {
+      res.status(403).json({ error: 'Administrator access is required.' });
+      return;
+    }
 
-  writeStream.on('finish', () => {
-    res.status(200).json({ ok: true });
-  });
+    if (!isB2Configured()) {
+      const missing = getMissingB2EnvVars();
+      res.status(503).json({
+        error: `Backblaze B2 storage is not configured. Missing environment variable(s): ${missing.join(', ')}.`,
+      });
+      return;
+    }
 
-  writeStream.on('error', (err) => {
-    req.log.error({ err }, 'Error writing uploaded file');
-    res.status(500).json({ error: 'Failed to save uploaded file' });
-  });
-};
+    const fileId = String(req.params.fileId || '');
+    const decodedFilename = decodeURIComponent(String(req.params.filename || 'file'));
+    const rawLength = req.headers['content-length'];
+    const contentLength = rawLength ? Number(rawLength) : undefined;
+    const validationError = validateUploadMetadata(rawPurpose, decodedFilename, contentLength);
+    if (validationError) {
+      res.status(validationError.includes('50 MB') || validationError.includes('2 GB') ? 413 : 400).json({
+        error: validationError,
+      });
+      return;
+    }
+
+    try {
+      const objectKey = buildB2ObjectKey(rawPurpose, fileId, decodedFilename);
+      const contentType = req.get('content-type') || inferContentTypeFromKey(objectKey);
+      const result = await uploadObjectToB2({
+        key: objectKey,
+        body: req,
+        contentType,
+        contentLength,
+      });
+
+      res.status(200).json({ ok: true, key: result.key, etag: result.etag });
+    } catch (error) {
+      req.log.error({ err: error }, 'Error uploading file to Backblaze B2');
+      res.status(500).json({ error: 'Failed to upload file to Backblaze B2 storage.' });
+    }
+  },
+);
 
 /**
- * PUT /storage/uploads/file/:fileId/:filename
- * Also handles legacy / duplicate path prefix /storage/api/storage/uploads/file/:fileId/:filename
+ * GET /storage/b2/cover?key=covers/...
+ *
+ * Generates a short-lived presigned B2 URL strictly for cover image previews (`covers/`).
+ * Private books (`books/`) and study notes (`study-notes/`) are never accessible here.
  */
-router.put('/storage/uploads/file/:fileId/:filename', handleFileUpload);
-router.put('/storage/api/storage/uploads/file/:fileId/:filename', handleFileUpload);
+router.get('/storage/b2/cover', async (req: Request, res: Response): Promise<void> => {
+  const key = typeof req.query.key === 'string' ? req.query.key.trim() : '';
+  if (!isB2ObjectKey(key) || !key.startsWith('covers/')) {
+    res.status(400).json({ error: 'Invalid cover image key.' });
+    return;
+  }
 
-const handleFileServing = (req: Request, res: Response): void => {
-  const { fileId, filename } = req.params;
-  const decoded = decodeURIComponent(filename);
+  if (!isB2Configured()) {
+    res.status(503).json({ error: 'Backblaze B2 storage is not configured.' });
+    return;
+  }
+
+  try {
+    const signed = await createPresignedDownloadUrl(key, {
+      expiresInSeconds: 300,
+      download: false,
+    });
+    res.setHeader('Cache-Control', 'private, no-store, max-age=0');
+    res.redirect(302, signed.url);
+  } catch (error) {
+    req.log.error({ err: error }, 'Error signing B2 cover URL');
+    res.status(500).json({ error: 'Failed to generate cover image URL.' });
+  }
+});
+
+/**
+ * Legacy local upload read route (kept only for backward compatibility with pre-B2 files).
+ * Enforces authentication for non-image files (PDF/EPUB/DOC/DOCX/TXT).
+ */
+const handleLegacyFileServing = (req: Request, res: Response): void => {
+  const fileId = String(req.params.fileId || '').replace(/[^a-zA-Z0-9_-]/g, '');
+  const decoded = path.basename(decodeURIComponent(String(req.params.filename || '')));
+  const ext = decoded.toLowerCase().split('.').pop() ?? '';
+  const isImage = ['png', 'jpg', 'jpeg', 'webp'].includes(ext);
+
+  if (!isImage && !getSessionUser(req)) {
+    res.status(401).json({ error: 'Please log in first to access library files.' });
+    return;
+  }
+
   const targetPath = path.join(LOCAL_UPLOADS_DIR, fileId, decoded);
-
-  if (!fs.existsSync(targetPath)) {
+  if (!fileId || !decoded || !fs.existsSync(targetPath)) {
     res.status(404).json({ error: 'File not found' });
     return;
   }
@@ -145,24 +247,15 @@ const handleFileServing = (req: Request, res: Response): void => {
     return;
   }
 
-  // Set Content-Disposition inline with proper filename so PDFs open in browser tab and download cleanly
   res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(decoded)}"`);
   res.sendFile(targetPath);
 };
 
-/**
- * GET /storage/uploads/file/:fileId/:filename
- * Also handles legacy / duplicate path prefix /storage/api/storage/uploads/file/:fileId/:filename
- */
-router.get('/storage/uploads/file/:fileId/:filename', handleFileServing);
-router.get('/storage/api/storage/uploads/file/:fileId/:filename', handleFileServing);
+router.get('/storage/uploads/file/:fileId/:filename', handleLegacyFileServing);
+router.get('/storage/api/storage/uploads/file/:fileId/:filename', handleLegacyFileServing);
 
 /**
  * GET /storage/public-objects/*
- *
- * Serve public assets from PUBLIC_OBJECT_SEARCH_PATHS.
- * These are unconditionally public — no authentication or ACL checks.
- * IMPORTANT: Always provide this endpoint when object storage is set up.
  */
 router.get(
   '/storage/public-objects/*filePath',
@@ -177,14 +270,11 @@ router.get(
       }
 
       const response = await objectStorageService.downloadObject(file);
-
       res.status(response.status);
       response.headers.forEach((value, key) => res.setHeader(key, value));
 
       if (response.body) {
-        const nodeStream = Readable.fromWeb(
-          response.body as ReadableStream<Uint8Array>,
-        );
+        const nodeStream = Readable.fromWeb(response.body as ReadableStream<Uint8Array>);
         nodeStream.pipe(res);
       } else {
         res.end();
@@ -198,43 +288,25 @@ router.get(
 
 /**
  * GET /storage/objects/*
- *
- * Serve object entities from PRIVATE_OBJECT_DIR.
- * These are served from a separate path from /public-objects and can optionally
- * be protected with authentication or ACL checks based on the use case.
  */
 router.get('/storage/objects/*path', async (req: Request, res: Response) => {
+  if (!getSessionUser(req)) {
+    res.status(401).json({ error: 'Please log in first.' });
+    return;
+  }
+
   try {
     const raw = req.params.path;
     const wildcardPath = Array.isArray(raw) ? raw.join('/') : raw;
     const objectPath = `/objects/${wildcardPath}`;
-    const objectFile =
-      await objectStorageService.getObjectEntityFile(objectPath);
-
-    // --- Protected route example (uncomment when using replit-auth) ---
-    // if (!req.isAuthenticated()) {
-    //   res.status(401).json({ error: "Unauthorized" });
-    //   return;
-    // }
-    // const canAccess = await objectStorageService.canAccessObjectEntity({
-    //   userId: req.user.id,
-    //   objectFile,
-    //   requestedPermission: ObjectPermission.READ,
-    // });
-    // if (!canAccess) {
-    //   res.status(403).json({ error: "Forbidden" });
-    //   return;
-    // }
-
+    const objectFile = await objectStorageService.getObjectEntityFile(objectPath);
     const response = await objectStorageService.downloadObject(objectFile);
 
     res.status(response.status);
     response.headers.forEach((value, key) => res.setHeader(key, value));
 
     if (response.body) {
-      const nodeStream = Readable.fromWeb(
-        response.body as ReadableStream<Uint8Array>,
-      );
+      const nodeStream = Readable.fromWeb(response.body as ReadableStream<Uint8Array>);
       nodeStream.pipe(res);
     } else {
       res.end();

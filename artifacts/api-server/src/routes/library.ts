@@ -1,10 +1,16 @@
-import { Router, type IRouter, type Request } from "express";
+import { Router, type IRouter, type Request, type Response } from "express";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { eq, and, gt } from "drizzle-orm";
 import { OAuth2Client } from "google-auth-library";
 import { sendPasswordResetEmail } from "../email.js";
+import {
+  createPresignedDownloadUrl,
+  deleteObjectFromB2,
+  isB2Configured,
+  isB2ObjectKey,
+} from "../lib/b2Storage.js";
 import {
   db,
   pool,
@@ -137,14 +143,15 @@ function publicUser(user: User) {
   };
 }
 
-function publicBook(row: typeof libraryBooks.$inferSelect): Book {
+function publicBook(row: typeof libraryBooks.$inferSelect, includeFileRef = true): Book {
   return {
     ...row,
+    fileUrl: includeFileRef ? row.fileUrl : null,
     available: runtimeAvailability.get(row.id) ?? row.available,
   };
 }
 
-function publicStudyNote(row: typeof libraryStudyNotes.$inferSelect) {
+function publicStudyNote(row: typeof libraryStudyNotes.$inferSelect, includeFileRef = true) {
   return {
     id: row.id,
     title: row.title,
@@ -152,7 +159,7 @@ function publicStudyNote(row: typeof libraryStudyNotes.$inferSelect) {
     type: row.type,
     status: row.status,
     description: row.description,
-    fileUrl: row.fileUrl,
+    fileUrl: includeFileRef ? row.fileUrl : null,
     submittedAt: row.submittedAt.toISOString(),
   };
 }
@@ -591,12 +598,95 @@ router.post("/auth/logout", async (req, res) => {
   return res.status(204).send();
 });
 
+const LOCAL_UPLOADS_DIR = path.resolve(process.cwd(), "uploads");
+
+async function deleteStoredFile(fileRef?: string | null): Promise<void> {
+  if (!fileRef) return;
+  if (isB2ObjectKey(fileRef)) {
+    await deleteObjectFromB2(fileRef);
+    return;
+  }
+  try {
+    const match = fileRef.match(/uploads\/file\/([^/]+)/);
+    if (match?.[1]) {
+      const fileDir = path.join(LOCAL_UPLOADS_DIR, match[1]);
+      if (fs.existsSync(fileDir)) {
+        fs.rmSync(fileDir, { recursive: true, force: true });
+      }
+    }
+  } catch (err) {
+    console.warn("Failed to delete local stored file:", err);
+  }
+}
+
+async function serveStoredObject({
+  req,
+  res,
+  fileRef,
+  download,
+  asJson = false,
+  fallbackFilename,
+}: {
+  req: Request;
+  res: Response;
+  fileRef: string;
+  download: boolean;
+  asJson?: boolean;
+  fallbackFilename?: string;
+}) {
+  const wantsJson = asJson || req.query.format === "json";
+
+  if (isB2ObjectKey(fileRef)) {
+    if (!isB2Configured()) {
+      return res.status(503).json({ error: "Backblaze B2 storage is not configured." });
+    }
+    const signed = await createPresignedDownloadUrl(fileRef, {
+      expiresInSeconds: 300,
+      download,
+      filename: fallbackFilename,
+    });
+    res.setHeader("Cache-Control", "private, no-store, max-age=0");
+    if (wantsJson) {
+      return res.json(signed);
+    }
+    return res.redirect(302, signed.url);
+  }
+
+  if (/^https?:\/\//i.test(fileRef)) {
+    if (wantsJson) {
+      return res.json({ url: fileRef, expiresIn: null, objectKey: null, filename: fallbackFilename || "file" });
+    }
+    return res.redirect(302, fileRef);
+  }
+
+  const match = fileRef.match(/uploads\/file\/([^/]+)\/([^/?]+)/);
+  if (!match?.[1] || !match?.[2]) {
+    return res.status(404).json({ error: "Stored file could not be resolved." });
+  }
+  const fileId = match[1].replace(/[^a-zA-Z0-9_-]/g, "");
+  const decoded = path.basename(decodeURIComponent(match[2]));
+  const targetPath = path.join(LOCAL_UPLOADS_DIR, fileId, decoded);
+  if (!fileId || !decoded || !fs.existsSync(targetPath)) {
+    return res.status(404).json({ error: "File not found." });
+  }
+  if (wantsJson) {
+    const legacyUrl = `/api/storage/uploads/file/${fileId}/${encodeURIComponent(decoded)}${download ? "?download=1" : ""}`;
+    return res.json({ url: legacyUrl, expiresIn: null, objectKey: null, filename: decoded });
+  }
+  if (download) {
+    return res.download(targetPath, decoded);
+  }
+  res.setHeader("Content-Disposition", `inline; filename="${encodeURIComponent(decoded)}"`);
+  return res.sendFile(targetPath);
+}
+
 router.get("/books", async (req, res) => {
   const parsed = ListBooksQueryParams.safeParse(req.query);
   const query = parsed.success ? parsed.data : { search: "", category: "", type: "all" as const };
   const search = (query.search ?? "").toLowerCase();
+  const isAuthed = Boolean(currentUser(req));
   const rows = await db.select().from(libraryBooks);
-  const filtered = rows.map(publicBook).filter((book) => {
+  const filtered = rows.map((row) => publicBook(row, isAuthed)).filter((book) => {
     const matchesSearch = !search || `${book.title} ${book.author} ${book.category}`.toLowerCase().includes(search);
     const matchesCategory = !query.category || book.category === query.category;
     const matchesType = query.type === "all" || book.type === query.type;
@@ -606,14 +696,94 @@ router.get("/books", async (req, res) => {
 });
 
 router.get("/books/:id", async (req, res) => {
+  const isAuthed = Boolean(currentUser(req));
   const book = await getBookById(Number(req.params.id));
-  return book ? res.json(book) : res.status(404).json({ error: "Book not found." });
+  if (!book) return res.status(404).json({ error: "Book not found." });
+  return res.json({ ...book, fileUrl: isAuthed ? book.fileUrl : null });
+});
+
+/**
+ * GET /books/:id/cover
+ * Serves book cover thumbnails via short-lived Backblaze B2 presigned URL (or legacy local fallback).
+ */
+router.get("/books/:id/cover", async (req, res) => {
+  const book = await getBookById(Number(req.params.id));
+  if (!book || !book.coverUrl) {
+    return res.status(404).json({ error: "Book cover not found." });
+  }
+  try {
+    return await serveStoredObject({
+      req,
+      res,
+      fileRef: book.coverUrl,
+      download: false,
+    });
+  } catch (err) {
+    req.log.error({ err }, "Failed to serve book cover");
+    return res.status(500).json({ error: "Failed to load book cover." });
+  }
+});
+
+/**
+ * GET /books/:id/file
+ * Authorized-only endpoint for reading or downloading softcopy book PDFs via temporary B2 presigned URLs.
+ */
+router.get("/books/:id/file", async (req, res) => {
+  const user = requireUser(req, res);
+  if (!user) return;
+
+  const book = await getBookById(Number(req.params.id));
+  if (!book || !book.fileUrl) {
+    return res.status(404).json({ error: "Book file not found." });
+  }
+
+  const isDownload = req.query.download === "1" || req.query.download === "true";
+  try {
+    return await serveStoredObject({
+      req,
+      res,
+      fileRef: book.fileUrl,
+      download: isDownload,
+    });
+  } catch (err) {
+    req.log.error({ err }, "Failed to generate book access URL");
+    return res.status(500).json({ error: "Failed to access book file." });
+  }
+});
+
+/**
+ * GET /books/:id/download-url
+ * Returns a JSON payload containing a temporary presigned download URL for authorized members/admins.
+ */
+router.get("/books/:id/download-url", async (req, res) => {
+  const user = requireUser(req, res);
+  if (!user) return;
+
+  const book = await getBookById(Number(req.params.id));
+  if (!book || !book.fileUrl) {
+    return res.status(404).json({ error: "Book file not found." });
+  }
+
+  const isDownload = req.query.download !== "0" && req.query.download !== "false";
+  try {
+    return await serveStoredObject({
+      req,
+      res,
+      fileRef: book.fileUrl,
+      download: isDownload,
+      asJson: true,
+    });
+  } catch (err) {
+    req.log.error({ err }, "Failed to generate presigned download URL");
+    return res.status(500).json({ error: "Failed to generate temporary download URL." });
+  }
 });
 
 router.post("/books", async (req, res) => {
   if (!requireAdmin(req, res)) return;
   const parsed = CreateBookBody.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "Complete the required book fields." });
+  const fileUrl = parsed.data.type === "softcopy" ? (parsed.data.fileUrl ?? null) : null;
   const [row] = await db
     .insert(libraryBooks)
     .values({
@@ -622,7 +792,7 @@ router.post("/books", async (req, res) => {
       publisher: parsed.data.publisher ?? null,
       year: parsed.data.year ?? null,
       coverUrl: parsed.data.coverUrl ?? null,
-      fileUrl: parsed.data.fileUrl ?? null,
+      fileUrl,
       available: parsed.data.total,
       featured: parsed.data.featured ?? false,
     })
@@ -641,6 +811,9 @@ router.put("/books/:id", async (req, res) => {
   const available = typeof req.body?.available === "number"
     ? Math.max(0, Math.min(parsed.data.total, req.body.available))
     : Math.min(existing.available, parsed.data.total);
+  const nextCoverUrl = parsed.data.coverUrl ?? null;
+  const nextFileUrl = parsed.data.type === "softcopy" ? (parsed.data.fileUrl ?? null) : null;
+
   const [row] = await db
     .update(libraryBooks)
     .set({
@@ -648,13 +821,21 @@ router.put("/books/:id", async (req, res) => {
       isbn: parsed.data.isbn ?? null,
       publisher: parsed.data.publisher ?? null,
       year: parsed.data.year ?? null,
-      coverUrl: parsed.data.coverUrl ?? null,
-      fileUrl: parsed.data.fileUrl ?? null,
+      coverUrl: nextCoverUrl,
+      fileUrl: nextFileUrl,
       available,
       featured: parsed.data.featured ?? false,
     })
     .where(eq(libraryBooks.id, id))
     .returning();
+
+  if (existing.coverUrl && existing.coverUrl !== nextCoverUrl) {
+    await deleteStoredFile(existing.coverUrl);
+  }
+  if (existing.fileUrl && existing.fileUrl !== nextFileUrl) {
+    await deleteStoredFile(existing.fileUrl);
+  }
+
   runtimeAvailability.set(row.id, available);
   return res.json(publicBook(row));
 });
@@ -678,8 +859,6 @@ router.put("/books/:id/availability", async (req, res) => {
   return res.json(publicBook(row));
 });
 
-const LOCAL_UPLOADS_DIR = path.resolve(process.cwd(), 'uploads');
-
 router.delete("/books/:id", async (req, res) => {
   if (!requireAdmin(req, res)) return;
   const id = Number(req.params.id);
@@ -690,22 +869,10 @@ router.delete("/books/:id", async (req, res) => {
     .limit(1);
   if (!book) return res.status(404).json({ error: "Book not found." });
 
-  // Delete attached cover and book files from disk if stored locally
-  for (const url of [book.coverUrl, book.fileUrl]) {
-    if (url) {
-      try {
-        const match = url.match(/uploads\/file\/([^/]+)/);
-        if (match && match[1]) {
-          const fileDir = path.join(LOCAL_UPLOADS_DIR, match[1]);
-          if (fs.existsSync(fileDir)) {
-            fs.rmSync(fileDir, { recursive: true, force: true });
-          }
-        }
-      } catch (err) {
-        console.warn("Failed to delete book file from disk:", err);
-      }
-    }
-  }
+  await Promise.all([
+    deleteStoredFile(book.coverUrl),
+    deleteStoredFile(book.fileUrl),
+  ]);
 
   await db
     .delete(libraryBooks)
@@ -1004,7 +1171,7 @@ router.get("/study-notes", async (req, res) => {
   const search = parsed.success ? (parsed.data.search ?? "").toLowerCase() : "";
   const user = currentUser(req);
   const rows = await db.select().from(libraryStudyNotes);
-  const notes = rows.map(publicStudyNote);
+  const notes = rows.map((row) => publicStudyNote(row, Boolean(user)));
   return res.json(
     notes.filter(
       (note) =>
@@ -1013,6 +1180,42 @@ router.get("/study-notes", async (req, res) => {
           `${note.title} ${note.author}`.toLowerCase().includes(search)),
     ),
   );
+});
+
+/**
+ * GET /study-notes/:id/file
+ * Authorized-only endpoint for viewing or downloading study notes via temporary B2 presigned URLs.
+ */
+router.get("/study-notes/:id/file", async (req, res) => {
+  const user = requireUser(req, res);
+  if (!user) return;
+
+  const id = Number(req.params.id);
+  const [note] = await db
+    .select()
+    .from(libraryStudyNotes)
+    .where(eq(libraryStudyNotes.id, id))
+    .limit(1);
+  if (!note || !note.fileUrl) {
+    return res.status(404).json({ error: "Study note file not found." });
+  }
+
+  if (note.status !== "approved" && user.role !== "admin" && note.authorUserId !== user.id) {
+    return res.status(403).json({ error: "You are not authorized to access this study note." });
+  }
+
+  const isDownload = req.query.download === "1" || req.query.download === "true";
+  try {
+    return await serveStoredObject({
+      req,
+      res,
+      fileRef: note.fileUrl,
+      download: isDownload,
+    });
+  } catch (err) {
+    req.log.error({ err }, "Failed to access study note file");
+    return res.status(500).json({ error: "Failed to access study note file." });
+  }
 });
 
 router.post("/study-notes", async (req, res) => {
@@ -1086,20 +1289,7 @@ const handleDeleteStudyNote = async (req: Request, res: Response) => {
     .limit(1);
   if (!existing) return res.status(404).json({ error: "Study note not found." });
 
-  // Clean up attached study note file from disk if present
-  if (existing.fileUrl) {
-    try {
-      const match = existing.fileUrl.match(/uploads\/file\/([^/]+)/);
-      if (match && match[1]) {
-        const fileDir = path.join(LOCAL_UPLOADS_DIR, match[1]);
-        if (fs.existsSync(fileDir)) {
-          fs.rmSync(fileDir, { recursive: true, force: true });
-        }
-      }
-    } catch (err) {
-      console.warn("Failed to delete attached study note file from disk:", err);
-    }
-  }
+  await deleteStoredFile(existing.fileUrl);
 
   await db
     .delete(libraryStudyNotes)
